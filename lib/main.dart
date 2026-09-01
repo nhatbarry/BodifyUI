@@ -1,0 +1,91 @@
+import 'package:flutter/material.dart';
+
+import 'common/colo_extension.dart';
+import 'core/app_locale.dart';
+import 'services/auth_service.dart';
+import 'view/main_tab/main_tab_view.dart';
+import 'view/on_boarding/started_view.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Load the saved language before the first frame so the app never flashes
+  // the wrong one.
+  await LocaleController.instance.load();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Rebuilds the whole tree when the language changes, so every screen picks
+    // up the new strings without being individually subscribed.
+    return AnimatedBuilder(
+      animation: LocaleController.instance,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'Bodify',
+          debugShowCheckedModeBanner: false,
+          locale: LocaleController.instance.locale,
+          theme: ThemeData(
+            primaryColor: TColor.primaryColor1,
+            // Be Vietnam Pro: covers the full Vietnamese character set, which
+            // the kit's bundled Poppins does not.
+            fontFamily: "BeVietnamPro",
+          ),
+          home: const AuthGate(),
+        );
+      },
+    );
+  }
+}
+
+/// Decides where the app opens: straight into the app for a user whose stored
+/// session still works, otherwise onboarding.
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late Future<bool> _bootstrap;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap = _restore();
+  }
+
+  Future<bool> _restore() async {
+    try {
+      final user = await AuthService.instance.restoreSession();
+      return user != null;
+    } catch (_) {
+      // Offline or backend down: fall back to onboarding rather than hanging
+      // on the splash screen.
+      return false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _bootstrap,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Scaffold(
+            backgroundColor: TColor.white,
+            body: Center(
+              child: CircularProgressIndicator(color: TColor.primaryColor1),
+            ),
+          );
+        }
+
+        return snapshot.data == true ? const MainTabView() : const StartedView();
+      },
+    );
+  }
+}
