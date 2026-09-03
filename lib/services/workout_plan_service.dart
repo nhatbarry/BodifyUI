@@ -244,6 +244,27 @@ class WorkoutPlanService {
     return PlannedExercise.fromJson(_decode(response) as Map<String, dynamic>);
   }
 
+  /// PUT /workout-plans/{id}/dates/{date}/rest
+  ///
+  /// Ticking an empty date creates the day; unticking removes it again, so a
+  /// date never ends up as a day with no exercises and no meaning. Answers
+  /// null when the date is left with nothing on it.
+  Future<WorkoutDayDetail?> setDateRestDay(
+    int planId,
+    DateTime date,
+    bool isRestDay,
+  ) async {
+    final response = await _send((token) => _client.put(
+          ApiConfig.path('/workout-plans/$planId/dates/${apiDate(date)}/rest'),
+          headers: _authJson(token),
+          body: jsonEncode({'is_rest_day': isRestDay}),
+        ));
+    final json = _decode(response);
+    return json == null
+        ? null
+        : WorkoutDayDetail.fromJson(json as Map<String, dynamic>);
+  }
+
   // ── Target sets ──────────────────────────────────────────────────────────
 
   /// POST /workout-exercises/{id}/sets - appends one set.

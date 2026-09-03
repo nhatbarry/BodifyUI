@@ -188,3 +188,46 @@ class WorkoutSession {
             .toList(),
       );
 }
+
+
+/// Totals across a stretch of completed sessions, aggregated by the server.
+///
+/// The client never adds these up itself: doing so would mean pulling every
+/// set of every session to render one summary line.
+class HistoryTotals {
+  final int sessionCount;
+  final int totalDurationSeconds;
+  final int totalSets;
+  final int totalReps;
+  final double totalVolumeKg;
+
+  const HistoryTotals({
+    required this.sessionCount,
+    required this.totalDurationSeconds,
+    required this.totalSets,
+    required this.totalReps,
+    required this.totalVolumeKg,
+  });
+
+  factory HistoryTotals.fromJson(Map<String, dynamic> json) => HistoryTotals(
+        sessionCount: json['session_count'] as int,
+        totalDurationSeconds: json['total_duration_seconds'] as int,
+        totalSets: json['total_sets'] as int,
+        totalReps: json['total_reps'] as int,
+        totalVolumeKg: double.tryParse('${json['total_volume_kg']}') ?? 0,
+      );
+}
+
+class WorkoutHistory {
+  final HistoryTotals totals;
+  final List<WorkoutSession> items;
+
+  const WorkoutHistory({required this.totals, required this.items});
+
+  factory WorkoutHistory.fromJson(Map<String, dynamic> json) => WorkoutHistory(
+        totals: HistoryTotals.fromJson(json['totals'] as Map<String, dynamic>),
+        items: (json['items'] as List<dynamic>? ?? const [])
+            .map((e) => WorkoutSession.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
