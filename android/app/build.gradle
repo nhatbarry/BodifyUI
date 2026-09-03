@@ -7,7 +7,11 @@ plugins {
 
 android {
     namespace = "com.codeforany.fitness"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned rather than following flutter.compileSdkVersion: the
+    // flutter_secure_storage plugin, which holds the auth tokens, requires 37
+    // and the Flutter SDK still defaults lower. Android SDK Platform 37 is
+    // installed locally; CI needs it too.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

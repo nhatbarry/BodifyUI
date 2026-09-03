@@ -119,6 +119,22 @@ class WorkoutSessionService {
     return null;
   }
 
+  /// GET /workout-history - completed sessions over a period, with totals.
+  ///
+  /// Only completed sessions: one abandoned halfway is not a workout, and
+  /// counting it would understate every average on the screen.
+  Future<WorkoutHistory> history({DateTime? from, DateTime? to}) async {
+    final response = await _send((token) => _client.get(
+          ApiConfig.path('/workout-history').replace(queryParameters: {
+            if (from != null) 'from': apiDate(from),
+            if (to != null) 'to': apiDate(to),
+            'limit': '50',
+          }),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    return WorkoutHistory.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
   /// POST /workout-sessions - start training.
   ///
   /// Passing the day copies its exercises and target sets in, so the screen

@@ -1,8 +1,9 @@
 import 'package:dotted_dashed_line/dotted_dashed_line.dart';
 import 'package:bodify/common_widget/round_button.dart';
-import 'package:bodify/common_widget/workout_row.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+
+import '../../common_widget/latest_workout_section.dart';
 import 'package:simple_animation_progress_bar/simple_animation_progress_bar.dart';
 import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
 import '../../common/app_colors.dart';
@@ -12,7 +13,6 @@ import '../../models/body_metric.dart';
 import '../../services/body_metric_service.dart';
 import '../body_metrics/bmi_view.dart';
 import 'activity_tracker_view.dart';
-import 'finished_workout_view.dart';
 import 'notification_view.dart';
 
 class HomeView extends StatefulWidget {
@@ -49,29 +49,6 @@ class _HomeViewState extends State<HomeView> {
     _loadLatestMetric();
   }
 
-  List lastWorkoutArr = [
-    {
-      "name": "Full Body Workout",
-      "image": "assets/img/Workout1.png",
-      "kcal": "180",
-      "time": "20",
-      "progress": 0.3
-    },
-    {
-      "name": "Lower Body Workout",
-      "image": "assets/img/Workout2.png",
-      "kcal": "200",
-      "time": "30",
-      "progress": 0.4
-    },
-    {
-      "name": "Ab Workout",
-      "image": "assets/img/Workout3.png",
-      "kcal": "300",
-      "time": "40",
-      "progress": 0.7
-    },
-  ];
   List<int> showingTooltipOnSpots = [21];
 
   List<FlSpot> get allSpots => const [
@@ -937,47 +914,7 @@ class _HomeViewState extends State<HomeView> {
                 SizedBox(
                   height: media.width * 0.05,
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Latest Workout",
-                      style: TextStyle(
-                          color: context.colors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700),
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        "See More",
-                        style: TextStyle(
-                            color: context.colors.textSecondary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    )
-                  ],
-                ),
-                ListView.builder(
-                    padding: EdgeInsets.zero,
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: lastWorkoutArr.length,
-                    itemBuilder: (context, index) {
-                      var wObj = lastWorkoutArr[index] as Map? ?? {};
-                      return InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const FinishedWorkoutView(),
-                              ),
-                            );
-                          },
-                          child: WorkoutRow(wObj: wObj));
-                    }),
+                const LatestWorkoutSection(),
                 SizedBox(
                   height: media.width * 0.1,
                 ),

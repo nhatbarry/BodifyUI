@@ -49,6 +49,7 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
   bool _loadingMonth = true;
   bool _loadingDay = false;
   bool _busySession = false;
+  bool _busyRest = false;
   String? _error;
 
   @override
@@ -470,6 +471,75 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
     );
   }
 
+  bool get _isRestDay => _selectedDay?.isRestDay ?? false;
+
+  /// "This is a rest day" for the selected date.
+  ///
+  /// Disabled once the date has exercises: a day cannot be both, and the
+  /// backend answers 409 rather than silently discarding the work. Showing it
+  /// greyed out with a reason is kinder than letting the tap fail.
+  Widget _buildRestDayToggle() {
+    final colors = context.colors;
+    final hasExercises = (_selectedDay?.exercises ?? const []).isNotEmpty;
+    final enabled = !_loadingDay && !_busyRest && !hasExercises;
+
+    return Tooltip(
+      message: hasExercises ? tr('restDayBlocked') : tr('restDay'),
+      child: InkWell(
+        onTap: enabled ? () => _toggleRestDay(!_isRestDay) : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: _isRestDay,
+                  onChanged:
+                      enabled ? (v) => _toggleRestDay(v ?? false) : null,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  activeColor: colors.primary1,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Text(
+                tr('restDay'),
+                style: TextStyle(
+                  color: enabled ? colors.textSecondary : colors.textSecondary
+                      .withValues(alpha: 0.45),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleRestDay(bool value) async {
+    setState(() => _busyRest = true);
+    try {
+      final day = await WorkoutPlanService.instance
+          .setDateRestDay(widget.plan.planId, _selectedDate, value);
+      if (!mounted) return;
+      setState(() {
+        _selectedDay = day;
+        _busyRest = false;
+      });
+      // Unticking removes the date entirely, so the month grid's dot for it
+      // has to go too.
+      _loadMonth();
+    } catch (e) {
+      if (mounted) setState(() => _busyRest = false);
+      _showError(e);
+    }
+  }
+
   /// Start / finish, shown on today only.
   ///
   /// A workout is something you do now: there is no sense in "starting" a
@@ -597,8 +667,9 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
                     fontWeight: FontWeight.w700),
               ),
             ),
+            _buildRestDayToggle(),
             TextButton.icon(
-              onPressed: _loadingDay ? null : _editExercises,
+              onPressed: _loadingDay || _isRestDay ? null : _editExercises,
               icon: Icon(Icons.add, size: 18, color: colors.primary1),
               label: Text(
                 exercises.isEmpty ? tr('addExercises') : tr('editExercises'),
