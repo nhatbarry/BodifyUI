@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:flutter/material.dart';
 import 'package:readmore/readmore.dart';
@@ -60,7 +60,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
     var media = MediaQuery.of(context).size;
     return Container(
       decoration:
-          BoxDecoration(gradient: LinearGradient(colors: TColor.primaryG)),
+          BoxDecoration(gradient: LinearGradient(colors: context.colors.primaryGradient)),
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -78,7 +78,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                   width: 40,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                      color: TColor.lightGray,
+                      color: context.colors.surfaceVariant,
                       borderRadius: BorderRadius.circular(10)),
                   child: Image.asset(
                     "assets/img/black_btn.png",
@@ -97,7 +97,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                     width: 40,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                        color: TColor.lightGray,
+                        color: context.colors.surfaceVariant,
                         borderRadius: BorderRadius.circular(10)),
                     child: Image.asset(
                       "assets/img/more_btn.png",
@@ -152,7 +152,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
         },
         body: Container(
           decoration: BoxDecoration(
-              color: TColor.white,
+              color: context.colors.surface,
               borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(25), topRight: Radius.circular(25))),
           child: Scaffold(
@@ -173,7 +173,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                             width: 50,
                             height: 4,
                             decoration: BoxDecoration(
-                                color: TColor.gray.withOpacity(0.3),
+                                color: context.colors.textSecondary.withOpacity(0.3),
                                 borderRadius: BorderRadius.circular(3)),
                           ),
                         ],
@@ -193,14 +193,14 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                                   Text(
                                     widget.dObj["name"].toString(),
                                     style: TextStyle(
-                                        color: TColor.black,
+                                        color: context.colors.textPrimary,
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700),
                                   ),
                                   Text(
                                     "by James Ruth",
                                     style: TextStyle(
-                                        color: TColor.gray, fontSize: 12),
+                                        color: context.colors.textSecondary, fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -225,7 +225,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                         child: Text(
                           "Nutrition",
                           style: TextStyle(
-                              color: TColor.black,
+                              color: context.colors.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w700),
                         ),
@@ -247,8 +247,8 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                                   decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
-                                          TColor.primaryColor2.withOpacity(0.4),
-                                          TColor.primaryColor1.withOpacity(0.4)
+                                          context.colors.primary2.withOpacity(0.4),
+                                          context.colors.primary1.withOpacity(0.4)
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(10)),
@@ -268,7 +268,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                                         child: Text(
                                           nObj["title"].toString(),
                                           style: TextStyle(
-                                              color: TColor.black,
+                                              color: context.colors.textPrimary,
                                               fontSize: 12),
                                         ),
                                       )
@@ -284,7 +284,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                         child: Text(
                           "Descriptions",
                           style: TextStyle(
-                              color: TColor.black,
+                              color: context.colors.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w700),
                         ),
@@ -297,12 +297,12 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                         child: ReadMoreText(
                           'Pancakes are some people\'s favorite breakfast, who doesn\'t like pancakes? Especially with the real honey splash on top of the pancakes, of course everyone loves that! besides being Pancakes are some people\'s favorite breakfast, who doesn\'t like pancakes? Especially with the real honey splash on top of the pancakes, of course everyone loves that! besides being',
                           trimLines: 4,
-                          colorClickableText: TColor.black,
+                          colorClickableText: context.colors.textPrimary,
                           trimMode: TrimMode.Line,
                           trimCollapsedText: ' Read More ...',
                           trimExpandedText: ' Read Less',
                           style: TextStyle(
-                            color: TColor.gray,
+                            color: context.colors.textSecondary,
                             fontSize: 12,
                           ),
                           moreStyle: const TextStyle(
@@ -320,7 +320,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                             Text(
                               "Ingredients That You\nWill Need",
                               style: TextStyle(
-                                  color: TColor.black,
+                                  color: context.colors.textPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700),
                             ),
@@ -329,7 +329,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                               child: Text(
                                 "${stepArr.length} Items",
                                 style:
-                                    TextStyle(color: TColor.gray, fontSize: 12),
+                                    TextStyle(color: context.colors.textSecondary, fontSize: 12),
                               ),
                             )
                           ],
@@ -357,7 +357,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                                         width: media.width * 0.23,
                                         height: media.width * 0.23,
                                         decoration: BoxDecoration(
-                                            color: TColor.lightGray,
+                                            color: context.colors.surfaceVariant,
                                             borderRadius:
                                                 BorderRadius.circular(10)),
                                         alignment: Alignment.center,
@@ -374,12 +374,12 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                                       Text(
                                         nObj["title"].toString(),
                                         style: TextStyle(
-                                            color: TColor.black, fontSize: 12),
+                                            color: context.colors.textPrimary, fontSize: 12),
                                       ),
                                       Text(
                                         nObj["value"].toString(),
                                         style: TextStyle(
-                                            color: TColor.gray, fontSize: 10),
+                                            color: context.colors.textSecondary, fontSize: 10),
                                       ),
                                     ],
                                   ));
@@ -393,7 +393,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                             Text(
                               "Step by Step",
                               style: TextStyle(
-                                  color: TColor.black,
+                                  color: context.colors.textPrimary,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700),
                             ),
@@ -402,7 +402,7 @@ class _FoodInfoDetailsViewState extends State<FoodInfoDetailsView> {
                               child: Text(
                                 "${stepArr.length} Steps",
                                 style:
-                                    TextStyle(color: TColor.gray, fontSize: 12),
+                                    TextStyle(color: context.colors.textSecondary, fontSize: 12),
                               ),
                             )
                           ],

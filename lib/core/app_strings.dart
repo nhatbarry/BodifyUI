@@ -51,6 +51,10 @@ class AppStrings {
     // Profile
     'profile': 'Hồ sơ',
     'language': 'Ngôn ngữ',
+    'appearance': 'Giao diện',
+    'themeLight': 'Sáng',
+    'themeDark': 'Tối',
+    'themeSystem': 'Theo hệ thống',
     'logout': 'Đăng xuất',
     'logoutConfirm': 'Bạn có chắc muốn đăng xuất?',
     'cancel': 'Huỷ',
@@ -131,6 +135,10 @@ class AppStrings {
 
     'profile': 'Profile',
     'language': 'Language',
+    'appearance': 'Appearance',
+    'themeLight': 'Light',
+    'themeDark': 'Dark',
+    'themeSystem': 'System',
     'logout': 'Log out',
     'logoutConfirm': 'Are you sure you want to log out?',
     'cancel': 'Cancel',

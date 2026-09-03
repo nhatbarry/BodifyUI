@@ -1,5 +1,5 @@
 
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class TodayTargetCell extends StatelessWidget {
@@ -14,7 +14,7 @@ class TodayTargetCell extends StatelessWidget {
       height: 70,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: TColor.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
@@ -37,7 +37,7 @@ class TodayTargetCell extends StatelessWidget {
                 blendMode: BlendMode.srcIn,
                 shaderCallback: (bounds) {
                   return LinearGradient(
-                          colors: TColor.primaryG,
+                          colors: context.colors.primaryGradient,
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight)
                       .createShader(
@@ -46,7 +46,7 @@ class TodayTargetCell extends StatelessWidget {
                 child: Text(
                   value,
                   style: TextStyle(
-                      color: TColor.white.withOpacity(0.7),
+                      color: context.colors.surface.withOpacity(0.7),
                       fontWeight: FontWeight.w700,
                       fontSize: 14),
                 ),
@@ -54,7 +54,7 @@ class TodayTargetCell extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 12,
                 ),
               ),

@@ -1,7 +1,7 @@
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:flutter/material.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 
 class WhatTrainRow extends StatelessWidget {
   final Map wObj;
@@ -12,15 +12,15 @@ class WhatTrainRow extends StatelessWidget {
     return Container(
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(15),
         ),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
           decoration: BoxDecoration(
             gradient: LinearGradient(colors: [
-              TColor.primaryColor2.withOpacity(0.3),
-              TColor.primaryColor1.withOpacity(0.3)
+              context.colors.primary2.withOpacity(0.3),
+              context.colors.primary1.withOpacity(0.3)
             ]),
             borderRadius: BorderRadius.circular(15),
           ),
@@ -33,7 +33,7 @@ class WhatTrainRow extends StatelessWidget {
                     Text(
                       wObj["title"].toString(),
                       style: TextStyle(
-                          color: TColor.black,
+                          color: context.colors.textPrimary,
                           fontSize: 14,
                           fontWeight: FontWeight.w500),
                     ),
@@ -43,7 +43,7 @@ class WhatTrainRow extends StatelessWidget {
                     Text(
                       "${wObj["exercises"].toString()} | ${ wObj["time"].toString() }" ,
                       style: TextStyle(
-                        color: TColor.gray,
+                        color: context.colors.textSecondary,
                         fontSize: 12,
                       ),
                     ),

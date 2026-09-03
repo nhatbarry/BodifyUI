@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/view/on_boarding/on_boarding_view.dart';
 import 'package:flutter/material.dart';
 
@@ -18,13 +18,13 @@ class _StartedViewState extends State<StartedView> {
   Widget build(BuildContext context) {
     var media = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: Container(
           width: media.width,
           decoration: BoxDecoration(
             gradient: isChangeColor
                 ? LinearGradient(
-                    colors: TColor.primaryG,
+                    colors: context.colors.primaryGradient,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight)
                 : null,
@@ -36,14 +36,14 @@ class _StartedViewState extends State<StartedView> {
               Text(
                 "Bodify",
                 style: TextStyle(
-                    color: TColor.black,
+                    color: context.colors.textPrimary,
                     fontSize: 36,
                     fontWeight: FontWeight.w700),
               ),
               Text(
                 "Everybody Can Train",
                 style: TextStyle(
-                  color: TColor.gray,
+                  color: context.colors.textSecondary,
                   fontSize: 18,
                 ),
               ),

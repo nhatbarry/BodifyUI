@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 import 'exercises_row.dart';
 
 class ExercisesSetSection extends StatelessWidget {
@@ -22,7 +22,7 @@ class ExercisesSetSection extends StatelessWidget {
         Text(
           sObj["name"].toString(),
           style: TextStyle(
-              color: TColor.black, fontSize: 12, fontWeight: FontWeight.w500),
+              color: context.colors.textPrimary, fontSize: 12, fontWeight: FontWeight.w500),
         ),
         const SizedBox(
           height: 8,

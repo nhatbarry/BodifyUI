@@ -1,7 +1,7 @@
 import 'package:dotted_dashed_line/dotted_dashed_line.dart';
 import 'package:flutter/material.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 
 class FoodStepDetailRow extends StatelessWidget {
   final Map sObj;
@@ -22,7 +22,7 @@ class FoodStepDetailRow extends StatelessWidget {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: TColor.secondaryColor1,
+                color: context.colors.secondary1,
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
@@ -30,7 +30,7 @@ class FoodStepDetailRow extends StatelessWidget {
                 width: 18,
                 height: 18,
                 decoration: BoxDecoration(
-                  border: Border.all(color: TColor.white, width: 3),
+                  border: Border.all(color: context.colors.surface, width: 3),
                   borderRadius: BorderRadius.circular(9),
                 ),
               ),
@@ -39,7 +39,7 @@ class FoodStepDetailRow extends StatelessWidget {
               DottedDashedLine(
                   height: 50,
                   width: 0,
-                  dashColor: TColor.secondaryColor1,
+                  dashColor: context.colors.secondary1,
                   axis: Axis.vertical)
           ],
         ),
@@ -54,14 +54,14 @@ class FoodStepDetailRow extends StatelessWidget {
               Text(
                 "Step ${ sObj["no"].toString()}",
                 style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w500
                 ),
               ),
               Text(
                 sObj["detail"].toString(),
-                style: TextStyle(color: TColor.gray, fontSize: 12),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
               ),
             ],
           ),

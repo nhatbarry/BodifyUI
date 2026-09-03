@@ -2,7 +2,7 @@ import 'package:bodify/common_widget/on_boarding_page.dart';
 import 'package:bodify/view/login/signup_view.dart';
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 
 class OnBoardingView extends StatefulWidget {
   const OnBoardingView({super.key});
@@ -60,7 +60,7 @@ class _OnBoardingViewState extends State<OnBoardingView> {
   Widget build(BuildContext context) {
 
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: Stack(
         alignment: Alignment.bottomRight,
         children: [
@@ -83,7 +83,7 @@ class _OnBoardingViewState extends State<OnBoardingView> {
                   width: 70,
                   height: 70,
                   child: CircularProgressIndicator(
-                    color: TColor.primaryColor1,
+                    color: context.colors.primary1,
                     value: (selectPage + 1) / 4 ,
                     strokeWidth: 2,
                   ),
@@ -93,8 +93,8 @@ class _OnBoardingViewState extends State<OnBoardingView> {
                   margin: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
                   width: 60,
                   height: 60,
-                  decoration: BoxDecoration(color: TColor.primaryColor1, borderRadius: BorderRadius.circular(35)),
-                  child: IconButton(icon: Icon( Icons.navigate_next, color: TColor.white, ), onPressed: (){
+                  decoration: BoxDecoration(color: context.colors.primary1, borderRadius: BorderRadius.circular(35)),
+                  child: IconButton(icon: Icon( Icons.navigate_next, color: context.colors.surface, ), onPressed: (){
           
                       if(selectPage < 3) {
           

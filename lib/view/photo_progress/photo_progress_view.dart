@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../common_widget/round_button.dart';
 import 'comparison_view.dart';
 
@@ -38,7 +38,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
     var media = MediaQuery.of(context).size;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         centerTitle: true,
         elevation: 0,
         leadingWidth: 0,
@@ -46,7 +46,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
         title: Text(
           "Progress Photo",
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
         actions: [
           InkWell(
@@ -57,7 +57,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
               width: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: TColor.lightGray,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10)),
               child: Image.asset(
                 "assets/img/more_btn.png",
@@ -69,7 +69,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
           )
         ],
       ),
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +90,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                              color: TColor.white,
+                              color: context.colors.surface,
                               borderRadius: BorderRadius.circular(30)),
                           width: 50,
                           height: 50,
@@ -118,7 +118,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                                 Text(
                                   "Next Photos Fall On July 08",
                                   style: TextStyle(
-                                      color: TColor.black,
+                                      color: context.colors.textPrimary,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700),
                                 ),
@@ -131,7 +131,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                                 onPressed: () {},
                                 icon: Icon(
                                   Icons.close,
-                                  color: TColor.gray,
+                                  color: context.colors.textSecondary,
                                   size: 15,
                                 )))
                       ],
@@ -147,8 +147,8 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                     height: media.width * 0.4,
                     decoration: BoxDecoration(
                         gradient: LinearGradient(colors: [
-                          TColor.primaryColor2.withOpacity(0.4),
-                          TColor.primaryColor1.withOpacity(0.4)
+                          context.colors.primary2.withOpacity(0.4),
+                          context.colors.primary1.withOpacity(0.4)
                         ]),
                         borderRadius: BorderRadius.circular(20)),
                     child: Row(
@@ -163,7 +163,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                               Text(
                                 "Track Your Progress Each\nMonth With Photo",
                                 style: TextStyle(
-                                  color: TColor.black,
+                                  color: context.colors.textPrimary,
                                   fontSize: 12,
                                 ),
                               ),
@@ -193,7 +193,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                   padding:
                       const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
                   decoration: BoxDecoration(
-                    color: TColor.primaryColor2.withOpacity(0.3),
+                    color: context.colors.primary2.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Row(
@@ -202,7 +202,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                       Text(
                         "Compare my Photo",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500),
                       ),
@@ -237,7 +237,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                       Text(
                         "Gallery",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w700),
                       ),
@@ -245,7 +245,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                           onPressed: () {},
                           child: Text(
                             "See more",
-                            style: TextStyle(color: TColor.gray, fontSize: 12),
+                            style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                           ))
                     ],
                   ),
@@ -267,7 +267,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                             child: Text(
                               pObj["time"].toString(),
                               style:
-                                  TextStyle(color: TColor.gray, fontSize: 12),
+                                  TextStyle(color: context.colors.textSecondary, fontSize: 12),
                             ),
                           ),
                           SizedBox(
@@ -282,7 +282,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
                                       const EdgeInsets.symmetric(horizontal: 4),
                                   width: 100,
                                   decoration: BoxDecoration(
-                                    color: TColor.lightGray,
+                                    color: context.colors.surfaceVariant,
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: ClipRRect(
@@ -324,7 +324,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
           width: 55,
           height: 55,
           decoration: BoxDecoration(
-              gradient: LinearGradient(colors: TColor.secondaryG),
+              gradient: LinearGradient(colors: context.colors.secondaryGradient),
               borderRadius: BorderRadius.circular(27.5),
               boxShadow: const [
                 BoxShadow(
@@ -334,7 +334,7 @@ class _PhotoProgressViewState extends State<PhotoProgressView> {
           child: Icon(
             Icons.photo_camera,
             size: 20,
-            color: TColor.white,
+            color: context.colors.surface,
           ),
         ),
       ),

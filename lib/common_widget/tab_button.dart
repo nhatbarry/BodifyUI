@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class TabButton extends StatelessWidget {
@@ -31,7 +31,7 @@ class TabButton extends StatelessWidget {
           Icon(
             iconData,
             size: 25,
-            color: isActive ? TColor.primaryColor1 : TColor.gray,
+            color: isActive ? context.colors.primary1 : context.colors.textSecondary,
           )
         else
           Image.asset(isActive ? selectIcon! : icon!,
@@ -45,7 +45,7 @@ class TabButton extends StatelessWidget {
           height: 4,
           decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: TColor.secondaryG,
+                colors: context.colors.secondaryGradient,
               ),
               borderRadius: BorderRadius.circular(2)),
         )

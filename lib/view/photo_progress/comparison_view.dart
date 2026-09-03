@@ -3,7 +3,7 @@ import 'package:bodify/common_widget/round_button.dart';
 import 'package:bodify/view/photo_progress/result_view.dart';
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 
 class ComparisonView extends StatefulWidget {
   const ComparisonView({super.key});
@@ -17,7 +17,7 @@ class _ComparisonViewState extends State<ComparisonView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         centerTitle: true,
         elevation: 0,
         leading: InkWell(
@@ -30,7 +30,7 @@ class _ComparisonViewState extends State<ComparisonView> {
             width: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: TColor.lightGray,
+                color: context.colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(10)),
             child: Image.asset(
               "assets/img/black_btn.png",
@@ -43,7 +43,7 @@ class _ComparisonViewState extends State<ComparisonView> {
         title: Text(
           "Comparison",
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
         actions: [
           InkWell(
@@ -54,7 +54,7 @@ class _ComparisonViewState extends State<ComparisonView> {
               width: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: TColor.lightGray,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10)),
               child: Image.asset(
                 "assets/img/more_btn.png",
@@ -66,7 +66,7 @@ class _ComparisonViewState extends State<ComparisonView> {
           )
         ],
       ),
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
         child: Column(
@@ -76,7 +76,7 @@ class _ComparisonViewState extends State<ComparisonView> {
                 title: "Select Month 1",
                 time: "May",
                 onPressed: () {},
-                color: TColor.lightGray),
+                color: context.colors.surfaceVariant),
             const SizedBox(
               height: 15,
             ),
@@ -85,7 +85,7 @@ class _ComparisonViewState extends State<ComparisonView> {
                 title: "Select Month 2",
                 time: "select Month",
                 onPressed: () {},
-                color: TColor.lightGray),
+                color: context.colors.surfaceVariant),
             const Spacer(),
             RoundButton(
                 title: "Compare",

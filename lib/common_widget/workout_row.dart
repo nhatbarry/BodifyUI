@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:simple_animation_progress_bar/simple_animation_progress_bar.dart';
 
@@ -13,7 +13,7 @@ class WorkoutRow extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
         decoration: BoxDecoration(
-            color: TColor.white,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(20),
             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)]),
         child: Row(
@@ -36,14 +36,14 @@ class WorkoutRow extends StatelessWidget {
                   Text(
                   wObj["name"].toString(),
                   style: TextStyle(
-                      color: TColor.black,
+                      color: context.colors.textPrimary,
                       fontSize: 12),
                 ),
 
                 Text(
                   "${ wObj["kcal"].toString() } Calories Burn | ${wObj["time"].toString()}minutes",
                   style: TextStyle(
-                      color: TColor.gray,
+                      color: context.colors.textSecondary,
                       fontSize: 10,),
                 ),
 
@@ -60,7 +60,7 @@ class WorkoutRow extends StatelessWidget {
                   duration: const Duration(seconds: 3),
                   borderRadius: BorderRadius.circular(7.5),
                   gradientColor: LinearGradient(
-                      colors: TColor.primaryG,
+                      colors: context.colors.primaryGradient,
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight),
                 ),

@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/view/login/what_your_goal_view.dart';
 import 'package:flutter/material.dart';
 
@@ -19,7 +19,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
   Widget build(BuildContext context) {
     var media = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SingleChildScrollView(
         child: SafeArea(
           child: Padding(
@@ -37,13 +37,13 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
                 Text(
                   "Let’s complete your profile",
                   style: TextStyle(
-                      color: TColor.black,
+                      color: context.colors.textPrimary,
                       fontSize: 20,
                       fontWeight: FontWeight.w700),
                 ),
                 Text(
                   "It will help us to know more about you!",
-                  style: TextStyle(color: TColor.gray, fontSize: 12),
+                  style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                 ),
                 SizedBox(
                   height: media.width * 0.05,
@@ -54,7 +54,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
                     children: [
                       Container(
                           decoration: BoxDecoration(
-                              color: TColor.lightGray,
+                              color: context.colors.surfaceVariant,
                               borderRadius: BorderRadius.circular(15)),
                           child: Row(
                             children: [
@@ -69,7 +69,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
                                     width: 20,
                                     height: 20,
                                     fit: BoxFit.contain,
-                                    color: TColor.gray,
+                                    color: context.colors.textSecondary,
                                   )),
                             
                               Expanded(
@@ -81,7 +81,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
                                               child: Text(
                                                 name,
                                                 style: TextStyle(
-                                                    color: TColor.gray,
+                                                    color: context.colors.textSecondary,
                                                     fontSize: 14),
                                               ),
                                             ))
@@ -91,7 +91,7 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
                                     hint: Text(
                                       "Choose Gender",
                                       style: TextStyle(
-                                          color: TColor.gray, fontSize: 12),
+                                          color: context.colors.textSecondary, fontSize: 12),
                                     ),
                                   ),
                                 ),
@@ -130,14 +130,14 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: TColor.secondaryG,
+                                colors: context.colors.secondaryGradient,
                               ),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Text(
                               "KG",
                               style:
-                                  TextStyle(color: TColor.white, fontSize: 12),
+                                  TextStyle(color: context.colors.surface, fontSize: 12),
                             ),
                           )
                         ],
@@ -163,14 +163,14 @@ class _CompleteProfileViewState extends State<CompleteProfileView> {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: TColor.secondaryG,
+                                colors: context.colors.secondaryGradient,
                               ),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Text(
                               "CM",
                               style:
-                                  TextStyle(color: TColor.white, fontSize: 12),
+                                  TextStyle(color: context.colors.surface, fontSize: 12),
                             ),
                           )
                         ],

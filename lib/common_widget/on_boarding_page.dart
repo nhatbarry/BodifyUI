@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 
 class OnBoardingPage extends StatelessWidget {
   final Map pObj;
@@ -32,7 +32,7 @@ class OnBoardingPage extends StatelessWidget {
             child: Text(
               pObj["title"].toString(),
               style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 24,
                   fontWeight: FontWeight.w700),
             ),
@@ -41,7 +41,7 @@ class OnBoardingPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Text(
               pObj["subtitle"].toString(),
-              style: TextStyle(color: TColor.gray, fontSize: 14),
+              style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
             ),
           ),
         ],

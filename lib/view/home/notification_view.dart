@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../common_widget/notification_row.dart';
 
 class NotificationView extends StatefulWidget {
@@ -24,7 +24,7 @@ class _NotificationViewState extends State<NotificationView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         centerTitle: true,
         elevation: 0,
         leading: InkWell(
@@ -37,7 +37,7 @@ class _NotificationViewState extends State<NotificationView> {
             width: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: TColor.lightGray,
+                color: context.colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(10)),
             child: Image.asset(
               "assets/img/black_btn.png",
@@ -50,7 +50,7 @@ class _NotificationViewState extends State<NotificationView> {
         title: Text(
           "Notification",
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
         actions: [
           InkWell(
@@ -61,7 +61,7 @@ class _NotificationViewState extends State<NotificationView> {
               width: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: TColor.lightGray,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10)),
               child: Image.asset(
                 "assets/img/more_btn.png",
@@ -73,14 +73,14 @@ class _NotificationViewState extends State<NotificationView> {
           )
         ],
       ),
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
         itemBuilder: ((context, index) {
           var nObj = notificationArr[index] as Map? ?? {};
           return NotificationRow(nObj: nObj);
       }), separatorBuilder: (context, index){
-        return Divider(color: TColor.gray.withOpacity(0.5), height: 1, );
+        return Divider(color: context.colors.textSecondary.withOpacity(0.5), height: 1, );
       }, itemCount: notificationArr.length),
     );
   }

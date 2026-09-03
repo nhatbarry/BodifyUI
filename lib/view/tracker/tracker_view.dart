@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../core/app_strings.dart';
 import 'workout_calendar_tab.dart';
 
@@ -19,16 +19,16 @@ class _TrackerViewState extends State<TrackerView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
         title: Text(
           tr('tracker'),
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -52,7 +52,7 @@ class _TrackerViewState extends State<TrackerView> {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: TColor.lightGray,
+        color: context.colors.surfaceVariant,
         borderRadius: BorderRadius.circular(25),
       ),
       child: Row(
@@ -74,13 +74,13 @@ class _TrackerViewState extends State<TrackerView> {
           height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            gradient: isSelected ? LinearGradient(colors: TColor.primaryG) : null,
+            gradient: isSelected ? LinearGradient(colors: context.colors.primaryGradient) : null,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? TColor.white : TColor.gray,
+              color: isSelected ? context.colors.surface : context.colors.textSecondary,
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             ),
@@ -107,16 +107,16 @@ class _MealPlannerTab extends StatelessWidget {
               height: 80,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: TColor.lightGray,
+                color: context.colors.surfaceVariant,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.restaurant_menu, color: TColor.gray, size: 34),
+              child: Icon(Icons.restaurant_menu, color: context.colors.textSecondary, size: 34),
             ),
             const SizedBox(height: 18),
             Text(
               tr('mealPlanner'),
               style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w700),
             ),
@@ -124,7 +124,7 @@ class _MealPlannerTab extends StatelessWidget {
             Text(
               tr('featureInProgress'),
               textAlign: TextAlign.center,
-              style: TextStyle(color: TColor.gray, fontSize: 13),
+              style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
             ),
           ],
         ),

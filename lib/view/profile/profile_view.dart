@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../common_widget/round_button.dart';
 import '../../common_widget/setting_row.dart';
 import '../../common_widget/title_subtitle_cell.dart';
 import '../../core/app_locale.dart';
+import '../../core/theme_controller.dart';
 import '../../core/app_strings.dart';
 import '../../models/auth_models.dart';
 import '../../services/auth_service.dart';
@@ -41,6 +42,7 @@ class _ProfileViewState extends State<ProfileView> {
     {"image": "assets/img/p_privacy.png", "name": "Privacy Policy", "tag": "6"},
     {"image": "assets/img/p_setting.png", "name": "Setting", "tag": "7"},
     {"image": "assets/img/p_setting.png", "name": "__language__", "tag": "language"},
+    {"image": "assets/img/p_setting.png", "name": "__appearance__", "tag": "appearance"},
     {"image": "assets/img/p_setting.png", "name": "Logout", "tag": "logout"},
   ];
 
@@ -57,10 +59,10 @@ class _ProfileViewState extends State<ProfileView> {
                 children: [
                   Expanded(
                     child: Text(language.label,
-                        style: TextStyle(color: TColor.black, fontSize: 14)),
+                        style: TextStyle(color: context.colors.textPrimary, fontSize: 14)),
                   ),
                   if (LocaleController.instance.language == language)
-                    Icon(Icons.check, color: TColor.primaryColor1, size: 18),
+                    Icon(Icons.check, color: context.colors.primary1, size: 18),
                 ],
               ),
             ),
@@ -74,6 +76,51 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
+  Future<void> _pickTheme() async {
+    const options = {
+      ThemeMode.light: 'themeLight',
+      ThemeMode.dark: 'themeDark',
+      ThemeMode.system: 'themeSystem',
+    };
+
+    final chosen = await showDialog<ThemeMode>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(tr('appearance')),
+        children: [
+          for (final entry in options.entries)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, entry.key),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(tr(entry.value),
+                        style: TextStyle(
+                            color: context.colors.textPrimary, fontSize: 14)),
+                  ),
+                  if (ThemeController.instance.mode == entry.key)
+                    Icon(Icons.check, color: context.colors.primary1, size: 18),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+
+    if (chosen != null) await ThemeController.instance.setMode(chosen);
+  }
+
+  String get _themeLabel {
+    switch (ThemeController.instance.mode) {
+      case ThemeMode.light:
+        return tr('themeLight');
+      case ThemeMode.dark:
+        return tr('themeDark');
+      case ThemeMode.system:
+        return tr('themeSystem');
+    }
+  }
+
   Future<void> _confirmLogout() async {
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -83,12 +130,12 @@ class _ProfileViewState extends State<ProfileView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(tr('cancel'), style: TextStyle(color: TColor.gray)),
+            child: Text(tr('cancel'), style: TextStyle(color: context.colors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(tr('logout'),
-                style: TextStyle(color: TColor.primaryColor1)),
+                style: TextStyle(color: context.colors.primary1)),
           ),
         ],
       ),
@@ -109,14 +156,14 @@ class _ProfileViewState extends State<ProfileView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         centerTitle: true,
         elevation: 0,
         leadingWidth: 0,
         title: Text(
           tr('profile'),
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
         actions: [
           InkWell(
@@ -127,7 +174,7 @@ class _ProfileViewState extends State<ProfileView> {
               width: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: TColor.lightGray,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10)),
               child: Image.asset(
                 "assets/img/more_btn.png",
@@ -139,7 +186,7 @@ class _ProfileViewState extends State<ProfileView> {
           )
         ],
       ),
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SingleChildScrollView(
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
@@ -170,7 +217,7 @@ class _ProfileViewState extends State<ProfileView> {
                             Text(
                               user?.displayName ?? tr('bodifyUser'),
                               style: TextStyle(
-                                color: TColor.black,
+                                color: context.colors.textPrimary,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -178,7 +225,7 @@ class _ProfileViewState extends State<ProfileView> {
                             Text(
                               user?.user.email ?? tr('notSignedIn'),
                               style: TextStyle(
-                                color: TColor.gray,
+                                color: context.colors.textSecondary,
                                 fontSize: 12,
                               ),
                             )
@@ -245,7 +292,7 @@ class _ProfileViewState extends State<ProfileView> {
                 padding:
                     const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                 decoration: BoxDecoration(
-                    color: TColor.white,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: const [
                       BoxShadow(color: Colors.black12, blurRadius: 2)
@@ -256,7 +303,7 @@ class _ProfileViewState extends State<ProfileView> {
                     Text(
                       "Account",
                       style: TextStyle(
-                        color: TColor.black,
+                        color: context.colors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -287,7 +334,7 @@ class _ProfileViewState extends State<ProfileView> {
                 padding:
                     const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                 decoration: BoxDecoration(
-                    color: TColor.white,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: const [
                       BoxShadow(color: Colors.black12, blurRadius: 2)
@@ -298,7 +345,7 @@ class _ProfileViewState extends State<ProfileView> {
                     Text(
                       "Notification",
                       style: TextStyle(
-                        color: TColor.black,
+                        color: context.colors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -320,7 +367,7 @@ class _ProfileViewState extends State<ProfileView> {
                               child: Text(
                                 "Pop-up Notification",
                                 style: TextStyle(
-                                  color: TColor.black,
+                                  color: context.colors.textPrimary,
                                   fontSize: 12,
                                 ),
                               ),
@@ -352,7 +399,7 @@ class _ProfileViewState extends State<ProfileView> {
                                         child: DecoratedBox(
                                           decoration: BoxDecoration(
                                              gradient: LinearGradient(
-                                                colors: TColor.secondaryG),
+                                                colors: context.colors.secondaryGradient),
                                             borderRadius:
                                                 const BorderRadius.all(
                                                     Radius.circular(50.0)),
@@ -367,7 +414,7 @@ class _ProfileViewState extends State<ProfileView> {
                                   size: const Size(10, 10),
                                   child: DecoratedBox(
                                     decoration: BoxDecoration(
-                                      color: TColor.white,
+                                      color: context.colors.surface,
                                       borderRadius: const BorderRadius.all(
                                           Radius.circular(50.0)),
                                       boxShadow: const [
@@ -394,7 +441,7 @@ class _ProfileViewState extends State<ProfileView> {
                 padding:
                     const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                 decoration: BoxDecoration(
-                    color: TColor.white,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: const [
                       BoxShadow(color: Colors.black12, blurRadius: 2)
@@ -405,7 +452,7 @@ class _ProfileViewState extends State<ProfileView> {
                     Text(
                       "Other",
                       style: TextStyle(
-                        color: TColor.black,
+                        color: context.colors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -421,19 +468,32 @@ class _ProfileViewState extends State<ProfileView> {
                       itemBuilder: (context, index) {
                         var iObj = otherArr[index] as Map? ?? {};
                         final tag = iObj["tag"];
-                        final isLanguage = tag == "language";
+
+                        String title;
+                        VoidCallback onPressed;
+                        switch (tag) {
+                          case "language":
+                            title =
+                                "${tr('language')} · ${LocaleController.instance.language.label}";
+                            onPressed = _pickLanguage;
+                            break;
+                          case "appearance":
+                            title = "${tr('appearance')} · $_themeLabel";
+                            onPressed = _pickTheme;
+                            break;
+                          case "logout":
+                            title = tr('logout');
+                            onPressed = _confirmLogout;
+                            break;
+                          default:
+                            title = iObj["name"].toString();
+                            onPressed = () {};
+                        }
+
                         return SettingRow(
                           icon: iObj["image"].toString(),
-                          title: isLanguage
-                              ? "${tr('language')} · ${LocaleController.instance.language.label}"
-                              : tag == "logout"
-                                  ? tr('logout')
-                                  : iObj["name"].toString(),
-                          onPressed: isLanguage
-                              ? _pickLanguage
-                              : tag == "logout"
-                                  ? _confirmLogout
-                                  : () {},
+                          title: title,
+                          onPressed: onPressed,
                         );
                       },
                     )

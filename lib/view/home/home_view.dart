@@ -5,7 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:simple_animation_progress_bar/simple_animation_progress_bar.dart';
 import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
 import '../../models/body_metric.dart';
@@ -129,13 +129,13 @@ class _HomeViewState extends State<HomeView> {
         belowBarData: BarAreaData(
           show: true,
           gradient: LinearGradient(colors: [
-            TColor.primaryColor2.withOpacity(0.4),
-            TColor.primaryColor1.withOpacity(0.1),
+            context.colors.primary2.withOpacity(0.4),
+            context.colors.primary1.withOpacity(0.1),
           ], begin: Alignment.topCenter, end: Alignment.bottomCenter),
         ),
         dotData: FlDotData(show: false),
         gradient: LinearGradient(
-          colors: TColor.primaryG,
+          colors: context.colors.primaryGradient,
         ),
       ),
     ];
@@ -143,7 +143,7 @@ class _HomeViewState extends State<HomeView> {
     final tooltipsOnBar = lineBarsData[0];
 
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SingleChildScrollView(
         child: SafeArea(
           child: Padding(
@@ -159,12 +159,12 @@ class _HomeViewState extends State<HomeView> {
                       children: [
                         Text(
                           "Welcome Back,",
-                          style: TextStyle(color: TColor.gray, fontSize: 12),
+                          style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                         ),
                         Text(
                           "Stefani Wong",
                           style: TextStyle(
-                              color: TColor.black,
+                              color: context.colors.textPrimary,
                               fontSize: 20,
                               fontWeight: FontWeight.w700),
                         ),
@@ -197,7 +197,7 @@ class _HomeViewState extends State<HomeView> {
                       // visible without opening the detail screen.
                       gradient: LinearGradient(
                           colors: _latestMetric?.bmi == null
-                              ? TColor.primaryG
+                              ? context.colors.primaryGradient
                               : bmiCategoryGradient(_latestMetric!.bmi!)),
                       borderRadius: BorderRadius.circular(media.width * 0.075)),
                   child: Stack(alignment: Alignment.center, children: [
@@ -220,7 +220,7 @@ class _HomeViewState extends State<HomeView> {
                               Text(
                                 tr('bmiTitle'),
                                 style: TextStyle(
-                                    color: TColor.white,
+                                    color: context.colors.surface,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700),
                               ),
@@ -229,7 +229,7 @@ class _HomeViewState extends State<HomeView> {
                                     ? tr('noBmiYet')
                                     : bmiCategoryLabel(_latestMetric!.bmi!),
                                 style: TextStyle(
-                                    color: TColor.white.withOpacity(0.7),
+                                    color: context.colors.surface.withOpacity(0.7),
                                     fontSize: 12),
                               ),
                               SizedBox(
@@ -276,7 +276,7 @@ class _HomeViewState extends State<HomeView> {
                   padding:
                       const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
                   decoration: BoxDecoration(
-                    color: TColor.primaryColor2.withOpacity(0.3),
+                    color: context.colors.primary2.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Row(
@@ -285,7 +285,7 @@ class _HomeViewState extends State<HomeView> {
                       Text(
                         "Today Target",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.w700),
                       ),
@@ -317,7 +317,7 @@ class _HomeViewState extends State<HomeView> {
                 Text(
                   "Activity Status",
                   style: TextStyle(
-                      color: TColor.black,
+                      color: context.colors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w700),
                 ),
@@ -330,7 +330,7 @@ class _HomeViewState extends State<HomeView> {
                     height: media.width * 0.4,
                     width: double.maxFinite,
                     decoration: BoxDecoration(
-                      color: TColor.primaryColor2.withOpacity(0.3),
+                      color: context.colors.primary2.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Stack(
@@ -347,7 +347,7 @@ class _HomeViewState extends State<HomeView> {
                               Text(
                                 "Heart Rate",
                                 style: TextStyle(
-                                    color: TColor.black,
+                                    color: context.colors.textPrimary,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700),
                               ),
@@ -355,7 +355,7 @@ class _HomeViewState extends State<HomeView> {
                                 blendMode: BlendMode.srcIn,
                                 shaderCallback: (bounds) {
                                   return LinearGradient(
-                                          colors: TColor.primaryG,
+                                          colors: context.colors.primaryGradient,
                                           begin: Alignment.centerLeft,
                                           end: Alignment.centerRight)
                                       .createShader(Rect.fromLTRB(
@@ -364,7 +364,7 @@ class _HomeViewState extends State<HomeView> {
                                 child: Text(
                                   "78 BPM",
                                   style: TextStyle(
-                                      color: TColor.white.withOpacity(0.7),
+                                      color: context.colors.surface.withOpacity(0.7),
                                       fontWeight: FontWeight.w700,
                                       fontSize: 18),
                                 ),
@@ -426,14 +426,14 @@ class _HomeViewState extends State<HomeView> {
                                         radius: 3,
                                         color: Colors.white,
                                         strokeWidth: 3,
-                                        strokeColor: TColor.secondaryColor1,
+                                        strokeColor: context.colors.secondary1,
                                       ),
                                     ),
                                   );
                                 }).toList();
                               },
                               touchTooltipData: LineTouchTooltipData(
-                                getTooltipColor: (_) => TColor.secondaryColor1,
+                                getTooltipColor: (_) => context.colors.secondary1,
                                 tooltipBorderRadius: BorderRadius.circular(20),
                                 getTooltipItems:
                                     (List<LineBarSpot> lineBarsSpot) {
@@ -480,7 +480,7 @@ class _HomeViewState extends State<HomeView> {
                         padding: const EdgeInsets.symmetric(
                             vertical: 25, horizontal: 20),
                         decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.colors.surface,
                             borderRadius: BorderRadius.circular(25),
                             boxShadow: const [
                               BoxShadow(color: Colors.black12, blurRadius: 2)
@@ -498,7 +498,7 @@ class _HomeViewState extends State<HomeView> {
                               duration: const Duration(seconds: 3),
                               borderRadius: BorderRadius.circular(15),
                               gradientColor: LinearGradient(
-                                  colors: TColor.primaryG,
+                                  colors: context.colors.primaryGradient,
                                   begin: Alignment.bottomCenter,
                                   end: Alignment.topCenter),
                             ),
@@ -512,7 +512,7 @@ class _HomeViewState extends State<HomeView> {
                                 Text(
                                   "Water Intake",
                                   style: TextStyle(
-                                      color: TColor.black,
+                                      color: context.colors.textPrimary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700),
                                 ),
@@ -520,7 +520,7 @@ class _HomeViewState extends State<HomeView> {
                                   blendMode: BlendMode.srcIn,
                                   shaderCallback: (bounds) {
                                     return LinearGradient(
-                                            colors: TColor.primaryG,
+                                            colors: context.colors.primaryGradient,
                                             begin: Alignment.centerLeft,
                                             end: Alignment.centerRight)
                                         .createShader(Rect.fromLTRB(
@@ -529,7 +529,7 @@ class _HomeViewState extends State<HomeView> {
                                   child: Text(
                                     "4 Liters",
                                     style: TextStyle(
-                                        color: TColor.white.withOpacity(0.7),
+                                        color: context.colors.surface.withOpacity(0.7),
                                         fontWeight: FontWeight.w700,
                                         fontSize: 14),
                                   ),
@@ -540,7 +540,7 @@ class _HomeViewState extends State<HomeView> {
                                 Text(
                                   "Real time updates",
                                   style: TextStyle(
-                                    color: TColor.gray,
+                                    color: context.colors.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -565,7 +565,7 @@ class _HomeViewState extends State<HomeView> {
                                               width: 10,
                                               height: 10,
                                               decoration: BoxDecoration(
-                                                color: TColor.secondaryColor1
+                                                color: context.colors.secondary1
                                                     .withOpacity(0.5),
                                                 borderRadius:
                                                     BorderRadius.circular(5),
@@ -575,8 +575,7 @@ class _HomeViewState extends State<HomeView> {
                                               DottedDashedLine(
                                                   height: media.width * 0.078,
                                                   width: 0,
-                                                  dashColor: TColor
-                                                      .secondaryColor1
+                                                  dashColor: context.colors.secondary1
                                                       .withOpacity(0.5),
                                                   axis: Axis.vertical)
                                           ],
@@ -593,7 +592,7 @@ class _HomeViewState extends State<HomeView> {
                                             Text(
                                               wObj["title"].toString(),
                                               style: TextStyle(
-                                                color: TColor.gray,
+                                                color: context.colors.textSecondary,
                                                 fontSize: 10,
                                               ),
                                             ),
@@ -602,7 +601,7 @@ class _HomeViewState extends State<HomeView> {
                                               shaderCallback: (bounds) {
                                                 return LinearGradient(
                                                         colors:
-                                                            TColor.secondaryG,
+                                                            context.colors.secondaryGradient,
                                                         begin: Alignment
                                                             .centerLeft,
                                                         end: Alignment
@@ -616,7 +615,7 @@ class _HomeViewState extends State<HomeView> {
                                               child: Text(
                                                 wObj["subtitle"].toString(),
                                                 style: TextStyle(
-                                                    color: TColor.white
+                                                    color: context.colors.surface
                                                         .withOpacity(0.7),
                                                     fontSize: 12),
                                               ),
@@ -647,7 +646,7 @@ class _HomeViewState extends State<HomeView> {
                           padding: const EdgeInsets.symmetric(
                               vertical: 25, horizontal: 20),
                           decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: context.colors.surface,
                               borderRadius: BorderRadius.circular(25),
                               boxShadow: const [
                                 BoxShadow(color: Colors.black12, blurRadius: 2)
@@ -658,7 +657,7 @@ class _HomeViewState extends State<HomeView> {
                                 Text(
                                   "Sleep",
                                   style: TextStyle(
-                                      color: TColor.black,
+                                      color: context.colors.textPrimary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700),
                                 ),
@@ -666,7 +665,7 @@ class _HomeViewState extends State<HomeView> {
                                   blendMode: BlendMode.srcIn,
                                   shaderCallback: (bounds) {
                                     return LinearGradient(
-                                            colors: TColor.primaryG,
+                                            colors: context.colors.primaryGradient,
                                             begin: Alignment.centerLeft,
                                             end: Alignment.centerRight)
                                         .createShader(Rect.fromLTRB(
@@ -675,7 +674,7 @@ class _HomeViewState extends State<HomeView> {
                                   child: Text(
                                     "8h 20m",
                                     style: TextStyle(
-                                        color: TColor.white.withOpacity(0.7),
+                                        color: context.colors.surface.withOpacity(0.7),
                                         fontWeight: FontWeight.w700,
                                         fontSize: 14),
                                   ),
@@ -695,7 +694,7 @@ class _HomeViewState extends State<HomeView> {
                           padding: const EdgeInsets.symmetric(
                               vertical: 25, horizontal: 20),
                           decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: context.colors.surface,
                               borderRadius: BorderRadius.circular(25),
                               boxShadow: const [
                                 BoxShadow(color: Colors.black12, blurRadius: 2)
@@ -706,7 +705,7 @@ class _HomeViewState extends State<HomeView> {
                                 Text(
                                   "Calories",
                                   style: TextStyle(
-                                      color: TColor.black,
+                                      color: context.colors.textPrimary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700),
                                 ),
@@ -714,7 +713,7 @@ class _HomeViewState extends State<HomeView> {
                                   blendMode: BlendMode.srcIn,
                                   shaderCallback: (bounds) {
                                     return LinearGradient(
-                                            colors: TColor.primaryG,
+                                            colors: context.colors.primaryGradient,
                                             begin: Alignment.centerLeft,
                                             end: Alignment.centerRight)
                                         .createShader(Rect.fromLTRB(
@@ -723,7 +722,7 @@ class _HomeViewState extends State<HomeView> {
                                   child: Text(
                                     "760 kCal",
                                     style: TextStyle(
-                                        color: TColor.white.withOpacity(0.7),
+                                        color: context.colors.surface.withOpacity(0.7),
                                         fontWeight: FontWeight.w700,
                                         fontSize: 14),
                                   ),
@@ -743,7 +742,7 @@ class _HomeViewState extends State<HomeView> {
                                           alignment: Alignment.center,
                                           decoration: BoxDecoration(
                                             gradient: LinearGradient(
-                                                colors: TColor.primaryG),
+                                                colors: context.colors.primaryGradient),
                                             borderRadius: BorderRadius.circular(
                                                 media.width * 0.075),
                                           ),
@@ -752,7 +751,7 @@ class _HomeViewState extends State<HomeView> {
                                               "230kCal\nleft",
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
-                                                  color: TColor.white,
+                                                  color: context.colors.surface,
                                                   fontSize: 11),
                                             ),
                                           ),
@@ -760,7 +759,7 @@ class _HomeViewState extends State<HomeView> {
                                         SimpleCircularProgressBar(
                                           progressStrokeWidth: 10,
                                           backStrokeWidth: 10,
-                                          progressColors: TColor.primaryG,
+                                          progressColors: context.colors.primaryGradient,
                                           backColor: Colors.grey.shade100,
                                           valueNotifier: ValueNotifier(50),
                                           startAngle: -180,
@@ -784,7 +783,7 @@ class _HomeViewState extends State<HomeView> {
                     Text(
                       "Workout Progress",
                       style: TextStyle(
-                          color: TColor.black,
+                          color: context.colors.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w700),
                     ),
@@ -792,7 +791,7 @@ class _HomeViewState extends State<HomeView> {
                         height: 30,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: TColor.primaryG),
+                          gradient: LinearGradient(colors: context.colors.primaryGradient),
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -803,17 +802,17 @@ class _HomeViewState extends State<HomeView> {
                                       child: Text(
                                         name,
                                         style: TextStyle(
-                                            color: TColor.gray, fontSize: 14),
+                                            color: context.colors.textSecondary, fontSize: 14),
                                       ),
                                     ))
                                 .toList(),
                             onChanged: (value) {},
-                            icon: Icon(Icons.expand_more, color: TColor.white),
+                            icon: Icon(Icons.expand_more, color: context.colors.surface),
                             hint: Text(
                               "Weekly",
                               textAlign: TextAlign.center,
                               style:
-                                  TextStyle(color: TColor.white, fontSize: 12),
+                                  TextStyle(color: context.colors.surface, fontSize: 12),
                             ),
                           ),
                         )),
@@ -879,14 +878,14 @@ class _HomeViewState extends State<HomeView> {
                                     radius: 3,
                                     color: Colors.white,
                                     strokeWidth: 3,
-                                    strokeColor: TColor.secondaryColor1,
+                                    strokeColor: context.colors.secondary1,
                                   ),
                                 ),
                               );
                             }).toList();
                           },
                           touchTooltipData: LineTouchTooltipData(
-                            getTooltipColor: (_) => TColor.secondaryColor1,
+                            getTooltipColor: (_) => context.colors.secondary1,
                             tooltipBorderRadius: BorderRadius.circular(20),
                             getTooltipItems: (List<LineBarSpot> lineBarsSpot) {
                               return lineBarsSpot.map((lineBarSpot) {
@@ -922,7 +921,7 @@ class _HomeViewState extends State<HomeView> {
                           drawVerticalLine: false,
                           getDrawingHorizontalLine: (value) {
                             return FlLine(
-                              color: TColor.gray.withOpacity(0.15),
+                              color: context.colors.textSecondary.withOpacity(0.15),
                               strokeWidth: 2,
                             );
                           },
@@ -944,7 +943,7 @@ class _HomeViewState extends State<HomeView> {
                     Text(
                       "Latest Workout",
                       style: TextStyle(
-                          color: TColor.black,
+                          color: context.colors.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w700),
                     ),
@@ -953,7 +952,7 @@ class _HomeViewState extends State<HomeView> {
                       child: Text(
                         "See More",
                         style: TextStyle(
-                            color: TColor.gray,
+                            color: context.colors.textSecondary,
                             fontSize: 14,
                             fontWeight: FontWeight.w700),
                       ),
@@ -996,7 +995,7 @@ class _HomeViewState extends State<HomeView> {
       (i) {
         // Matches the card behind it rather than the fixed kit accent.
         var color0 = _latestMetric?.bmi == null
-            ? TColor.secondaryColor1
+            ? context.colors.secondary1
             : bmiCategoryColor(_latestMetric!.bmi!);
 
         switch (i) {
@@ -1045,8 +1044,8 @@ class _HomeViewState extends State<HomeView> {
   LineChartBarData get lineChartBarData1_1 => LineChartBarData(
         isCurved: true,
         gradient: LinearGradient(colors: [
-          TColor.primaryColor2.withOpacity(0.5),
-          TColor.primaryColor1.withOpacity(0.5),
+          context.colors.primary2.withOpacity(0.5),
+          context.colors.primary1.withOpacity(0.5),
         ]),
         barWidth: 4,
         isStrokeCapRound: true,
@@ -1066,8 +1065,8 @@ class _HomeViewState extends State<HomeView> {
   LineChartBarData get lineChartBarData1_2 => LineChartBarData(
         isCurved: true,
         gradient: LinearGradient(colors: [
-          TColor.secondaryColor2.withOpacity(0.5),
-          TColor.secondaryColor1.withOpacity(0.5),
+          context.colors.secondary2.withOpacity(0.5),
+          context.colors.secondary1.withOpacity(0.5),
         ]),
         barWidth: 2,
         isStrokeCapRound: true,
@@ -1120,7 +1119,7 @@ class _HomeViewState extends State<HomeView> {
 
     return Text(text,
         style: TextStyle(
-          color: TColor.gray,
+          color: context.colors.textSecondary,
           fontSize: 12,
         ),
         textAlign: TextAlign.center);
@@ -1135,7 +1134,7 @@ class _HomeViewState extends State<HomeView> {
 
   Widget bottomTitleWidgets(double value, TitleMeta meta) {
     var style = TextStyle(
-      color: TColor.gray,
+      color: context.colors.textSecondary,
       fontSize: 12,
     );
     Widget text;

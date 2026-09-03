@@ -1,7 +1,7 @@
 import 'package:dotted_dashed_line/dotted_dashed_line.dart';
 import 'package:flutter/material.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 
 class StepDetailRow extends StatelessWidget {
   final Map sObj;
@@ -19,7 +19,7 @@ class StepDetailRow extends StatelessWidget {
           child: Text(
             sObj["no"].toString(),
             style: TextStyle(
-              color: TColor.secondaryColor1,
+              color: context.colors.secondary1,
               fontSize: 14,
             ),
           ),
@@ -33,7 +33,7 @@ class StepDetailRow extends StatelessWidget {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: TColor.secondaryColor1,
+                color: context.colors.secondary1,
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
@@ -42,7 +42,7 @@ class StepDetailRow extends StatelessWidget {
               width: 18,
               height: 18,
               decoration: BoxDecoration(
-                border: Border.all(color: TColor.white, width: 3),
+                border: Border.all(color: context.colors.surface, width: 3),
                 borderRadius: BorderRadius.circular(9),
               ),) ,
             ),
@@ -50,7 +50,7 @@ class StepDetailRow extends StatelessWidget {
               DottedDashedLine(
                   height: 80,
                   width: 0,
-                  dashColor: TColor.secondaryColor1,
+                  dashColor: context.colors.secondary1,
                   axis: Axis.vertical)
           ],
         ),
@@ -65,13 +65,13 @@ class StepDetailRow extends StatelessWidget {
               Text(
                 sObj["title"].toString(),
                 style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 14,
                 ),
               ),
               Text(
                 sObj["detail"].toString(),
-                style: TextStyle(color: TColor.gray, fontSize: 12),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
               ),
             ],
           ),

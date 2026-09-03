@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../common_widget/round_button.dart';
 import '../../services/auth_service.dart';
 import '../main_tab/main_tab_view.dart';
@@ -18,7 +18,7 @@ class _WelcomeViewState extends State<WelcomeView> {
   Widget build(BuildContext context) {
     var media = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SafeArea(
         child: Container(
           width: media.width,
@@ -41,14 +41,14 @@ SizedBox(
               Text(
                 "Welcome, ${AuthService.instance.currentUser.value?.displayName ?? ''}",
                 style: TextStyle(
-                    color: TColor.black,
+                    color: context.colors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w700),
               ),
               Text(
                 "You are all set now, let’s reach your\ngoals together with us",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: TColor.gray, fontSize: 12),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
               ),
              const Spacer(),
 

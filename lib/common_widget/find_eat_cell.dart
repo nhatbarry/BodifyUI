@@ -1,7 +1,7 @@
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:flutter/material.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 
 class FindEatCell extends StatelessWidget {
   final Map fObj;
@@ -19,12 +19,12 @@ class FindEatCell extends StatelessWidget {
           gradient: LinearGradient(
             colors: isEvent
                 ? [
-                    TColor.primaryColor2.withOpacity(0.5),
-                    TColor.primaryColor1.withOpacity(0.5)
+                    context.colors.primary2.withOpacity(0.5),
+                    context.colors.primary1.withOpacity(0.5)
                   ]
                 : [
-                    TColor.secondaryColor2.withOpacity(0.5),
-                    TColor.secondaryColor1.withOpacity(0.5)
+                    context.colors.secondary2.withOpacity(0.5),
+                    context.colors.secondary1.withOpacity(0.5)
                   ],
           ),
           borderRadius: const BorderRadius.only(
@@ -51,7 +51,7 @@ class FindEatCell extends StatelessWidget {
             child: Text(
               fObj["name"],
               style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w500),
             ),
@@ -60,7 +60,7 @@ class FindEatCell extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Text(
               fObj["number"],
-              style: TextStyle(color: TColor.gray, fontSize: 12),
+              style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
             ),
           ),
           const SizedBox(

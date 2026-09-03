@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../common_widget/round_button.dart';
 
 class FinishedWorkoutView extends StatefulWidget {
@@ -38,7 +38,7 @@ class _FinishedWorkoutViewState extends State<FinishedWorkoutView> {
                 "Congratulations, You Have Finished Your Workout",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
@@ -52,7 +52,7 @@ class _FinishedWorkoutViewState extends State<FinishedWorkoutView> {
                 "Exercises is king and nutrition is queen. Combine the two and you will have a kingdom",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: TColor.gray,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -65,7 +65,7 @@ class _FinishedWorkoutViewState extends State<FinishedWorkoutView> {
                 "-Jack Lalanne",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: TColor.gray,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),

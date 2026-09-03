@@ -1,5 +1,5 @@
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 import '../common/common.dart';
@@ -21,7 +21,7 @@ class _TodaySleepScheduleRowState extends State<TodaySleepScheduleRow> {
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-            color: TColor.white,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(15),
             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)]),
         child: Row(
@@ -50,14 +50,14 @@ class _TodaySleepScheduleRowState extends State<TodaySleepScheduleRow> {
                       Text(
                         widget.sObj["name"].toString(),
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.w700),
                       ),
                       Text(
                         ", ${getStringDateToOtherFormate(widget.sObj["time"].toString())}",
                         style: TextStyle(
-                          color: TColor.black,
+                          color: context.colors.textPrimary,
                           fontSize: 12,
                         ),
                       ),
@@ -68,7 +68,7 @@ class _TodaySleepScheduleRowState extends State<TodaySleepScheduleRow> {
                   Text(
                     widget.sObj["duration"].toString(),
                     style: TextStyle(
-                        color: TColor.gray,
+                        color: context.colors.textSecondary,
                         fontSize: 14,
                         fontWeight: FontWeight.w500),
                   ),
@@ -119,7 +119,7 @@ class _TodaySleepScheduleRowState extends State<TodaySleepScheduleRow> {
                                 child: DecoratedBox(
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
-                                        colors: TColor.secondaryG),
+                                        colors: context.colors.secondaryGradient),
                                     borderRadius: const BorderRadius.all(
                                         Radius.circular(50.0)),
                                   ),
@@ -133,7 +133,7 @@ class _TodaySleepScheduleRowState extends State<TodaySleepScheduleRow> {
                           size: const Size(10, 10),
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: TColor.white,
+                              color: context.colors.surface,
                               borderRadius:
                                   const BorderRadius.all(Radius.circular(50.0)),
                               boxShadow: const [
