@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
 import '../../core/app_strings.dart';
-import 'workout_calendar_tab.dart';
+import 'schedule_list_view.dart';
 
 /// Second bottom-tab: one screen holding Workout Tracker and Meal Planner,
 /// switched by the segmented control at the top.
@@ -38,7 +38,7 @@ class _TrackerViewState extends State<TrackerView> {
             const SizedBox(height: 14),
             Expanded(
               child: _selectedTab == 0
-                  ? const WorkoutCalendarTab()
+                  ? const ScheduleListView()
                   : const _MealPlannerTab(),
             ),
           ],

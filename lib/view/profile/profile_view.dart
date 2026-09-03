@@ -8,8 +8,11 @@ import '../../core/app_locale.dart';
 import '../../core/theme_controller.dart';
 import '../../core/app_strings.dart';
 import '../../models/auth_models.dart';
+import '../../models/profile.dart';
+import '../../services/profile_service.dart';
 import '../../services/auth_service.dart';
 import '../on_boarding/started_view.dart';
+import 'personal_data_view.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 
 class ProfileView extends StatefulWidget {
@@ -74,6 +77,38 @@ class _ProfileViewState extends State<ProfileView> {
       // Switching also changes the language the exercise API is queried with.
       await LocaleController.instance.setLanguage(chosen);
     }
+  }
+
+  Profile? _profile;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await ProfileService.instance.get();
+      if (mounted) setState(() => _profile = profile);
+    } catch (_) {
+      // The rest of the screen works without the stat row.
+    }
+  }
+
+  /// Drops a trailing .0 so 175.0 reads as 175.
+  static String _num(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toStringAsFixed(1);
+
+  Future<void> _openPersonalData() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PersonalDataView()),
+    );
+    // The header reads from the cached user, which PUT /profile refreshes;
+    // the stat row needs the profile re-fetched.
+    if (mounted) _loadProfile();
   }
 
   Future<void> _pickTheme() async {
@@ -242,14 +277,7 @@ class _ProfileViewState extends State<ProfileView> {
                       type: RoundButtonType.bgGradient,
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      onPressed: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => const ActivityTrackerView(),
-                        //   ),
-                        // );
-                      },
+                      onPressed: _openPersonalData,
                     ),
                   )
                 ],
@@ -257,29 +285,37 @@ class _ProfileViewState extends State<ProfileView> {
               const SizedBox(
                 height: 15,
               ),
-              const Row(
+              Row(
                 children: [
                   Expanded(
                     child: TitleSubtitleCell(
-                      title: "180cm",
+                      // Height and weight come from the latest body metric,
+                      // age from the birth date - all via GET /profile.
+                      title: _profile?.heightCm == null
+                          ? "--"
+                          : "${_num(_profile!.heightCm!)}cm",
                       subtitle: "Height",
                     ),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     width: 15,
                   ),
                   Expanded(
                     child: TitleSubtitleCell(
-                      title: "65kg",
+                      title: _profile?.weightKg == null
+                          ? "--"
+                          : "${_num(_profile!.weightKg!)}kg",
                       subtitle: "Weight",
                     ),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     width: 15,
                   ),
                   Expanded(
                     child: TitleSubtitleCell(
-                      title: "22yo",
+                      title: _profile?.age == null
+                          ? "--"
+                          : "${_profile!.age}yo",
                       subtitle: "Age",
                     ),
                   ),
@@ -317,10 +353,14 @@ class _ProfileViewState extends State<ProfileView> {
                       itemCount: accountArr.length,
                       itemBuilder: (context, index) {
                         var iObj = accountArr[index] as Map? ?? {};
+                        final isPersonalData = iObj["tag"] == "1";
                         return SettingRow(
                           icon: iObj["image"].toString(),
-                          title: iObj["name"].toString(),
-                          onPressed: () {},
+                          title: isPersonalData
+                              ? tr('personalData')
+                              : iObj["name"].toString(),
+                          onPressed:
+                              isPersonalData ? _openPersonalData : () {},
                         );
                       },
                     )

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
+import '../../common_widget/exercise_thumbnail.dart';
 import '../../core/app_strings.dart';
 import '../../core/api_exception.dart';
 import '../../models/exercise_models.dart';
@@ -331,29 +332,10 @@ class _ExerciseRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: 56,
-                height: 56,
-                child: item.thumbnailUrl == null
-                    ? Container(
-                        color: context.colors.surface,
-                        child: Icon(Icons.fitness_center,
-                            color: context.colors.textSecondary, size: 22),
-                      )
-                    : Image.network(
-                        item.thumbnailUrl!,
-                        fit: BoxFit.cover,
-                        // The thumbnail is a signed R2 link; if the object is
-                        // missing or the device is offline, keep the row usable.
-                        errorBuilder: (_, __, ___) => Container(
-                          color: context.colors.surface,
-                          child: Icon(Icons.fitness_center,
-                              color: context.colors.textSecondary, size: 22),
-                        ),
-                      ),
-              ),
+            ExerciseThumbnail(
+              url: item.listImageUrl,
+              cacheKey: item.listImageCacheKey,
+              size: 56,
             ),
             const SizedBox(width: 12),
             Expanded(

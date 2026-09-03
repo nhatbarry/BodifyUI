@@ -68,6 +68,85 @@ class _LoginViewState extends State<LoginView> {
     }
   }
 
+  /// Sends a reset link, and says the same thing either way.
+  ///
+  /// The backend answers identically whether or not the address is
+  /// registered, so that this cannot be used to discover which emails have
+  /// accounts. Reporting "no such user" here would hand that back.
+  Future<void> _forgotPassword() async {
+    final controller =
+        TextEditingController(text: _emailController.text.trim());
+
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: context.colors.surface,
+        title: Text(tr('forgotPasswordTitle'),
+            style: TextStyle(
+                color: context.colors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(tr('forgotPasswordHint'),
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 12)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.emailAddress,
+              style: TextStyle(color: context.colors.textPrimary),
+              decoration: InputDecoration(
+                labelText: "Email",
+                labelStyle: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 13),
+                isDense: true,
+                filled: true,
+                fillColor: context.colors.surfaceVariant,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(tr('cancel'),
+                style: TextStyle(color: context.colors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: Text(tr('sendResetLink'),
+                style: TextStyle(color: context.colors.primary1)),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (email == null || email.isEmpty) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.instance.requestPasswordReset(email);
+    } on ApiException catch (e) {
+      // Only a transport or validation failure reaches here; "unknown email"
+      // never does.
+      if (mounted) _showMessage(e.message);
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    _showMessage(tr('resetLinkSent'));
+  }
+
   @override
   Widget build(BuildContext context) {
     var media = MediaQuery.of(context).size;
@@ -133,12 +212,21 @@ class _LoginViewState extends State<LoginView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      "Forgot your password?",
-                      style: TextStyle(
-                          color: context.colors.textSecondary,
-                          fontSize: 10,
-                          decoration: TextDecoration.underline),
+                    TextButton(
+                      onPressed: _isLoading ? null : _forgotPassword,
+                      style: TextButton.styleFrom(
+                        minimumSize: Size.zero,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        tr('forgotPassword'),
+                        style: TextStyle(
+                            color: context.colors.textSecondary,
+                            fontSize: 10,
+                            decoration: TextDecoration.underline),
+                      ),
                     ),
                   ],
                 ),

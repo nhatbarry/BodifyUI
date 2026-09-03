@@ -201,9 +201,43 @@ class AuthService {
     return user;
   }
 
+  /// Signs out, revoking the session on the server as well as locally.
+  ///
+  /// The stored tokens are cleared **whatever happens** to the network call.
+  /// Refusing to sign someone out because the server is unreachable would
+  /// leave their account open on a shared phone, which is the one situation
+  /// where signing out matters most. The revoke is best-effort on top of that:
+  /// without it the refresh token stays usable until Supabase expires it, so
+  /// anyone who lifted it off the device keeps access.
   Future<void> logout() async {
+    final token = await _storage.readAccessToken();
+
+    if (token != null) {
+      try {
+        await _client
+            .post(
+              ApiConfig.path('/auth/logout'),
+              headers: {'Authorization': 'Bearer $token'},
+            )
+            .timeout(const Duration(seconds: 8));
+      } catch (_) {
+        // Offline, or the session was already dead. Either way the local
+        // clear below is what the user asked for.
+      }
+    }
+
     await _storage.clear();
     currentUser.value = null;
+  }
+
+  /// Asks the backend to email a reset link.
+  ///
+  /// Succeeds whether or not the address is registered - the backend answers
+  /// identically on purpose, so that this cannot be used to find out which
+  /// emails have accounts, and the UI must not undo that by reporting
+  /// anything more specific.
+  Future<void> requestPasswordReset(String email) async {
+    await _post('/auth/forgot-password', {'email': email});
   }
 
   /// Access token for calling other protected endpoints, refreshed if needed.

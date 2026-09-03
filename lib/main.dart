@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'common/app_colors.dart';
@@ -5,6 +7,7 @@ import 'core/app_locale.dart';
 import 'core/theme_controller.dart';
 import 'services/auth_service.dart';
 import 'view/main_tab/main_tab_view.dart';
+import 'core/media_cache.dart';
 import 'view/on_boarding/started_view.dart';
 
 Future<void> main() async {
@@ -13,6 +16,9 @@ Future<void> main() async {
   // flashes the wrong one.
   await LocaleController.instance.load();
   await ThemeController.instance.load();
+  // Not awaited: the first frame must not wait on a cache warm-up, it only
+  // needs the database to be opening already by the time a screen asks.
+  unawaited(MediaCache.warmUp());
   runApp(const MyApp());
 }
 
