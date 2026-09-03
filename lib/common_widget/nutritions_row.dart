@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:simple_animation_progress_bar/simple_animation_progress_bar.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 
 class NutritionRow extends StatelessWidget {
   final Map nObj;
@@ -20,7 +20,7 @@ class NutritionRow extends StatelessWidget {
             Text(
               nObj["title"].toString(),
               style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w500),
             ),
@@ -35,7 +35,7 @@ class NutritionRow extends StatelessWidget {
             const Spacer(),
             Text(
               "${nObj["value"].toString()} ${nObj["unit_name"].toString()}",
-              style: TextStyle(color: TColor.gray, fontSize: 11),
+              style: TextStyle(color: context.colors.textSecondary, fontSize: 11),
             ),
           ],
         ),
@@ -53,7 +53,7 @@ class NutritionRow extends StatelessWidget {
           duration: const Duration(seconds: 3),
           borderRadius: BorderRadius.circular(7.5),
           gradientColor: LinearGradient(
-              colors: TColor.primaryG,
+              colors: context.colors.primaryGradient,
               begin: Alignment.centerLeft,
               end: Alignment.centerRight),
         ),

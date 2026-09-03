@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
 import '../../models/body_metric.dart';
@@ -159,7 +159,7 @@ class _BmiViewState extends State<BmiView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(tr('cancel'), style: TextStyle(color: TColor.gray)),
+            child: Text(tr('cancel'), style: TextStyle(color: context.colors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -190,20 +190,20 @@ class _BmiViewState extends State<BmiView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         elevation: 0,
         centerTitle: true,
-        iconTheme: IconThemeData(color: TColor.black),
+        iconTheme: IconThemeData(color: context.colors.textPrimary),
         title: Text(
           tr('bmiTitle'),
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: TColor.primaryColor1))
+          ? Center(child: CircularProgressIndicator(color: context.colors.primary1))
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
@@ -217,7 +217,7 @@ class _BmiViewState extends State<BmiView> {
                   Text(
                     tr('bmiHistory'),
                     style: TextStyle(
-                        color: TColor.black,
+                        color: context.colors.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w700),
                   ),
@@ -247,12 +247,12 @@ class _BmiViewState extends State<BmiView> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(_error!,
-                style: TextStyle(color: TColor.gray, fontSize: 12)),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 12)),
           ),
           TextButton(
             onPressed: _load,
             child: Text(tr('retry'),
-                style: TextStyle(color: TColor.primaryColor1, fontSize: 12)),
+                style: TextStyle(color: context.colors.primary1, fontSize: 12)),
           ),
         ],
       ),
@@ -270,7 +270,7 @@ class _BmiViewState extends State<BmiView> {
         // underweight, red when obese. Falls back to the app gradient when
         // there is no reading to judge.
         gradient: LinearGradient(
-          colors: bmi == null ? TColor.primaryG : bmiCategoryGradient(bmi),
+          colors: bmi == null ? context.colors.primaryGradient : bmiCategoryGradient(bmi),
         ),
         borderRadius: BorderRadius.circular(22),
       ),
@@ -280,19 +280,19 @@ class _BmiViewState extends State<BmiView> {
           Text(
             tr('bmiTitle'),
             style: TextStyle(
-                color: TColor.white, fontSize: 13, fontWeight: FontWeight.w600),
+                color: context.colors.surface, fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 14),
           if (bmi == null) ...[
             Text(
               latest == null ? tr('noBmiYet') : tr('bmiNeedBoth'),
-              style: TextStyle(color: TColor.white, fontSize: 15),
+              style: TextStyle(color: context.colors.surface, fontSize: 15),
             ),
             const SizedBox(height: 4),
             Text(
               tr('noBmiHint'),
               style: TextStyle(
-                  color: TColor.white.withOpacity(0.75), fontSize: 12),
+                  color: context.colors.surface.withOpacity(0.75), fontSize: 12),
             ),
           ] else ...[
             Row(
@@ -301,7 +301,7 @@ class _BmiViewState extends State<BmiView> {
                 Text(
                   bmi.toStringAsFixed(1),
                   style: TextStyle(
-                      color: TColor.white,
+                      color: context.colors.surface,
                       fontSize: 40,
                       fontWeight: FontWeight.w700,
                       height: 1),
@@ -312,7 +312,7 @@ class _BmiViewState extends State<BmiView> {
                   child: Text(
                     bmiCategoryLabel(bmi),
                     style: TextStyle(
-                        color: TColor.white.withOpacity(0.9), fontSize: 13),
+                        color: context.colors.surface.withOpacity(0.9), fontSize: 13),
                   ),
                 ),
               ],
@@ -321,7 +321,7 @@ class _BmiViewState extends State<BmiView> {
             Text(
               "${_trim(latest!.heightCm!)} cm · ${_trim(latest.weightKg!)} kg · ${_date(latest.recordedAt)}",
               style: TextStyle(
-                  color: TColor.white.withOpacity(0.8), fontSize: 12),
+                  color: context.colors.surface.withOpacity(0.8), fontSize: 12),
             ),
           ],
         ],
@@ -333,7 +333,7 @@ class _BmiViewState extends State<BmiView> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: TColor.lightGray,
+        color: context.colors.surfaceVariant,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -342,7 +342,7 @@ class _BmiViewState extends State<BmiView> {
           Text(
             tr('recordMeasurement'),
             style: TextStyle(
-                color: TColor.black, fontSize: 14, fontWeight: FontWeight.w700),
+                color: context.colors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           Row(
@@ -358,10 +358,10 @@ class _BmiViewState extends State<BmiView> {
             height: 44,
             child: _isSaving
                 ? Center(
-                    child: CircularProgressIndicator(color: TColor.primaryColor1))
+                    child: CircularProgressIndicator(color: context.colors.primary1))
                 : DecoratedBox(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: TColor.primaryG),
+                      gradient: LinearGradient(colors: context.colors.primaryGradient),
                       borderRadius: BorderRadius.circular(22),
                     ),
                     child: TextButton(
@@ -369,7 +369,7 @@ class _BmiViewState extends State<BmiView> {
                       child: Text(
                         tr('save'),
                         style: TextStyle(
-                            color: TColor.white,
+                            color: context.colors.surface,
                             fontSize: 14,
                             fontWeight: FontWeight.w700),
                       ),
@@ -384,7 +384,7 @@ class _BmiViewState extends State<BmiView> {
   Widget _numberField(TextEditingController controller, String hint) {
     return Container(
       decoration: BoxDecoration(
-        color: TColor.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
@@ -398,7 +398,7 @@ class _BmiViewState extends State<BmiView> {
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: InputBorder.none,
           hintText: hint,
-          hintStyle: TextStyle(color: TColor.gray, fontSize: 12),
+          hintStyle: TextStyle(color: context.colors.textSecondary, fontSize: 12),
         ),
       ),
     );
@@ -409,15 +409,15 @@ class _BmiViewState extends State<BmiView> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 26),
       decoration: BoxDecoration(
-        color: TColor.lightGray,
+        color: context.colors.surfaceVariant,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         children: [
-          Icon(Icons.monitor_weight_outlined, color: TColor.gray, size: 30),
+          Icon(Icons.monitor_weight_outlined, color: context.colors.textSecondary, size: 30),
           const SizedBox(height: 8),
           Text(tr('noBmiYet'),
-              style: TextStyle(color: TColor.gray, fontSize: 13)),
+              style: TextStyle(color: context.colors.textSecondary, fontSize: 13)),
         ],
       ),
     );
@@ -429,7 +429,7 @@ class _BmiViewState extends State<BmiView> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: TColor.lightGray,
+        color: context.colors.surfaceVariant,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -440,7 +440,7 @@ class _BmiViewState extends State<BmiView> {
             child: Text(
               bmi == null ? "–" : bmi.toStringAsFixed(1),
               style: TextStyle(
-                color: bmi == null ? TColor.gray : bmiCategoryColor(bmi),
+                color: bmi == null ? context.colors.textSecondary : bmiCategoryColor(bmi),
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -457,21 +457,21 @@ class _BmiViewState extends State<BmiView> {
                     if (metric.weightKg != null) "${_trim(metric.weightKg!)} kg",
                   ].join(" · "),
                   style: TextStyle(
-                      color: TColor.black,
+                      color: context.colors.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   _date(metric.recordedAt),
-                  style: TextStyle(color: TColor.gray, fontSize: 11),
+                  style: TextStyle(color: context.colors.textSecondary, fontSize: 11),
                 ),
               ],
             ),
           ),
           IconButton(
             onPressed: () => _delete(metric),
-            icon: Icon(Icons.delete_outline, color: TColor.gray, size: 20),
+            icon: Icon(Icons.delete_outline, color: context.colors.textSecondary, size: 20),
           ),
         ],
       ),

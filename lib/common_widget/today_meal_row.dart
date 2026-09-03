@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 import '../common/common.dart';
@@ -13,7 +13,7 @@ class TodayMealRow extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-            color: TColor.white,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(15),
             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)]),
         child: Row(
@@ -37,14 +37,14 @@ class TodayMealRow extends StatelessWidget {
                   Text(
                     mObj["name"].toString(),
                     style: TextStyle(
-                        color: TColor.black,
+                        color: context.colors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500),
                   ),
                   Text(
                      "${getDayTitle(mObj["time"].toString())} | ${getStringDateToOtherFormate(mObj["time"].toString(), outFormatStr: "h:mm aa")}",
                     style: TextStyle(
-                      color: TColor.gray,
+                      color: context.colors.textSecondary,
                       fontSize: 10,
                     ),
                   ),

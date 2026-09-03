@@ -1,5 +1,5 @@
 
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class NotificationRow extends StatelessWidget {
@@ -31,14 +31,14 @@ class NotificationRow extends StatelessWidget {
               Text(
                 nObj["title"].toString(),
                 style: TextStyle(
-                    color: TColor.black,
+                    color: context.colors.textPrimary,
                     fontWeight: FontWeight.w500,
                     fontSize: 12),
               ),
               Text(
                 nObj["time"].toString(),
                 style: TextStyle(
-                  color: TColor.gray,
+                  color: context.colors.textSecondary,
                   fontSize: 10,
                 ),
               ),

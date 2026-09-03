@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/view/workout_tracker/workour_detail_view.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +54,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
     var media = MediaQuery.of(context).size;
     return Container(
       decoration:
-          BoxDecoration(gradient: LinearGradient(colors: TColor.primaryG)),
+          BoxDecoration(gradient: LinearGradient(colors: context.colors.primaryGradient)),
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -73,7 +73,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                   width: 40,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                      color: TColor.lightGray,
+                      color: context.colors.surfaceVariant,
                       borderRadius: BorderRadius.circular(10)),
                   child: Image.asset(
                     "assets/img/black_btn.png",
@@ -86,7 +86,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
               title: Text(
                 "Workout Tracker",
                 style: TextStyle(
-                    color: TColor.white,
+                    color: context.colors.surface,
                     fontSize: 16,
                     fontWeight: FontWeight.w700),
               ),
@@ -99,7 +99,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                     width: 40,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                        color: TColor.lightGray,
+                        color: context.colors.surfaceVariant,
                         borderRadius: BorderRadius.circular(10)),
                     child: Image.asset(
                       "assets/img/more_btn.png",
@@ -162,14 +162,14 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                                 radius: 3,
                                 color: Colors.white,
                                 strokeWidth: 3,
-                                strokeColor: TColor.secondaryColor1,
+                                strokeColor: context.colors.secondary1,
                               ),
                             ),
                           );
                         }).toList();
                       },
                       touchTooltipData: LineTouchTooltipData(
-                        getTooltipColor: (_) => TColor.secondaryColor1,
+                        getTooltipColor: (_) => context.colors.secondary1,
                         tooltipBorderRadius: BorderRadius.circular(20),
                         getTooltipItems: (List<LineBarSpot> lineBarsSpot) {
                           return lineBarsSpot.map((lineBarSpot) {
@@ -205,7 +205,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                       drawVerticalLine: false,
                       getDrawingHorizontalLine: (value) {
                         return FlLine(
-                          color: TColor.white.withOpacity(0.15),
+                          color: context.colors.surface.withOpacity(0.15),
                           strokeWidth: 2,
                         );
                       },
@@ -225,7 +225,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
         body: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-              color: TColor.white,
+              color: context.colors.surface,
               borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(25), topRight: Radius.circular(25))),
           child: Scaffold(
@@ -240,7 +240,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                     width: 50,
                     height: 4,
                     decoration: BoxDecoration(
-                        color: TColor.gray.withOpacity(0.3),
+                        color: context.colors.textSecondary.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(3)),
                   ),
                   SizedBox(
@@ -250,7 +250,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                     padding: const EdgeInsets.symmetric(
                         vertical: 15, horizontal: 15),
                     decoration: BoxDecoration(
-                      color: TColor.primaryColor2.withOpacity(0.3),
+                      color: context.colors.primary2.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Row(
@@ -259,7 +259,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                         Text(
                           "Daily Workout Schedule",
                           style: TextStyle(
-                              color: TColor.black,
+                              color: context.colors.textPrimary,
                               fontSize: 14,
                               fontWeight: FontWeight.w700),
                         ),
@@ -294,7 +294,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                       Text(
                         "Upcoming Workout",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w700),
                       ),
@@ -303,7 +303,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                         child: Text(
                           "See More",
                           style: TextStyle(
-                              color: TColor.gray,
+                              color: context.colors.textSecondary,
                               fontSize: 14,
                               fontWeight: FontWeight.w700),
                         ),
@@ -328,7 +328,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
                       Text(
                         "What Do You Want to Train",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w700),
                       ),
@@ -373,7 +373,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
 
   LineChartBarData get lineChartBarData1_1 => LineChartBarData(
         isCurved: true,
-        color: TColor.white,
+        color: context.colors.surface,
         barWidth: 4,
         isStrokeCapRound: true,
         dotData: FlDotData(show: false),
@@ -391,7 +391,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
 
   LineChartBarData get lineChartBarData1_2 => LineChartBarData(
         isCurved: true,
-        color: TColor.white.withOpacity(0.5),
+        color: context.colors.surface.withOpacity(0.5),
         barWidth: 2,
         isStrokeCapRound: true,
         dotData: FlDotData(show: false),
@@ -443,7 +443,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
 
     return Text(text,
         style: TextStyle(
-          color: TColor.white,
+          color: context.colors.surface,
           fontSize: 12,
         ),
         textAlign: TextAlign.center);
@@ -458,7 +458,7 @@ class _WorkoutTrackerViewState extends State<WorkoutTrackerView> {
 
   Widget bottomTitleWidgets(double value, TitleMeta meta) {
     var style = TextStyle(
-      color: TColor.white,
+      color: context.colors.surface,
       fontSize: 12,
     );
     Widget text;

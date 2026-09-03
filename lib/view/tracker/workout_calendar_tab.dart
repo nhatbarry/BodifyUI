@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../core/app_strings.dart';
 
 /// One day that has training on it. Comes from the schedule API once that
@@ -81,7 +81,7 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color: TColor.white,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 3)],
       ),
@@ -91,21 +91,21 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
             children: [
               IconButton(
                 onPressed: () => _shiftMonth(-1),
-                icon: Icon(Icons.chevron_left, color: TColor.black),
+                icon: Icon(Icons.chevron_left, color: context.colors.textPrimary),
               ),
               Expanded(
                 child: Text(
                   "${tr('month${_displayMonth.month}')} ${_displayMonth.year}",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: TColor.black,
+                      color: context.colors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w700),
                 ),
               ),
               IconButton(
                 onPressed: () => _shiftMonth(1),
-                icon: Icon(Icons.chevron_right, color: TColor.black),
+                icon: Icon(Icons.chevron_right, color: context.colors.textPrimary),
               ),
             ],
           ),
@@ -118,7 +118,7 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       // Weekend columns stand out, as on a printed calendar.
-                      color: i >= 5 ? const Color(0xFFE74C3C) : TColor.gray,
+                      color: i >= 5 ? const Color(0xFFE74C3C) : context.colors.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -180,17 +180,17 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
               height: 32,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                gradient: isToday ? LinearGradient(colors: TColor.primaryG) : null,
-                color: !isToday && isSelected ? TColor.lightGray : null,
+                gradient: isToday ? LinearGradient(colors: context.colors.primaryGradient) : null,
+                color: !isToday && isSelected ? context.colors.surfaceVariant : null,
                 shape: BoxShape.circle,
                 border: isSelected && !isToday
-                    ? Border.all(color: TColor.primaryColor1, width: 1.5)
+                    ? Border.all(color: context.colors.primary1, width: 1.5)
                     : null,
               ),
               child: Text(
                 "$day",
                 style: TextStyle(
-                  color: isToday ? TColor.white : TColor.black,
+                  color: isToday ? context.colors.surface : context.colors.textPrimary,
                   fontSize: 13,
                   fontWeight:
                       isToday || isSelected ? FontWeight.w700 : FontWeight.w400,
@@ -208,8 +208,8 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
                 color: !isMarked
                     ? Colors.transparent
                     : isPast
-                        ? TColor.gray.withOpacity(0.5)
-                        : TColor.primaryColor1,
+                        ? context.colors.textSecondary.withOpacity(0.5)
+                        : context.colors.primary1,
               ),
             ),
           ],
@@ -231,7 +231,7 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
         Text(
           label,
           style: TextStyle(
-              color: TColor.black, fontSize: 15, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 15, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 10),
         if (entries.isEmpty)
@@ -239,22 +239,22 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
             decoration: BoxDecoration(
-              color: TColor.lightGray,
+              color: context.colors.surfaceVariant,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               children: [
-                Icon(Icons.event_note, color: TColor.gray, size: 32),
+                Icon(Icons.event_note, color: context.colors.textSecondary, size: 32),
                 const SizedBox(height: 10),
                 Text(
                   tr('noScheduleForDay'),
-                  style: TextStyle(color: TColor.gray, fontSize: 13),
+                  style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   tr('scheduleApiPending'),
                   style: TextStyle(
-                      color: TColor.gray.withOpacity(0.7), fontSize: 11),
+                      color: context.colors.textSecondary.withOpacity(0.7), fontSize: 11),
                 ),
               ],
             ),
@@ -270,7 +270,7 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: TColor.lightGray,
+        color: context.colors.surfaceVariant,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -280,12 +280,12 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
             height: 42,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: TColor.white,
+              color: context.colors.surface,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               entry.isRestDay ? Icons.self_improvement : Icons.fitness_center,
-              color: TColor.primaryColor1,
+              color: context.colors.primary1,
               size: 20,
             ),
           ),
@@ -294,13 +294,13 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
             child: Text(
               entry.title,
               style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w600),
             ),
           ),
           if (entry.isCompleted)
-            Icon(Icons.check_circle, color: TColor.primaryColor1, size: 20),
+            Icon(Icons.check_circle, color: context.colors.primary1, size: 20),
         ],
       ),
     );

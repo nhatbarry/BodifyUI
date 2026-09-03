@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 
 class SettingRow extends StatelessWidget {
   final String icon;
@@ -26,7 +26,7 @@ class SettingRow extends StatelessWidget {
               child: Text(
                 title,
                 style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 12,
                 ),
               ),

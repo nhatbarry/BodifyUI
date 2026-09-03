@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../core/app_strings.dart';
 import '../../core/api_exception.dart';
 import '../../models/exercise_models.dart';
@@ -50,16 +50,16 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         elevation: 0,
         centerTitle: true,
-        iconTheme: IconThemeData(color: TColor.black),
+        iconTheme: IconThemeData(color: context.colors.textPrimary),
         title: Text(
           tr('exerciseDetail'),
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
       body: _buildBody(),
@@ -68,7 +68,7 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: TColor.primaryColor1));
+      return Center(child: CircularProgressIndicator(color: context.colors.primary1));
     }
 
     if (_error != null) {
@@ -76,12 +76,12 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off, color: TColor.gray, size: 40),
+            Icon(Icons.cloud_off, color: context.colors.textSecondary, size: 40),
             const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: TColor.gray, fontSize: 13)),
+            Text(_error!, style: TextStyle(color: context.colors.textSecondary, fontSize: 13)),
             TextButton(
               onPressed: _load,
-              child: Text(tr('retry'), style: TextStyle(color: TColor.primaryColor1)),
+              child: Text(tr('retry'), style: TextStyle(color: context.colors.primary1)),
             ),
           ],
         ),
@@ -103,8 +103,8 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
                   exercise.thumbnailUrl!,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    color: TColor.lightGray,
-                    child: Icon(Icons.fitness_center, color: TColor.gray, size: 40),
+                    color: context.colors.surfaceVariant,
+                    child: Icon(Icons.fitness_center, color: context.colors.textSecondary, size: 40),
                   ),
                 ),
               ),
@@ -113,7 +113,7 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
           Text(
             exercise.name ?? "#${exercise.exerciseId}",
             style: TextStyle(
-                color: TColor.black, fontSize: 18, fontWeight: FontWeight.w700),
+                color: context.colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -134,12 +134,12 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
             Row(
               children: [
                 Icon(Icons.play_circle_outline,
-                    color: TColor.primaryColor1, size: 18),
+                    color: context.colors.primary1, size: 18),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     tr('hasVideo'),
-                    style: TextStyle(color: TColor.gray, fontSize: 12),
+                    style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                   ),
                 ),
               ],
@@ -178,7 +178,7 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
     if (value == null || value.trim().isEmpty) return null;
     return Text(
       value,
-      style: TextStyle(color: TColor.gray, fontSize: 13, height: 1.5),
+      style: TextStyle(color: context.colors.textSecondary, fontSize: 13, height: 1.5),
     );
   }
 
@@ -194,7 +194,7 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
           Text(
             title,
             style: TextStyle(
-                color: TColor.black, fontSize: 14, fontWeight: FontWeight.w700),
+                color: context.colors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           child,
@@ -207,14 +207,14 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        gradient: highlight ? LinearGradient(colors: TColor.primaryG) : null,
-        color: highlight ? null : TColor.lightGray,
+        gradient: highlight ? LinearGradient(colors: context.colors.primaryGradient) : null,
+        color: highlight ? null : context.colors.surfaceVariant,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: highlight ? TColor.white : TColor.gray,
+          color: highlight ? context.colors.surface : context.colors.textSecondary,
           fontSize: 11,
           fontWeight: highlight ? FontWeight.w600 : FontWeight.w400,
         ),

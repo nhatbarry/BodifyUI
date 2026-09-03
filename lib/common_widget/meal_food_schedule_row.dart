@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class MealFoodScheduleRow extends StatelessWidget {
@@ -18,7 +18,7 @@ class MealFoodScheduleRow extends StatelessWidget {
                 height: 55,
                 width: 55,
                 decoration: BoxDecoration(
-                    color: index % 2 == 0 ? TColor.primaryColor2.withOpacity(0.4) : TColor.secondaryColor2.withOpacity(0.4) ,
+                    color: index % 2 == 0 ? context.colors.primary2.withOpacity(0.4) : context.colors.secondary2.withOpacity(0.4) ,
                     borderRadius: BorderRadius.circular(10)),
                   alignment: Alignment.center,
                 child: Image.asset(
@@ -39,14 +39,14 @@ class MealFoodScheduleRow extends StatelessWidget {
                   Text(
                     mObj["name"].toString(),
                     style: TextStyle(
-                        color: TColor.black,
+                        color: context.colors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700),
                   ),
                   Text(
                     mObj["time"].toString(),
                     style: TextStyle(
-                      color: TColor.gray,
+                      color: context.colors.textSecondary,
                       fontSize: 10,
                     ),
                   ),

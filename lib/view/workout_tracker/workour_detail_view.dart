@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/common_widget/icon_title_next_row.dart';
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:bodify/view/workout_tracker/exercises_stpe_details.dart';
@@ -89,7 +89,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
     var media = MediaQuery.of(context).size;
     return Container(
       decoration:
-          BoxDecoration(gradient: LinearGradient(colors: TColor.primaryG)),
+          BoxDecoration(gradient: LinearGradient(colors: context.colors.primaryGradient)),
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -107,7 +107,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                   width: 40,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                      color: TColor.lightGray,
+                      color: context.colors.surfaceVariant,
                       borderRadius: BorderRadius.circular(10)),
                   child: Image.asset(
                     "assets/img/black_btn.png",
@@ -126,7 +126,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                     width: 40,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                        color: TColor.lightGray,
+                        color: context.colors.surfaceVariant,
                         borderRadius: BorderRadius.circular(10)),
                     child: Image.asset(
                       "assets/img/more_btn.png",
@@ -160,7 +160,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
         body: Container(
           padding: const EdgeInsets.symmetric(horizontal: 15),
           decoration: BoxDecoration(
-              color: TColor.white,
+              color: context.colors.surface,
               borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(25), topRight: Radius.circular(25))),
           child: Scaffold(
@@ -177,7 +177,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                         width: 50,
                         height: 4,
                         decoration: BoxDecoration(
-                            color: TColor.gray.withOpacity(0.3),
+                            color: context.colors.textSecondary.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(3)),
                       ),
                       SizedBox(
@@ -193,14 +193,14 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                                 Text(
                                   widget.dObj["title"].toString(),
                                   style: TextStyle(
-                                      color: TColor.black,
+                                      color: context.colors.textPrimary,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700),
                                 ),
                                 Text(
                                   "${widget.dObj["exercises"].toString()} | ${widget.dObj["time"].toString()} | 320 Calories Burn",
                                   style: TextStyle(
-                                      color: TColor.gray, fontSize: 12),
+                                      color: context.colors.textSecondary, fontSize: 12),
                                 ),
                               ],
                             ),
@@ -223,7 +223,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                           icon: "assets/img/time.png",
                           title: "Schedule Workout",
                           time: "5/27, 09:00 AM",
-                          color: TColor.primaryColor2.withOpacity(0.3),
+                          color: context.colors.primary2.withOpacity(0.3),
                           onPressed: () {
 
                               Navigator.push(context, MaterialPageRoute(builder: (context) => const WorkoutScheduleView() )  );
@@ -235,7 +235,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                           icon: "assets/img/difficulity.png",
                           title: "Difficulity",
                           time: "Beginner",
-                          color: TColor.secondaryColor2.withOpacity(0.3),
+                          color: context.colors.secondary2.withOpacity(0.3),
                           onPressed: () {}),
                       SizedBox(
                         height: media.width * 0.05,
@@ -246,7 +246,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                           Text(
                             "You'll Need",
                             style: TextStyle(
-                                color: TColor.black,
+                                color: context.colors.textPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700),
                           ),
@@ -255,7 +255,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                             child: Text(
                               "${youArr.length} Items",
                               style:
-                                  TextStyle(color: TColor.gray, fontSize: 12),
+                                  TextStyle(color: context.colors.textSecondary, fontSize: 12),
                             ),
                           )
                         ],
@@ -279,7 +279,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                                         height: media.width * 0.35,
                                         width: media.width * 0.35,
                                         decoration: BoxDecoration(
-                                            color: TColor.lightGray,
+                                            color: context.colors.surfaceVariant,
                                             borderRadius:
                                                 BorderRadius.circular(15)),
                                         alignment: Alignment.center,
@@ -295,7 +295,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                                         child: Text(
                                           yObj["title"].toString(),
                                           style: TextStyle(
-                                              color: TColor.black,
+                                              color: context.colors.textPrimary,
                                               fontSize: 12),
                                         ),
                                       )
@@ -312,7 +312,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                           Text(
                             "Exercises",
                             style: TextStyle(
-                                color: TColor.black,
+                                color: context.colors.textPrimary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700),
                           ),
@@ -321,7 +321,7 @@ class _WorkoutDetailViewState extends State<WorkoutDetailView> {
                             child: Text(
                               "${youArr.length} Sets",
                               style:
-                                  TextStyle(color: TColor.gray, fontSize: 12),
+                                  TextStyle(color: context.colors.textSecondary, fontSize: 12),
                             ),
                           )
                         ],

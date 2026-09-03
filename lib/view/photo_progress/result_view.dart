@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:simple_animation_progress_bar/simple_animation_progress_bar.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../common/common.dart';
 import '../../common_widget/round_button.dart';
 
@@ -74,7 +74,7 @@ class _ResultViewState extends State<ResultView> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         centerTitle: true,
         elevation: 0,
         leading: InkWell(
@@ -87,7 +87,7 @@ class _ResultViewState extends State<ResultView> {
             width: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: TColor.lightGray,
+                color: context.colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(10)),
             child: Image.asset(
               "assets/img/black_btn.png",
@@ -100,7 +100,7 @@ class _ResultViewState extends State<ResultView> {
         title: Text(
           "Result",
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
         actions: [
           InkWell(
@@ -111,7 +111,7 @@ class _ResultViewState extends State<ResultView> {
               width: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: TColor.lightGray,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10)),
               child: Image.asset(
                 "assets/img/share.png",
@@ -129,7 +129,7 @@ class _ResultViewState extends State<ResultView> {
               width: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: TColor.lightGray,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10)),
               child: Image.asset(
                 "assets/img/more_btn.png",
@@ -141,7 +141,7 @@ class _ResultViewState extends State<ResultView> {
           )
         ],
       ),
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
@@ -151,7 +151,7 @@ class _ResultViewState extends State<ResultView> {
                 height: 55,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                    color: TColor.lightGray,
+                    color: context.colors.surfaceVariant,
                     borderRadius: BorderRadius.circular(30)),
                 child: Stack(alignment: Alignment.center, children: [
                   AnimatedContainer(
@@ -163,7 +163,7 @@ class _ResultViewState extends State<ResultView> {
                       width: (media.width * 0.5) - 40,
                       height: 40,
                       decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: TColor.primaryG),
+                          gradient: LinearGradient(colors: context.colors.primaryGradient),
                           borderRadius: BorderRadius.circular(30)),
                     ),
                   ),
@@ -187,8 +187,8 @@ class _ResultViewState extends State<ResultView> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                     color: selectButton == 0
-                                        ? TColor.white
-                                        : TColor.gray,
+                                        ? context.colors.surface
+                                        : context.colors.textSecondary,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500),
                               ),
@@ -210,8 +210,8 @@ class _ResultViewState extends State<ResultView> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                     color: selectButton == 1
-                                        ? TColor.white
-                                        : TColor.gray,
+                                        ? context.colors.surface
+                                        : context.colors.textSecondary,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500),
                               ),
@@ -239,7 +239,7 @@ class _ResultViewState extends State<ResultView> {
                         Text(
                           "Average Progress",
                           style: TextStyle(
-                              color: TColor.black,
+                              color: context.colors.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w700),
                         ),
@@ -269,14 +269,14 @@ class _ResultViewState extends State<ResultView> {
                           duration: const Duration(seconds: 3),
                           borderRadius: BorderRadius.circular(10),
                           gradientColor: LinearGradient(
-                              colors: TColor.primaryG,
+                              colors: context.colors.primaryGradient,
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight),
                         ),
                         Text(
                           "62%",
                           style: TextStyle(
-                            color: TColor.white,
+                            color: context.colors.surface,
                             fontSize: 12,
                           ),
                         ),
@@ -291,14 +291,14 @@ class _ResultViewState extends State<ResultView> {
                         Text(
                           dateToString(widget.date1, formatStr: "MMMM"),
                           style: TextStyle(
-                              color: TColor.gray,
+                              color: context.colors.textSecondary,
                               fontSize: 16,
                               fontWeight: FontWeight.w700),
                         ),
                         Text(
                           dateToString(widget.date2, formatStr: "MMMM"),
                           style: TextStyle(
-                              color: TColor.gray,
+                              color: context.colors.textSecondary,
                               fontSize: 16,
                               fontWeight: FontWeight.w700),
                         ),
@@ -320,7 +320,7 @@ class _ResultViewState extends State<ResultView> {
                                 Text(
                                   iObj["title"].toString(),
                                   style: TextStyle(
-                                      color: TColor.gray,
+                                      color: context.colors.textSecondary,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500),
                                 ),
@@ -334,7 +334,7 @@ class _ResultViewState extends State<ResultView> {
                                         aspectRatio: 1,
                                         child: Container(
                                           decoration: BoxDecoration(
-                                            color: TColor.lightGray,
+                                            color: context.colors.surfaceVariant,
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                           ),
@@ -359,7 +359,7 @@ class _ResultViewState extends State<ResultView> {
                                         aspectRatio: 1,
                                         child: Container(
                                           decoration: BoxDecoration(
-                                            color: TColor.lightGray,
+                                            color: context.colors.surfaceVariant,
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                           ),
@@ -443,14 +443,14 @@ class _ResultViewState extends State<ResultView> {
                                       radius: 3,
                                       color: Colors.white,
                                       strokeWidth: 3,
-                                      strokeColor: TColor.secondaryColor1,
+                                      strokeColor: context.colors.secondary1,
                                     ),
                                   ),
                                 );
                               }).toList();
                             },
                             touchTooltipData: LineTouchTooltipData(
-                              getTooltipColor: (_) => TColor.secondaryColor1,
+                              getTooltipColor: (_) => context.colors.secondary1,
                               tooltipBorderRadius: BorderRadius.circular(20),
                               getTooltipItems:
                                   (List<LineBarSpot> lineBarsSpot) {
@@ -487,7 +487,7 @@ class _ResultViewState extends State<ResultView> {
                             drawVerticalLine: false,
                             getDrawingHorizontalLine: (value) {
                               return FlLine(
-                                color: TColor.lightGray,
+                                color: context.colors.surfaceVariant,
                                 strokeWidth: 2,
                               );
                             },
@@ -510,14 +510,14 @@ class _ResultViewState extends State<ResultView> {
                         Text(
                           dateToString(widget.date1, formatStr: "MMMM"),
                           style: TextStyle(
-                              color: TColor.gray,
+                              color: context.colors.textSecondary,
                               fontSize: 16,
                               fontWeight: FontWeight.w700),
                         ),
                         Text(
                           dateToString(widget.date2, formatStr: "MMMM"),
                           style: TextStyle(
-                              color: TColor.gray,
+                              color: context.colors.textSecondary,
                               fontSize: 16,
                               fontWeight: FontWeight.w700),
                         ),
@@ -539,7 +539,7 @@ class _ResultViewState extends State<ResultView> {
                                 Text(
                                   iObj["title"].toString(),
                                   style: TextStyle(
-                                      color: TColor.gray,
+                                      color: context.colors.textSecondary,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500),
                                 ),
@@ -556,14 +556,14 @@ class _ResultViewState extends State<ResultView> {
                                         iObj["month_1_per"].toString(),
                                         textAlign: TextAlign.right,
                                         style: TextStyle(
-                                            color: TColor.gray, fontSize: 12),
+                                            color: context.colors.textSecondary, fontSize: 12),
                                       ),
                                     ),
 
                                     SimpleAnimationProgressBar(
                           height: 10,
                           width: media.width - 120,
-                          backgroundColor: TColor.primaryColor1,
+                          backgroundColor: context.colors.primary1,
                           foregroundColor: const Color(0xffFFB2B1) ,
                           ratio: (double.tryParse(iObj["diff_per"].toString()) ?? 0.0) / 100.0 ,
                           direction: Axis.horizontal,
@@ -579,7 +579,7 @@ class _ResultViewState extends State<ResultView> {
                                         iObj["month_2_per"].toString(),
                                         textAlign: TextAlign.left,
                                         style: TextStyle(
-                                          color: TColor.gray,
+                                          color: context.colors.textSecondary,
                                           fontSize: 12,
                                         ),
                                       ),
@@ -620,7 +620,7 @@ class _ResultViewState extends State<ResultView> {
 
   LineChartBarData get lineChartBarData1_1 => LineChartBarData(
         isCurved: true,
-        gradient: LinearGradient(colors: TColor.primaryG),
+        gradient: LinearGradient(colors: context.colors.primaryGradient),
         barWidth: 3,
         isStrokeCapRound: true,
         dotData: FlDotData(show: false),
@@ -639,8 +639,8 @@ class _ResultViewState extends State<ResultView> {
   LineChartBarData get lineChartBarData1_2 => LineChartBarData(
         isCurved: true,
         gradient: LinearGradient(colors: [
-          TColor.secondaryColor2.withOpacity(0.5),
-          TColor.secondaryColor1.withOpacity(0.5)
+          context.colors.secondary2.withOpacity(0.5),
+          context.colors.secondary1.withOpacity(0.5)
         ]),
         barWidth: 2,
         isStrokeCapRound: true,
@@ -693,7 +693,7 @@ class _ResultViewState extends State<ResultView> {
 
     return Text(text,
         style: TextStyle(
-          color: TColor.gray,
+          color: context.colors.textSecondary,
           fontSize: 12,
         ),
         textAlign: TextAlign.center);
@@ -708,7 +708,7 @@ class _ResultViewState extends State<ResultView> {
 
   Widget bottomTitleWidgets(double value, TitleMeta meta) {
     var style = TextStyle(
-      color: TColor.gray,
+      color: context.colors.textSecondary,
       fontSize: 12,
     );
     Widget text;

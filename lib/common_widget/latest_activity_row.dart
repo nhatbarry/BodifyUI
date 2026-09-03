@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class LatestActivityRow extends StatelessWidget {
@@ -31,14 +31,14 @@ class LatestActivityRow extends StatelessWidget {
                   Text(
                   wObj["title"].toString(),
                   style: TextStyle(
-                      color: TColor.black,
+                      color: context.colors.textPrimary,
                       fontSize: 12, fontWeight: FontWeight.w500),
                 ),
 
                 Text(
                  wObj["time"].toString(),
                   style: TextStyle(
-                      color: TColor.gray,
+                      color: context.colors.textSecondary,
                       fontSize: 10,),
                 ),
 

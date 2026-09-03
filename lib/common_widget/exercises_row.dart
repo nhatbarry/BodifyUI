@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class ExercisesRow extends StatelessWidget {
@@ -30,12 +30,12 @@ class ExercisesRow extends StatelessWidget {
             children: [
               Text(
                 eObj["title"].toString(),
-                style: TextStyle(color: TColor.black, fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(color: context.colors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
               ),
               Text(
                 eObj["value"].toString(),
                 style: TextStyle(
-                  color: TColor.gray,
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),

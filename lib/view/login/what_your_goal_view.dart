@@ -2,7 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:bodify/view/login/welcome_view.dart';
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../common_widget/round_button.dart';
 
 class WhatYourGoalView extends StatefulWidget {
@@ -40,7 +40,7 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
   Widget build(BuildContext context) {
     var media = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SafeArea(
           child: Stack(
         children: [
@@ -51,7 +51,7 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
                     (gObj) => Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                            colors: TColor.primaryG,
+                            colors: context.colors.primaryGradient,
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight),
                         borderRadius: BorderRadius.circular(25),
@@ -73,14 +73,14 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
                             Text(
                               gObj["title"].toString(),
                               style: TextStyle(
-                                  color: TColor.white,
+                                  color: context.colors.surface,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700),
                             ),
                             Container(
                               width: media.width * 0.1,
                               height: 1,
-                              color: TColor.white,
+                              color: context.colors.surface,
                             ),
                             SizedBox(
                               height: media.width * 0.02,
@@ -89,7 +89,7 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
                               gObj["subtitle"].toString(),
                               textAlign: TextAlign.center,
                               style:
-                                  TextStyle(color: TColor.white, fontSize: 12),
+                                  TextStyle(color: context.colors.surface, fontSize: 12),
                             ),
                           ],
                         ),
@@ -118,14 +118,14 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
                 Text(
                   "What is your goal ?",
                   style: TextStyle(
-                      color: TColor.black,
+                      color: context.colors.textPrimary,
                       fontSize: 20,
                       fontWeight: FontWeight.w700),
                 ),
                 Text(
                   "It will help us to choose a best\nprogram for you",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: TColor.gray, fontSize: 12),
+                  style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                 ),
                 const Spacer(),
                 SizedBox(

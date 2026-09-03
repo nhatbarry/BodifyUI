@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:bodify/common_widget/round_textfield.dart';
 import 'package:bodify/core/api_exception.dart';
@@ -99,7 +99,7 @@ class _SignUpViewState extends State<SignUpView> {
   Widget build(BuildContext context) {
     var media = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SingleChildScrollView(
         child: SafeArea(
           child: Padding(
@@ -109,12 +109,12 @@ class _SignUpViewState extends State<SignUpView> {
               children: [
                 Text(
                   "Hey there,",
-                  style: TextStyle(color: TColor.gray, fontSize: 16),
+                  style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
                 ),
                 Text(
                   "Create an Account",
                   style: TextStyle(
-                      color: TColor.black,
+                      color: context.colors.textPrimary,
                       fontSize: 20,
                       fontWeight: FontWeight.w700),
                 ),
@@ -165,8 +165,8 @@ class _SignUpViewState extends State<SignUpView> {
                             height: 20,
                             fit: BoxFit.contain,
                             color: _obscurePassword
-                                ? TColor.gray
-                                : TColor.primaryColor1,
+                                ? context.colors.textSecondary
+                                : context.colors.primary1,
                           ))),
                 ),
                 Row(
@@ -182,7 +182,7 @@ class _SignUpViewState extends State<SignUpView> {
                         isCheck
                             ? Icons.check_box_outlined
                             : Icons.check_box_outline_blank_outlined,
-                        color: TColor.gray,
+                        color: context.colors.textSecondary,
                         size: 20,
                       ),
                     ),
@@ -190,7 +190,7 @@ class _SignUpViewState extends State<SignUpView> {
                       padding: const EdgeInsets.only(top: 8),
                       child:  Text(
                           "By continuing you accept our Privacy Policy and\nTerm of Use",
-                          style: TextStyle(color: TColor.gray, fontSize: 10),
+                          style: TextStyle(color: context.colors.textSecondary, fontSize: 10),
                         ),
 
                     )
@@ -204,7 +204,7 @@ class _SignUpViewState extends State<SignUpView> {
                         height: 50,
                         alignment: Alignment.center,
                         child: CircularProgressIndicator(
-                            color: TColor.primaryColor1),
+                            color: context.colors.primary1),
                       )
                     : RoundButton(title: "Register", onPressed: _register),
                 SizedBox(
@@ -216,16 +216,16 @@ class _SignUpViewState extends State<SignUpView> {
                     Expanded(
                         child: Container(
                       height: 1,
-                      color: TColor.gray.withOpacity(0.5),
+                      color: context.colors.textSecondary.withOpacity(0.5),
                     )),
                     Text(
                       "  Or  ",
-                      style: TextStyle(color: TColor.black, fontSize: 12),
+                      style: TextStyle(color: context.colors.textPrimary, fontSize: 12),
                     ),
                     Expanded(
                         child: Container(
                       height: 1,
-                      color: TColor.gray.withOpacity(0.5),
+                      color: context.colors.textSecondary.withOpacity(0.5),
                     )),
                   ],
                 ),
@@ -242,10 +242,10 @@ class _SignUpViewState extends State<SignUpView> {
                         height: 50,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: TColor.white,
+                          color: context.colors.surface,
                           border: Border.all(
                             width: 1,
-                            color: TColor.gray.withOpacity(0.4),
+                            color: context.colors.textSecondary.withOpacity(0.4),
                           ),
                           borderRadius: BorderRadius.circular(15),
                         ),
@@ -268,10 +268,10 @@ class _SignUpViewState extends State<SignUpView> {
                         height: 50,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: TColor.white,
+                          color: context.colors.surface,
                           border: Border.all(
                             width: 1,
-                            color: TColor.gray.withOpacity(0.4),
+                            color: context.colors.textSecondary.withOpacity(0.4),
                           ),
                           borderRadius: BorderRadius.circular(15),
                         ),
@@ -300,14 +300,14 @@ class _SignUpViewState extends State<SignUpView> {
                       Text(
                         "Already have an account? ",
                         style: TextStyle(
-                          color: TColor.black,
+                          color: context.colors.textPrimary,
                           fontSize: 14,
                         ),
                       ),
                       Text(
                         "Login",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.w700),
                       )

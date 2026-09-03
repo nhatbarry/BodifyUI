@@ -1,5 +1,5 @@
 
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class BlankView extends StatefulWidget {
@@ -13,7 +13,7 @@ class _BlankViewState extends State<BlankView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
     );
   }
 }

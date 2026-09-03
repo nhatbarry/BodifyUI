@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../core/app_strings.dart';
 
 /// Replaces the kit's Photo Progress tab. Placeholder until the AI coach
@@ -11,16 +11,16 @@ class AiCoachView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
         title: Text(
           tr('aiCoach'),
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
       body: Center(
@@ -34,16 +34,16 @@ class AiCoachView extends StatelessWidget {
                 height: 90,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: TColor.primaryG),
+                  gradient: LinearGradient(colors: context.colors.primaryGradient),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.auto_awesome, color: TColor.white, size: 38),
+                child: Icon(Icons.auto_awesome, color: context.colors.surface, size: 38),
               ),
               const SizedBox(height: 20),
               Text(
                 tr('aiCoach'),
                 style: TextStyle(
-                    color: TColor.black,
+                    color: context.colors.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w700),
               ),
@@ -51,7 +51,7 @@ class AiCoachView extends StatelessWidget {
               Text(
                 "${tr('aiCoachSubtitle')}\n${tr('featureInProgress')}",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: TColor.gray, fontSize: 13, height: 1.5),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 13, height: 1.5),
               ),
             ],
           ),

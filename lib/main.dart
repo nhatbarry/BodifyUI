@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 
-import 'common/colo_extension.dart';
+import 'common/app_colors.dart';
 import 'core/app_locale.dart';
+import 'core/theme_controller.dart';
 import 'services/auth_service.dart';
 import 'view/main_tab/main_tab_view.dart';
 import 'view/on_boarding/started_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Load the saved language before the first frame so the app never flashes
-  // the wrong one.
+  // Load the saved language and theme before the first frame so the app never
+  // flashes the wrong one.
   await LocaleController.instance.load();
+  await ThemeController.instance.load();
   runApp(const MyApp());
 }
 
@@ -19,21 +21,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Rebuilds the whole tree when the language changes, so every screen picks
-    // up the new strings without being individually subscribed.
+    // Rebuilds the whole tree when the language or theme changes, so every
+    // screen picks it up without being individually subscribed.
     return AnimatedBuilder(
-      animation: LocaleController.instance,
+      animation: Listenable.merge(
+        [LocaleController.instance, ThemeController.instance],
+      ),
       builder: (context, _) {
         return MaterialApp(
           title: 'Bodify',
           debugShowCheckedModeBanner: false,
           locale: LocaleController.instance.locale,
-          theme: ThemeData(
-            primaryColor: TColor.primaryColor1,
-            // Be Vietnam Pro: covers the full Vietnamese character set, which
-            // the kit's bundled Poppins does not.
-            fontFamily: "BeVietnamPro",
-          ),
+          theme: buildBodifyTheme(Brightness.light),
+          darkTheme: buildBodifyTheme(Brightness.dark),
+          themeMode: ThemeController.instance.mode,
           home: const AuthGate(),
         );
       },
@@ -77,9 +78,9 @@ class _AuthGateState extends State<AuthGate> {
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return Scaffold(
-            backgroundColor: TColor.white,
+            backgroundColor: context.colors.surface,
             body: Center(
-              child: CircularProgressIndicator(color: TColor.primaryColor1),
+              child: CircularProgressIndicator(color: context.colors.primary1),
             ),
           );
         }

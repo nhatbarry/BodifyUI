@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:flutter/material.dart';
 
 
@@ -12,7 +12,7 @@ class PopularMealRow extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-            color: TColor.white,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(15),
             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)]),
         child: Row(
@@ -33,13 +33,13 @@ class PopularMealRow extends StatelessWidget {
                   Text(
                     mObj["name"].toString(),
                     style: TextStyle(
-                        color: TColor.black,
+                        color: context.colors.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w500),
                   ),
                   Text(
                     "${mObj["size"]} | ${mObj["time"]} | ${mObj["kcal"]}",
-                    style: TextStyle(color: TColor.gray, fontSize: 12),
+                    style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                   )
                 ],
               ),

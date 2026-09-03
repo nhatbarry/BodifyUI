@@ -1,7 +1,7 @@
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:flutter/material.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 
 class MealCategoryCell extends StatelessWidget {
   final Map cObj;
@@ -18,12 +18,12 @@ class MealCategoryCell extends StatelessWidget {
           gradient: LinearGradient(
             colors: isEvent
                 ? [
-                    TColor.primaryColor2.withOpacity(0.5),
-                    TColor.primaryColor1.withOpacity(0.5)
+                    context.colors.primary2.withOpacity(0.5),
+                    context.colors.primary1.withOpacity(0.5)
                   ]
                 : [
-                    TColor.secondaryColor2.withOpacity(0.5),
-                    TColor.secondaryColor1.withOpacity(0.5)
+                    context.colors.secondary2.withOpacity(0.5),
+                    context.colors.secondary1.withOpacity(0.5)
                   ],
           ),
           borderRadius:  BorderRadius.circular(15)),
@@ -37,7 +37,7 @@ class MealCategoryCell extends StatelessWidget {
             child: Container(
               
               decoration: BoxDecoration(
-                  color: TColor.white,
+                  color: context.colors.surface,
                   borderRadius:  BorderRadius.circular(17.5)),
           
               child: Image.asset(
@@ -53,7 +53,7 @@ class MealCategoryCell extends StatelessWidget {
               cObj["name"],
               maxLines: 1,
               style: TextStyle(
-                  color: TColor.black,
+                  color: context.colors.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w500),
             ),

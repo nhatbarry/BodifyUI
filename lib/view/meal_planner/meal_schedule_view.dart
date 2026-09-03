@@ -2,7 +2,7 @@ import 'package:calendar_agenda/calendar_agenda.dart';
 import 'package:flutter/material.dart';
 import 'package:simple_animation_progress_bar/simple_animation_progress_bar.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../common_widget/meal_food_schedule_row.dart';
 import '../../common_widget/nutritions_row.dart';
 
@@ -95,7 +95,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
     var media = MediaQuery.of(context).size;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         centerTitle: true,
         elevation: 0,
         leading: InkWell(
@@ -108,7 +108,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
             width: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: TColor.lightGray,
+                color: context.colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(10)),
             child: Image.asset(
               "assets/img/black_btn.png",
@@ -121,7 +121,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
         title: Text(
           "Meal  Schedule",
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
         actions: [
           InkWell(
@@ -132,7 +132,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
               width: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: TColor.lightGray,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10)),
               child: Image.asset(
                 "assets/img/more_btn.png",
@@ -144,7 +144,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
           )
         ],
       ),
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -180,7 +180,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
             locale: 'en',
 
             initialDate: DateTime.now(),
-            calendarEventColor: TColor.primaryColor2,
+            calendarEventColor: context.colors.primary2,
             firstDate: DateTime.now().subtract(const Duration(days: 140)),
             lastDate: DateTime.now().add(const Duration(days: 60)),
 
@@ -192,7 +192,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
               height: double.maxFinite,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                    colors: TColor.primaryG,
+                    colors: context.colors.primaryGradient,
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter),
                 borderRadius: BorderRadius.circular(10.0),
@@ -212,7 +212,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                       Text(
                         "BreakFast",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w700),
                       ),
@@ -220,7 +220,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                         onPressed: () {},
                         child: Text(
                           "${breakfastArr.length} Items | 230 calories",
-                          style: TextStyle(color: TColor.gray, fontSize: 12),
+                          style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                         ),
                       )
                     ],
@@ -246,7 +246,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                       Text(
                         "Lunch",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w700),
                       ),
@@ -254,7 +254,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                         onPressed: () {},
                         child: Text(
                           "${lunchArr.length} Items | 500 calories",
-                          style: TextStyle(color: TColor.gray, fontSize: 12),
+                          style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                         ),
                       )
                     ],
@@ -280,7 +280,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                       Text(
                         "Snacks",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w700),
                       ),
@@ -288,7 +288,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                         onPressed: () {},
                         child: Text(
                           "${snacksArr.length} Items | 140 calories",
-                          style: TextStyle(color: TColor.gray, fontSize: 12),
+                          style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                         ),
                       )
                     ],
@@ -314,7 +314,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                       Text(
                         "Dinner",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w700),
                       ),
@@ -322,7 +322,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                         onPressed: () {},
                         child: Text(
                           "${dinnerArr.length} Items | 120 calories",
-                          style: TextStyle(color: TColor.gray, fontSize: 12),
+                          style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                         ),
                       )
                     ],
@@ -351,7 +351,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                       Text(
                         "Today Meal Nutritions",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w700),
                       ),

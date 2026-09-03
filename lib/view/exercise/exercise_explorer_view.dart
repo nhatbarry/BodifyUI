@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../core/app_strings.dart';
 import '../../core/api_exception.dart';
 import '../../models/exercise_models.dart';
@@ -127,16 +127,16 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         elevation: 0,
         centerTitle: true,
-        iconTheme: IconThemeData(color: TColor.black),
+        iconTheme: IconThemeData(color: context.colors.textPrimary),
         title: Text(
           tr('exercises'),
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
       body: Column(
@@ -145,7 +145,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Container(
               decoration: BoxDecoration(
-                  color: TColor.lightGray,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(15)),
               child: TextField(
                 controller: _searchController,
@@ -155,12 +155,12 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
                       const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
                   border: InputBorder.none,
                   hintText: tr('searchExercises'),
-                  hintStyle: TextStyle(color: TColor.gray, fontSize: 12),
-                  prefixIcon: Icon(Icons.search, color: TColor.gray, size: 20),
+                  hintStyle: TextStyle(color: context.colors.textSecondary, fontSize: 12),
+                  prefixIcon: Icon(Icons.search, color: context.colors.textSecondary, size: 20),
                   suffixIcon: _searchController.text.isEmpty
                       ? null
                       : IconButton(
-                          icon: Icon(Icons.close, color: TColor.gray, size: 18),
+                          icon: Icon(Icons.close, color: context.colors.textSecondary, size: 18),
                           onPressed: () {
                             _searchController.clear();
                             _load(reset: true);
@@ -177,7 +177,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
               children: [
                 Text(
                   _isLoading ? tr('loading') : "$_total ${tr('exerciseCount')}",
-                  style: TextStyle(color: TColor.gray, fontSize: 12),
+                  style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                 ),
               ],
             ),
@@ -232,15 +232,15 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             gradient: selected
-                ? LinearGradient(colors: TColor.primaryG)
+                ? LinearGradient(colors: context.colors.primaryGradient)
                 : null,
-            color: selected ? null : TColor.lightGray,
+            color: selected ? null : context.colors.surfaceVariant,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? TColor.white : TColor.gray,
+              color: selected ? context.colors.surface : context.colors.textSecondary,
               fontSize: 12,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),
@@ -252,7 +252,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
 
   Widget _buildBody() {
     if (_isLoading && _items.isEmpty) {
-      return Center(child: CircularProgressIndicator(color: TColor.primaryColor1));
+      return Center(child: CircularProgressIndicator(color: context.colors.primary1));
     }
 
     if (_error != null && _items.isEmpty) {
@@ -262,16 +262,16 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off, color: TColor.gray, size: 40),
+              Icon(Icons.cloud_off, color: context.colors.textSecondary, size: 40),
               const SizedBox(height: 12),
               Text(_error!,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: TColor.gray, fontSize: 13)),
+                  style: TextStyle(color: context.colors.textSecondary, fontSize: 13)),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => _load(reset: true),
                 child: Text(tr('retry'),
-                    style: TextStyle(color: TColor.primaryColor1)),
+                    style: TextStyle(color: context.colors.primary1)),
               ),
             ],
           ),
@@ -282,7 +282,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
     if (_items.isEmpty) {
       return Center(
         child: Text(tr('noExercisesFound'),
-            style: TextStyle(color: TColor.gray, fontSize: 13)),
+            style: TextStyle(color: context.colors.textSecondary, fontSize: 13)),
       );
     }
 
@@ -295,7 +295,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Center(
-                child: CircularProgressIndicator(color: TColor.primaryColor1)),
+                child: CircularProgressIndicator(color: context.colors.primary1)),
           );
         }
         return _ExerciseRow(
@@ -326,7 +326,7 @@ class _ExerciseRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: TColor.lightGray,
+          color: context.colors.surfaceVariant,
           borderRadius: BorderRadius.circular(15),
         ),
         child: Row(
@@ -338,9 +338,9 @@ class _ExerciseRow extends StatelessWidget {
                 height: 56,
                 child: item.thumbnailUrl == null
                     ? Container(
-                        color: TColor.white,
+                        color: context.colors.surface,
                         child: Icon(Icons.fitness_center,
-                            color: TColor.gray, size: 22),
+                            color: context.colors.textSecondary, size: 22),
                       )
                     : Image.network(
                         item.thumbnailUrl!,
@@ -348,9 +348,9 @@ class _ExerciseRow extends StatelessWidget {
                         // The thumbnail is a signed R2 link; if the object is
                         // missing or the device is offline, keep the row usable.
                         errorBuilder: (_, __, ___) => Container(
-                          color: TColor.white,
+                          color: context.colors.surface,
                           child: Icon(Icons.fitness_center,
-                              color: TColor.gray, size: 22),
+                              color: context.colors.textSecondary, size: 22),
                         ),
                       ),
               ),
@@ -365,7 +365,7 @@ class _ExerciseRow extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: TColor.black,
+                        color: context.colors.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w600),
                   ),
@@ -374,12 +374,12 @@ class _ExerciseRow extends StatelessWidget {
                     [item.experienceLevel, item.exerciseType, item.mechanics]
                         .where((e) => e != null && e.isNotEmpty)
                         .join(" · "),
-                    style: TextStyle(color: TColor.gray, fontSize: 11),
+                    style: TextStyle(color: context.colors.textSecondary, fontSize: 11),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: TColor.gray, size: 20),
+            Icon(Icons.chevron_right, color: context.colors.textSecondary, size: 20),
           ],
         ),
       ),

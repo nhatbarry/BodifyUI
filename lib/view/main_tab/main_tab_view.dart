@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/common_widget/tab_button.dart';
 import 'package:flutter/material.dart';
 
@@ -22,7 +22,7 @@ class _MainTabViewState extends State<MainTabView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: PageStorage(bucket: pageBucket, child: currentTab),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: SizedBox(
@@ -41,7 +41,7 @@ class _MainTabViewState extends State<MainTabView> {
             height: 65,
             decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: TColor.primaryG,
+                  colors: context.colors.primaryGradient,
                 ),
                 borderRadius: BorderRadius.circular(35),
                 boxShadow: const [
@@ -49,13 +49,13 @@ class _MainTabViewState extends State<MainTabView> {
                       color: Colors.black12,
                       blurRadius: 2,)
                 ]),
-            child: Icon(Icons.search,color: TColor.white, size: 35, ),
+            child: Icon(Icons.search,color: context.colors.surface, size: 35, ),
           ),
         ),
       ),
       bottomNavigationBar: BottomAppBar(
           child: Container(
-        decoration: BoxDecoration(color: TColor.white, boxShadow: const [
+        decoration: BoxDecoration(color: context.colors.surface, boxShadow: const [
           BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, -2))
         ]),
         height: kToolbarHeight,

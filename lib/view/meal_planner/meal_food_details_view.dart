@@ -1,7 +1,7 @@
 import 'package:bodify/common_widget/meal_recommed_cell.dart';
 import 'package:flutter/material.dart';
 
-import '../../common/colo_extension.dart';
+import '../../common/app_colors.dart';
 import '../../common_widget/meal_category_cell.dart';
 import '../../common_widget/popular_meal_row.dart';
 import '../../common_widget/today_meal_row.dart';
@@ -95,7 +95,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: TColor.white,
+        backgroundColor: context.colors.surface,
         centerTitle: true,
         elevation: 0,
         leading: InkWell(
@@ -108,7 +108,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
             width: 40,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-                color: TColor.lightGray,
+                color: context.colors.surfaceVariant,
                 borderRadius: BorderRadius.circular(10)),
             child: Image.asset(
               "assets/img/black_btn.png",
@@ -121,7 +121,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
         title: Text(
           widget.eObj["name"].toString(),
           style: TextStyle(
-              color: TColor.black, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
         actions: [
           InkWell(
@@ -132,7 +132,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
               width: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: TColor.lightGray,
+                  color: context.colors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10)),
               child: Image.asset(
                 "assets/img/more_btn.png",
@@ -144,7 +144,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
           )
         ],
       ),
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +153,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
               margin: const EdgeInsets.symmetric(horizontal: 20),
               padding: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
-                  color: TColor.white,
+                  color: context.colors.surface,
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: const [
                     BoxShadow(
@@ -180,7 +180,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     width: 1,
                     height: 25,
-                    color: TColor.gray.withOpacity(0.3),
+                    color: context.colors.textSecondary.withOpacity(0.3),
                   ),
                   InkWell(
                     onTap: () {},
@@ -204,7 +204,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
                   Text(
                     "Category",
                     style: TextStyle(
-                        color: TColor.black,
+                        color: context.colors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w700),
                   ),
@@ -233,7 +233,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
               child: Text(
                 "Recommendation\nfor Diet",
                 style: TextStyle(
-                    color: TColor.black,
+                    color: context.colors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700),
               ),
@@ -260,7 +260,7 @@ class _MealFoodDetailsViewState extends State<MealFoodDetailsView> {
               child: Text(
                 "Popular",
                 style: TextStyle(
-                    color: TColor.black,
+                    color: context.colors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700),
               ),

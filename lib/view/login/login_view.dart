@@ -1,4 +1,4 @@
-import 'package:bodify/common/colo_extension.dart';
+import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:bodify/common_widget/round_textfield.dart';
 import 'package:bodify/core/api_exception.dart';
@@ -72,7 +72,7 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     var media = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: TColor.white,
+      backgroundColor: context.colors.surface,
       body: SingleChildScrollView(
         child: SafeArea(
           child: Container(
@@ -83,12 +83,12 @@ class _LoginViewState extends State<LoginView> {
               children: [
                 Text(
                   "Hey there,",
-                  style: TextStyle(color: TColor.gray, fontSize: 16),
+                  style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
                 ),
                 Text(
                   "Welcome Back",
                   style: TextStyle(
-                      color: TColor.black,
+                      color: context.colors.textPrimary,
                       fontSize: 20,
                       fontWeight: FontWeight.w700),
                 ),
@@ -126,8 +126,8 @@ class _LoginViewState extends State<LoginView> {
                             height: 20,
                             fit: BoxFit.contain,
                             color: _obscurePassword
-                                ? TColor.gray
-                                : TColor.primaryColor1,
+                                ? context.colors.textSecondary
+                                : context.colors.primary1,
                           ))),
                 ),
                 Row(
@@ -136,7 +136,7 @@ class _LoginViewState extends State<LoginView> {
                     Text(
                       "Forgot your password?",
                       style: TextStyle(
-                          color: TColor.gray,
+                          color: context.colors.textSecondary,
                           fontSize: 10,
                           decoration: TextDecoration.underline),
                     ),
@@ -148,7 +148,7 @@ class _LoginViewState extends State<LoginView> {
                         height: 50,
                         alignment: Alignment.center,
                         child: CircularProgressIndicator(
-                            color: TColor.primaryColor1),
+                            color: context.colors.primary1),
                       )
                     : RoundButton(title: "Login", onPressed: _login),
                 SizedBox(
@@ -160,16 +160,16 @@ class _LoginViewState extends State<LoginView> {
                     Expanded(
                         child: Container(
                       height: 1,
-                      color: TColor.gray.withOpacity(0.5),
+                      color: context.colors.textSecondary.withOpacity(0.5),
                     )),
                     Text(
                       "  Or  ",
-                      style: TextStyle(color: TColor.black, fontSize: 12),
+                      style: TextStyle(color: context.colors.textPrimary, fontSize: 12),
                     ),
                     Expanded(
                         child: Container(
                       height: 1,
-                      color: TColor.gray.withOpacity(0.5),
+                      color: context.colors.textSecondary.withOpacity(0.5),
                     )),
                   ],
                 ),
@@ -186,10 +186,10 @@ class _LoginViewState extends State<LoginView> {
                         height: 50,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: TColor.white,
+                          color: context.colors.surface,
                           border: Border.all(
                             width: 1,
-                            color: TColor.gray.withOpacity(0.4),
+                            color: context.colors.textSecondary.withOpacity(0.4),
                           ),
                           borderRadius: BorderRadius.circular(15),
                         ),
@@ -210,10 +210,10 @@ class _LoginViewState extends State<LoginView> {
                         height: 50,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: TColor.white,
+                          color: context.colors.surface,
                           border: Border.all(
                             width: 1,
-                            color: TColor.gray.withOpacity(0.4),
+                            color: context.colors.textSecondary.withOpacity(0.4),
                           ),
                           borderRadius: BorderRadius.circular(15),
                         ),
@@ -239,14 +239,14 @@ class _LoginViewState extends State<LoginView> {
                       Text(
                         "Don’t have an account yet? ",
                         style: TextStyle(
-                          color: TColor.black,
+                          color: context.colors.textPrimary,
                           fontSize: 14,
                         ),
                       ),
                       Text(
                         "Register",
                         style: TextStyle(
-                            color: TColor.black,
+                            color: context.colors.textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.w700),
                       )

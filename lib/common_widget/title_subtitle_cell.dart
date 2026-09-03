@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 
-import '../common/colo_extension.dart';
+import '../common/app_colors.dart';
 
 class TitleSubtitleCell extends StatelessWidget {
   final String title;
@@ -13,7 +13,7 @@ class TitleSubtitleCell extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
-          color: TColor.white,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(15),
           boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)]),
       child: Column(
@@ -22,7 +22,7 @@ class TitleSubtitleCell extends StatelessWidget {
             blendMode: BlendMode.srcIn,
             shaderCallback: (bounds) {
               return LinearGradient(
-                      colors: TColor.primaryG,
+                      colors: context.colors.primaryGradient,
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight)
                   .createShader(
@@ -31,7 +31,7 @@ class TitleSubtitleCell extends StatelessWidget {
             child: Text(
               title,
               style: TextStyle(
-                  color: TColor.white.withOpacity(0.7),
+                  color: context.colors.surface.withOpacity(0.7),
                   fontWeight: FontWeight.w500,
                   fontSize: 14),
             ),
@@ -39,7 +39,7 @@ class TitleSubtitleCell extends StatelessWidget {
           Text(
             subtitle,
             style: TextStyle(
-              color: TColor.gray,
+              color: context.colors.textSecondary,
               fontSize: 12,
             ),
           ),
