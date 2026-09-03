@@ -34,6 +34,10 @@ class ExerciseListItem {
   final int exerciseId;
   final String? name;
   final String? language;
+
+  /// Small variant for list rows, ~7 KB against the thumbnail's ~70 KB. Null
+  /// until the icon has been uploaded for this exercise, hence [listImageUrl].
+  final String? iconUrl;
   final String? thumbnailUrl;
   final String? exerciseType;
   final String? mechanics;
@@ -44,6 +48,7 @@ class ExerciseListItem {
     required this.exerciseId,
     this.name,
     this.language,
+    this.iconUrl,
     this.thumbnailUrl,
     this.exerciseType,
     this.mechanics,
@@ -55,12 +60,23 @@ class ExerciseListItem {
         exerciseId: json['exercise_id'] as int,
         name: json['name'] as String?,
         language: json['language'] as String?,
+        iconUrl: json['icon_url'] as String?,
         thumbnailUrl: json['thumbnail_url'] as String?,
         exerciseType: json['exercise_type'] as String?,
         mechanics: json['mechanics'] as String?,
         forceType: json['force_type'] as String?,
         experienceLevel: json['experience_level'] as String?,
       );
+
+  /// What a list row should draw: the icon when there is one, the full
+  /// thumbnail otherwise.
+  String? get listImageUrl => iconUrl ?? thumbnailUrl;
+
+  /// Cache identity for [listImageUrl]. It has to name *which file* is being
+  /// cached - icon and thumbnail are different images, so sharing one key
+  /// would serve whichever happened to be fetched first.
+  String get listImageCacheKey =>
+      iconUrl != null ? 'icon-$exerciseId' : 'thumb-$exerciseId';
 }
 
 class ExerciseMuscle {

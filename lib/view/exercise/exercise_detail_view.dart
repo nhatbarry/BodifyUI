@@ -1,6 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
+import '../../common_widget/exercise_video.dart';
+import '../../core/media_cache.dart';
 import '../../core/app_strings.dart';
 import '../../core/api_exception.dart';
 import '../../models/exercise_models.dart';
@@ -99,10 +102,25 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
               borderRadius: BorderRadius.circular(20),
               child: AspectRatio(
                 aspectRatio: 16 / 10,
-                child: Image.network(
-                  exercise.thumbnailUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: exercise.thumbnailUrl!,
+                  // Same key the list rows use: opening a detail screen for a
+                  // row the user just scrolled past costs no download at all.
+                  cacheKey: 'thumb-${exercise.exerciseId}',
+                  cacheManager: MediaCache.instance,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  placeholder: (_, __) => Container(
+                    color: context.colors.surfaceVariant,
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: context.colors.primary1),
+                      ),
+                    ),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
                     color: context.colors.surfaceVariant,
                     child: Icon(Icons.fitness_center, color: context.colors.textSecondary, size: 40),
                   ),
@@ -130,20 +148,6 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
             ],
           ),
           if (exercise.videoUrl != null) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.play_circle_outline,
-                    color: context.colors.primary1, size: 18),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    tr('hasVideo'),
-                    style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
           ],
           _section(tr('muscles'), exercise.muscles.isEmpty
               ? null
@@ -168,6 +172,19 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
           _section(tr('overview'), _text(exercise.overview)),
           _section(tr('instructions'), _text(exercise.instructions)),
           _section(tr('tips'), _text(exercise.tips)),
+          _section(
+            tr('videoGuide'),
+            exercise.videoUrl == null
+                ? null
+                : ExerciseVideo(
+                    url: exercise.videoUrl!,
+                    cacheKey: 'video-${exercise.exerciseId}',
+                    // Reuses the picture already on disk, so the poster costs
+                    // nothing until the user asks for the video.
+                    posterUrl: exercise.thumbnailUrl,
+                    posterCacheKey: 'thumb-${exercise.exerciseId}',
+                  ),
+          ),
           const SizedBox(height: 30),
         ],
       ),

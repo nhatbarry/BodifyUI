@@ -14,6 +14,7 @@
     .\start-emulator.ps1
     .\start-emulator.ps1 -ColdBoot          # ignore the saved snapshot
     .\start-emulator.ps1 -Scale 0.3         # bigger window
+    .\start-emulator.ps1 -DnsServer 8.8.8.8 # when the device resolves no hostnames
 #>
 [CmdletBinding()]
 param(
@@ -22,6 +23,12 @@ param(
     [int]$WindowX = 80,
     [int]$WindowY = 20,
     [switch]$ColdBoot,
+    # The emulator inherits the host's resolver at boot, and that inheritance
+    # can come up broken - the device then resolves nothing at all while ICMP
+    # to a bare IP still works, so it looks online but every hostname fails.
+    # Neither a wifi toggle nor an airplane-mode cycle re-reads it; only a
+    # relaunch does. Pass -DnsServer to hand it a resolver explicitly.
+    [string]$DnsServer,
     [int]$TimeoutSeconds = 300
 )
 
@@ -57,6 +64,10 @@ if (Test-Path $iniPath) {
 }
 
 $args = @("-avd", $Avd)
+if ($DnsServer) {
+    $args += @("-dns-server", $DnsServer)
+    Write-Host "DNS pinned to $DnsServer" -ForegroundColor DarkGray
+}
 if ($ColdBoot) {
     $args += "-no-snapshot-load"
     Write-Host "Cold boot: ignoring saved snapshot." -ForegroundColor Yellow
