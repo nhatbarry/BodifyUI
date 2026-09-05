@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../common/app_colors.dart';
 import '../../common_widget/exercise_thumbnail.dart';
 import '../../core/app_strings.dart';
+import '../../services/workout_plan_service.dart';
+import '../../models/workout_plan_models.dart';
 import '../../core/api_exception.dart';
 import '../../models/exercise_models.dart';
 import '../../services/exercise_service.dart';
@@ -51,6 +53,181 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Adds one exercise to today, always asking first.
+  ///
+  /// A shortcut, not a new concept: it ends at the same
+  /// `PUT /workout-plans/{id}/dates/{date}/exercises` the calendar's picker
+  /// uses. What it adds is the conversation that shortcut needs - a button
+  /// that silently edits today's plan from a browsing screen is a button
+  /// nobody trusts.
+  ///
+  /// Exactly one dialog per tap. When something is in the way, that dialog
+  /// carries the decision (convert the rest day, pick a schedule); when
+  /// nothing is, a plain "add this?" stands in its place.
+  Future<void> _addToToday(ExerciseListItem item) async {
+    final name = item.name ?? '#${item.exerciseId}';
+    try {
+      final plans = await WorkoutPlanService.instance.listPlans();
+      if (!mounted) return;
+
+      // No schedule at all: there is nothing to add to. Send them to the
+      // Tracker tab rather than pushing the list screen here - out of its tab
+      // it loses the chrome it is designed inside.
+      if (plans.isEmpty) {
+        final go = await _confirm(
+          title: tr('title_no_plan_yet'),
+          message: tr('msg_create_plan_first'),
+          confirmLabel: tr('btn_go_to_schedules'),
+        );
+        if (go == true && mounted) Navigator.pop(context, _trackerTabIndex);
+        return;
+      }
+
+      var plan = plans.where((p) => p.isActive).firstOrNull;
+      // True once a dialog has already asked for this tap, so the final
+      // confirmation is not a second prompt for the same decision.
+      var asked = false;
+
+      // Schedules exist but none is being followed. Asking which one also
+      // answers "which schedule is mine now", so the choice is applied rather
+      // than used once and forgotten.
+      if (plan == null) {
+        final chosen = await _pickPlan(plans);
+        if (chosen == null || !mounted) return;
+        await WorkoutPlanService.instance.setActive(chosen.planId, true);
+        plan = chosen;
+        asked = true;
+      }
+
+      final today = dateOnly(DateTime.now());
+      final day =
+          await WorkoutPlanService.instance.dayForDate(plan.planId, today);
+      if (!mounted) return;
+
+      final existing =
+          day?.exercises.map((e) => e.exerciseId).toList() ?? <int>[];
+
+      if (existing.contains(item.exerciseId)) {
+        await _confirm(
+          title: tr('title_already_added'),
+          message: tr('msg_already_in_today_long').replaceFirst('{name}', name),
+          confirmLabel: null,
+        );
+        return;
+      }
+
+      // A rest day is a deliberate row, not an empty date. Turning it into a
+      // training day is the user's call, so it is asked rather than assumed -
+      // and the API would answer 409 anyway.
+      if (day?.isRestDay ?? false) {
+        final convert = await _confirm(
+          title: tr('title_rest_day'),
+          message: tr('msg_convert_rest_day'),
+          confirmLabel: tr('btn_convert_rest_day'),
+        );
+        if (convert != true || !mounted) return;
+        await WorkoutPlanService.instance
+            .setDateRestDay(plan.planId, today, false);
+        asked = true;
+      }
+
+      if (!asked) {
+        final confirmed = await _confirm(
+          title: tr('title_add_to_today'),
+          message: tr('msg_add_to_today')
+              .replaceFirst('{name}', name)
+              .replaceFirst('{plan}', plan.name),
+          confirmLabel: tr('btn_add_to_today'),
+        );
+        if (confirmed != true || !mounted) return;
+      }
+
+      await WorkoutPlanService.instance.setDateExercises(
+        plan.planId,
+        today,
+        [...existing, item.exerciseId],
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            tr('toast_added_to_today').replaceFirst('{name}', name)),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(e is ApiException ? e.message : tr('error_save_failed')),
+      ));
+    }
+  }
+
+  /// Tracker is the second tab. Popping this index asks MainTabView to land
+  /// there instead of back on whatever opened the explorer.
+  static const int _trackerTabIndex = 1;
+
+  /// A yes/no prompt. `confirmLabel` null makes it an acknowledgement, with
+  /// only a way out - used where there is nothing to decide.
+  Future<bool?> _confirm({
+    required String title,
+    required String message,
+    required String? confirmLabel,
+  }) {
+    final colors = context.colors;
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: colors.surface,
+        title: Text(title,
+            style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w700)),
+        content: Text(message,
+            style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(confirmLabel == null ? tr('btn_nice') : tr('btn_cancel'),
+                style: TextStyle(color: colors.textSecondary)),
+          ),
+          if (confirmLabel != null)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(confirmLabel,
+                  style: TextStyle(color: colors.primary1)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<WorkoutPlan?> _pickPlan(List<WorkoutPlan> plans) {
+    final colors = context.colors;
+    return showDialog<WorkoutPlan>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        backgroundColor: colors.surface,
+        title: Text(tr('title_pick_plan'),
+            style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w700)),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
+            child: Text(tr('msg_pick_plan_activates'),
+                style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+          ),
+          for (final plan in plans)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialogContext, plan),
+              child: Text(plan.name,
+                  style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadFilters() async {
@@ -135,7 +312,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
         centerTitle: true,
         iconTheme: IconThemeData(color: context.colors.textPrimary),
         title: Text(
-          tr('exercises'),
+          tr('title_exercises'),
           style: TextStyle(
               color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -155,7 +332,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
                   contentPadding:
                       const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
                   border: InputBorder.none,
-                  hintText: tr('searchExercises'),
+                  hintText: tr('hint_search_exercises'),
                   hintStyle: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                   prefixIcon: Icon(Icons.search, color: context.colors.textSecondary, size: 20),
                   suffixIcon: _searchController.text.isEmpty
@@ -177,7 +354,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
             child: Row(
               children: [
                 Text(
-                  _isLoading ? tr('loading') : "$_total ${tr('exerciseCount')}",
+                  _isLoading ? tr('msg_loading') : "$_total ${tr('label_exercise_count')}",
                   style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                 ),
               ],
@@ -271,7 +448,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => _load(reset: true),
-                child: Text(tr('retry'),
+                child: Text(tr('btn_retry'),
                     style: TextStyle(color: context.colors.primary1)),
               ),
             ],
@@ -282,7 +459,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
 
     if (_items.isEmpty) {
       return Center(
-        child: Text(tr('noExercisesFound'),
+        child: Text(tr('msg_no_exercises_found'),
             style: TextStyle(color: context.colors.textSecondary, fontSize: 13)),
       );
     }
@@ -307,6 +484,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
               builder: (_) => ExerciseDetailView(exerciseId: _items[index].exerciseId),
             ),
           ),
+          onAddToToday: () => _addToToday(_items[index]),
         );
       },
     );
@@ -316,8 +494,13 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
 class _ExerciseRow extends StatelessWidget {
   final ExerciseListItem item;
   final VoidCallback onTap;
+  final VoidCallback onAddToToday;
 
-  const _ExerciseRow({required this.item, required this.onTap});
+  const _ExerciseRow({
+    required this.item,
+    required this.onTap,
+    required this.onAddToToday,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -361,7 +544,15 @@ class _ExerciseRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: context.colors.textSecondary, size: 20),
+            // The shortcut: from browsing straight into today's plan, without
+            // going Tracker -> plan -> today -> picker to add one exercise.
+            IconButton(
+              onPressed: onAddToToday,
+              visualDensity: VisualDensity.compact,
+              tooltip: tr('btn_add_to_today'),
+              icon: Icon(Icons.add_circle_outline,
+                  color: context.colors.primary1, size: 22),
+            ),
           ],
         ),
       ),

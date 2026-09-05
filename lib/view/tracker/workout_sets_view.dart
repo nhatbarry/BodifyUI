@@ -4,6 +4,8 @@ import '../../common/app_colors.dart';
 import '../../common_widget/exercise_thumbnail.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
+import '../../common_widget/set_input_fields.dart';
+import '../../models/progress_models.dart';
 import '../../models/workout_plan_models.dart';
 import '../../services/workout_plan_service.dart';
 
@@ -44,11 +46,7 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
     // for otherwise.
     final previous = _sets.isEmpty ? null : _sets.last;
     final values = await _editDialog(
-      title: tr('addSet'),
-      reps: previous?.targetReps,
-      weight: previous?.targetWeightKg,
-      rest: previous?.restSeconds,
-    );
+        title: tr('btn_add_set'), from: previous);
     if (values == null) return;
 
     setState(() => _busy = true);
@@ -57,6 +55,8 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
         widget.exercise.workoutExerciseId,
         targetReps: values.reps,
         targetWeightKg: values.weight,
+        targetDurationSeconds: values.duration,
+        targetDistanceM: values.distance,
         restSeconds: values.rest,
       );
       if (!mounted) return;
@@ -74,10 +74,8 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
   Future<void> _edit(int index) async {
     final target = _sets[index];
     final values = await _editDialog(
-      title: tr('setNumber').replaceFirst('{n}', '${index + 1}'),
-      reps: target.targetReps,
-      weight: target.targetWeightKg,
-      rest: target.restSeconds,
+      title: tr('title_set_number').replaceFirst('{n}', '${index + 1}'),
+      from: target,
     );
     if (values == null) return;
 
@@ -87,10 +85,17 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
         target.id,
         targetReps: values.reps,
         targetWeightKg: values.weight,
+        targetDurationSeconds: values.duration,
+        targetDistanceM: values.distance,
         restSeconds: values.rest,
         // Clearing a field is a real edit: "any weight you like" is a valid
-        // instruction, and only an explicit null says it.
+        // instruction, and only an explicit null says it. Only the axes this
+        // exercise uses are cleared - a Plank has no reps to unset.
         clearWeight: values.weight == null,
+        clearDuration: values.duration == null &&
+            SetFieldSpec.of(widget.exercise.trackingType).duration,
+        clearDistance: values.distance == null &&
+            SetFieldSpec.of(widget.exercise.trackingType).distance,
         clearRest: values.rest == null,
       );
       if (!mounted) return;
@@ -157,19 +162,13 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
     }
   }
 
-  Future<_SetValues?> _editDialog({
-    required String title,
-    int? reps,
-    double? weight,
-    int? rest,
-  }) {
+  Future<_SetValues?> _editDialog({required String title, TargetSet? from}) {
     return showDialog<_SetValues>(
       context: context,
       builder: (_) => _SetDialog(
         title: title,
-        reps: reps,
-        weight: weight,
-        rest: rest,
+        trackingType: widget.exercise.trackingType,
+        from: from,
       ),
     );
   }
@@ -236,8 +235,8 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
           Expanded(
             child: Text(
               _sets.isEmpty
-                  ? tr('noTargetSets')
-                  : tr('setsTotal').replaceFirst('{n}', '${_sets.length}'),
+                  ? tr('msg_no_target_sets')
+                  : tr('label_sets_total').replaceFirst('{n}', '${_sets.length}'),
               style: TextStyle(
                   color: colors.textSecondary,
                   fontSize: 13,
@@ -262,7 +261,7 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
               Icon(Icons.repeat, color: colors.textSecondary, size: 34),
               const SizedBox(height: 12),
               Text(
-                tr('noTargetSetsHint'),
+                tr('msg_no_target_sets_hint'),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colors.textSecondary, fontSize: 13),
               ),
@@ -277,6 +276,7 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
       itemCount: _sets.length,
       onReorderItem: _reorder,
       itemBuilder: (_, i) => _SetRow(
+        trackingType: widget.exercise.trackingType,
         // Keyed by set id, not index: a reorder that reused index keys would
         // animate the wrong rows.
         key: ValueKey(_sets[i].id),
@@ -306,7 +306,7 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
             ),
-            label: Text(tr('addSet'),
+            label: Text(tr('btn_add_set'),
                 style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
         ),
@@ -318,6 +318,7 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
 class _SetRow extends StatelessWidget {
   final int index;
   final TargetSet set;
+  final TrackingType trackingType;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
@@ -325,6 +326,7 @@ class _SetRow extends StatelessWidget {
     super.key,
     required this.index,
     required this.set,
+    required this.trackingType,
     required this.onTap,
     required this.onDelete,
   });
@@ -349,6 +351,8 @@ class _SetRow extends StatelessWidget {
             ],
           ),
         );
+
+    final spec = SetFieldSpec.of(trackingType);
 
     String number(num? value, String suffix) {
       if (value == null) return '—';
@@ -387,9 +391,17 @@ class _SetRow extends StatelessWidget {
                           fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(width: 12),
-                field(tr('reps'), number(set.targetReps, '')),
-                field(tr('weight'), number(set.targetWeightKg, ' kg')),
-                field(tr('rest'), number(set.restSeconds, 's')),
+                // The columns follow the exercise: a Plank shows seconds where
+                // a Bench Press shows reps, rather than a row of dashes.
+                if (spec.duration)
+                  field(tr('unit_seconds'),
+                      number(set.targetDurationSeconds, 's')),
+                if (spec.distance)
+                  field(tr('unit_m'), number(set.targetDistanceM, 'm')),
+                if (spec.reps)
+                  field(tr('label_reps'), number(set.targetReps, '')),
+                field(tr('label_weight'), number(set.targetWeightKg, ' kg')),
+                field(tr('label_rest'), number(set.restSeconds, 's')),
                 IconButton(
                   onPressed: onDelete,
                   icon: const Icon(Icons.close,
@@ -417,22 +429,23 @@ class _SetRow extends StatelessWidget {
 class _SetValues {
   final int? reps;
   final double? weight;
+  final int? duration;
+  final double? distance;
   final int? rest;
 
-  const _SetValues({this.reps, this.weight, this.rest});
+  const _SetValues(
+      {this.reps, this.weight, this.duration, this.distance, this.rest});
 }
 
 class _SetDialog extends StatefulWidget {
   final String title;
-  final int? reps;
-  final double? weight;
-  final int? rest;
+  final TrackingType trackingType;
+  final TargetSet? from;
 
   const _SetDialog({
     required this.title,
-    this.reps,
-    this.weight,
-    this.rest,
+    required this.trackingType,
+    this.from,
   });
 
   @override
@@ -440,52 +453,43 @@ class _SetDialog extends StatefulWidget {
 }
 
 class _SetDialogState extends State<_SetDialog> {
-  late final _reps =
-      TextEditingController(text: widget.reps?.toString() ?? '');
-  late final _weight = TextEditingController(
-      text: widget.weight == null ? '' : _trimZeros(widget.weight!));
-  late final _rest =
-      TextEditingController(text: widget.rest?.toString() ?? '');
-
   /// 40.00 kg reads badly in a text field; 40 does.
   static String _trimZeros(double value) =>
       value == value.roundToDouble() ? '${value.round()}' : '$value';
+  static String _pre(double? v) => v == null ? '' : _trimZeros(v);
+
+  late final _reps =
+      TextEditingController(text: widget.from?.targetReps?.toString() ?? '');
+  late final _weight =
+      TextEditingController(text: _pre(widget.from?.targetWeightKg));
+  late final _duration = TextEditingController(
+      text: widget.from?.targetDurationSeconds?.toString() ?? '');
+  late final _distance =
+      TextEditingController(text: _pre(widget.from?.targetDistanceM));
+  late final _rest =
+      TextEditingController(text: widget.from?.restSeconds?.toString() ?? '');
 
   @override
   void dispose() {
     _reps.dispose();
     _weight.dispose();
+    _duration.dispose();
+    _distance.dispose();
     _rest.dispose();
     super.dispose();
   }
 
+  /// Planning wording, not logging wording: this screen sets what to aim at.
+  String _label(String key) => switch (key) {
+        'duration' => tr('label_target_duration_seconds'),
+        'distance' => tr('label_target_distance_m'),
+        'weight' => tr('label_target_weight_kg'),
+        _ => tr('label_target_reps'),
+      };
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-
-    Widget input(String label, TextEditingController controller,
-            {bool decimal = false, bool autofocus = false}) =>
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: TextField(
-            controller: controller,
-            autofocus: autofocus,
-            keyboardType: TextInputType.numberWithOptions(decimal: decimal),
-            style: TextStyle(color: colors.textPrimary),
-            decoration: InputDecoration(
-              labelText: label,
-              labelStyle:
-                  TextStyle(color: colors.textSecondary, fontSize: 13),
-              isDense: true,
-              filled: true,
-              fillColor: colors.surfaceVariant,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        );
 
     return AlertDialog(
       backgroundColor: colors.surface,
@@ -497,11 +501,38 @@ class _SetDialogState extends State<_SetDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          input(tr('reps'), _reps, autofocus: true),
-          input(tr('targetWeightKg'), _weight, decimal: true),
-          input(tr('restSeconds'), _rest),
+          SetInputFields(
+            trackingType: widget.trackingType,
+            reps: _reps,
+            weight: _weight,
+            duration: _duration,
+            distance: _distance,
+            label: _label,
+          ),
+          // Rest applies to every kind of set, so it sits outside the
+          // tracking-type switch.
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: TextField(
+              controller: _rest,
+              keyboardType: TextInputType.number,
+              style: TextStyle(color: colors.textPrimary),
+              decoration: InputDecoration(
+                labelText: tr('label_rest_seconds'),
+                labelStyle:
+                    TextStyle(color: colors.textSecondary, fontSize: 13),
+                isDense: true,
+                filled: true,
+                fillColor: colors.surfaceVariant,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
           Text(
-            tr('emptyFieldMeansUnset'),
+            tr('msg_empty_field_means_unset'),
             style: TextStyle(color: colors.textSecondary, fontSize: 11),
           ),
         ],
@@ -509,20 +540,30 @@ class _SetDialogState extends State<_SetDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child:
-              Text(tr('cancel'), style: TextStyle(color: colors.textSecondary)),
+          child: Text(tr('btn_cancel'),
+              style: TextStyle(color: colors.textSecondary)),
         ),
         TextButton(
-          onPressed: () => Navigator.pop(
-            context,
-            _SetValues(
-              reps: int.tryParse(_reps.text.trim()),
-              // Accepts "42,5" as well: a Vietnamese keyboard offers a comma.
-              weight: double.tryParse(_weight.text.trim().replaceAll(',', '.')),
-              rest: int.tryParse(_rest.text.trim()),
-            ),
-          ),
-          child: Text(tr('save'), style: TextStyle(color: colors.primary1)),
+          onPressed: () {
+            final values = readSetValues(
+              trackingType: widget.trackingType,
+              reps: _reps,
+              weight: _weight,
+              duration: _duration,
+              distance: _distance,
+            );
+            Navigator.pop(
+              context,
+              _SetValues(
+                reps: values.reps,
+                weight: values.weightKg,
+                duration: values.durationSeconds,
+                distance: values.distanceM,
+                rest: int.tryParse(_rest.text.trim()),
+              ),
+            );
+          },
+          child: Text(tr('btn_save'), style: TextStyle(color: colors.primary1)),
         ),
       ],
     );

@@ -79,6 +79,11 @@ class AuthService {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (decoded is Map<String, dynamic>) return decoded;
+      // 204 and friends succeed with nothing to say. Treating an empty body as
+      // a failure made a *successful* password change throw: the server had
+      // already revoked every session, the app never cleared its own, and the
+      // next request died on a token that no longer existed.
+      if (response.body.isEmpty) return const {};
       throw const ApiException('Unexpected response from the server.');
     }
 
@@ -238,6 +243,63 @@ class AuthService {
   /// anything more specific.
   Future<void> requestPasswordReset(String email) async {
     await _post('/auth/forgot-password', {'email': email});
+  }
+
+  Future<Map<String, dynamic>> _put(
+    String path,
+    Map<String, dynamic> body,
+    String bearerToken,
+  ) {
+    return _send(() => _client.put(
+          ApiConfig.path(path),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $bearerToken',
+          },
+          body: jsonEncode(body),
+        ));
+  }
+
+  /// PUT /auth/password - the current password is re-checked server-side.
+  ///
+  /// Every session is signed out afterwards, this one included: a password
+  /// change is usually somebody ending access they no longer want, and leaving
+  /// the other devices signed in would defeat it. The caller is expected to
+  /// send the user back to the login screen.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final token = await _storage.readAccessToken();
+    if (token == null) {
+      throw const ApiException('Not signed in', statusCode: 401);
+    }
+    await _put('/auth/password', {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    }, token);
+    // The backend has already revoked the sessions; clearing locally keeps
+    // the app from holding a token it knows is dead.
+    await _storage.clear();
+    currentUser.value = null;
+  }
+
+  /// PUT /auth/email - also gated on the current password.
+  ///
+  /// Whether the new address needs confirming before it works is a Supabase
+  /// project setting, so this promises nothing about when the change lands.
+  Future<void> changeEmail({
+    required String currentPassword,
+    required String newEmail,
+  }) async {
+    final token = await _storage.readAccessToken();
+    if (token == null) {
+      throw const ApiException('Not signed in', statusCode: 401);
+    }
+    await _put('/auth/email', {
+      'current_password': currentPassword,
+      'new_email': newEmail,
+    }, token);
   }
 
   /// Access token for calling other protected endpoints, refreshed if needed.

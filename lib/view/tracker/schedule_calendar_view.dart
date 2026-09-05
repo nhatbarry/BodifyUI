@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
 import '../../common_widget/exercise_thumbnail.dart';
+import '../../common_widget/set_input_fields.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
 import '../../models/workout_plan_models.dart';
@@ -31,7 +32,7 @@ class ScheduleCalendarView extends StatefulWidget {
 class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
   // Monday-first, matching how Vietnamese calendars are written.
   List<String> get _dayHeaders =>
-      List.generate(7, (i) => tr('dow${i + 1}'));
+      const ['dow_mon', 'dow_tue', 'dow_wed', 'dow_thu', 'dow_fri', 'dow_sat', 'dow_sun'].map(tr).toList();
 
   late final DateTime _today = dateOnly(DateTime.now());
   late DateTime _selectedDate = _today;
@@ -185,12 +186,13 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
     // Two different screens behind the same row, because the row means two
     // different things: with a session open the user is recording what they
     // just lifted, without one they are still editing the plan.
-    final performed = _selectedSession?.forExercise(exercise.exerciseId);
+    final session = _selectedSession;
+    final performed = session?.forExercise(exercise.exerciseId);
     final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => performed != null
-            ? SessionLogView(exercise: performed)
+            ? SessionLogView(exercise: performed, session: session!)
             : WorkoutSetsView(exercise: exercise),
       ),
     );
@@ -285,7 +287,7 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
           if (_selectedDate != _today)
             TextButton(
               onPressed: () => _selectDate(_today),
-              child: Text(tr('today'),
+              child: Text(tr('label_today'),
                   style: TextStyle(color: colors.primary1, fontSize: 13)),
             ),
         ],
@@ -321,7 +323,7 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
               ),
               Expanded(
                 child: Text(
-                  "${tr('month${_displayMonth.month}')} ${_displayMonth.year}",
+                  "${tr('month_${_displayMonth.month}')} ${_displayMonth.year}",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: colors.textPrimary,
@@ -484,7 +486,7 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
     final enabled = !_loadingDay && !_busyRest && !hasExercises;
 
     return Tooltip(
-      message: hasExercises ? tr('restDayBlocked') : tr('restDay'),
+      message: hasExercises ? tr('msg_rest_day_blocked') : tr('label_rest_day'),
       child: InkWell(
         onTap: enabled ? () => _toggleRestDay(!_isRestDay) : null,
         borderRadius: BorderRadius.circular(8),
@@ -507,7 +509,7 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
               ),
               const SizedBox(width: 2),
               Text(
-                tr('restDay'),
+                tr('label_rest_day'),
                 style: TextStyle(
                   color: enabled ? colors.textSecondary : colors.textSecondary
                       .withValues(alpha: 0.45),
@@ -559,7 +561,7 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
             foregroundColor: colors.onPrimary,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           ),
-          label: Text(tr('startWorkout'),
+          label: Text(tr('btn_start_workout'),
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         ),
       );
@@ -590,19 +592,28 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
           Expanded(
             child: Text(
               session.isActive
-                  ? '${session.isPaused ? tr("workoutPaused") : tr("workoutInProgress")} · $done/$total'
-                  : tr("setProgress")
+                  ? '${session.isPaused ? tr("label_workout_paused") : tr("label_workout_in_progress")} · $done/$total'
+                  : tr("label_set_progress")
                       .replaceFirst("{done}", "$done")
                       .replaceFirst("{total}", "$total"),
               style: TextStyle(color: colors.textPrimary, fontSize: 12),
             ),
           ),
-          if (session.isActive)
-            TextButton(
-              onPressed: _busySession ? null : () => _openWorkout(session),
-              child: Text(tr('continueWorkout'),
-                  style: TextStyle(color: colors.primary1, fontSize: 13)),
-            ),
+          // A finished session is not a closed door: "one more set" after
+          // hitting finish is normal, and forcing it into a second session
+          // would show the afternoon as two workouts.
+          TextButton(
+            onPressed: _busySession
+                ? null
+                : () => session.isActive
+                    ? _openWorkout(session)
+                    : _reopenWorkout(session),
+            child: Text(
+                session.isActive
+                    ? tr('btn_continue_workout')
+                    : tr('btn_train_again'),
+                style: TextStyle(color: colors.primary1, fontSize: 13)),
+          ),
         ],
       ),
     );
@@ -631,6 +642,28 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
     }
   }
 
+  /// Puts a finished session back in progress and hands it to the workout
+  /// screen.
+  ///
+  /// The gap between finishing and reopening is banked server-side, so a
+  /// session picked up two hours later does not report a two-hour workout.
+  Future<void> _reopenWorkout(WorkoutSession session) async {
+    setState(() => _busySession = true);
+    try {
+      final reopened =
+          await WorkoutSessionService.instance.reopenSession(session.sessionId);
+      if (!mounted) return;
+      setState(() {
+        _selectedSession = reopened;
+        _busySession = false;
+      });
+      await _openWorkout(reopened);
+    } catch (e) {
+      if (mounted) setState(() => _busySession = false);
+      _showError(e);
+    }
+  }
+
   /// Hands the session over to the workout screen, then re-reads the day.
   ///
   /// The calendar is the wrong place to train from - it is a month grid with a
@@ -649,7 +682,7 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
     final colors = context.colors;
     final isToday = _selectedDate == _today;
     final label = isToday
-        ? tr('today')
+        ? tr('label_today')
         : "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}";
     final exercises = _selectedDay?.exercises ?? const <PlannedExercise>[];
 
@@ -672,7 +705,7 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
               onPressed: _loadingDay || _isRestDay ? null : _editExercises,
               icon: Icon(Icons.add, size: 18, color: colors.primary1),
               label: Text(
-                exercises.isEmpty ? tr('addExercises') : tr('editExercises'),
+                exercises.isEmpty ? tr('btn_add_exercises') : tr('btn_edit_exercises'),
                 style: TextStyle(color: colors.primary1, fontSize: 13),
               ),
             ),
@@ -701,7 +734,7 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
               children: [
                 Icon(Icons.event_note, color: colors.textSecondary, size: 32),
                 const SizedBox(height: 10),
-                Text(tr('noScheduleForDay'),
+                Text(tr('msg_no_schedule_for_day'),
                     style: TextStyle(
                         color: colors.textSecondary, fontSize: 13)),
               ],
@@ -763,13 +796,24 @@ class _ExerciseRow extends StatelessWidget {
 
     // "3 × 10" when every set asks for the same reps, otherwise the reps
     // spelled out: "10 / 10 / 8" is a real and common shape.
+    // Built on the exercise's own axis: a Plank's plan is "3 × 60giây", not
+    // "- / - / -". Reading targetReps for everything is what made every timed
+    // exercise show up as a row of dashes here.
     String setSummary() {
-      if (sets.isEmpty) return tr('noTargetSets');
-      final reps = sets.map((s) => s.targetReps).toList();
-      if (reps.every((r) => r != null && r == reps.first)) {
-        return '${sets.length} × ${reps.first}';
+      if (sets.isEmpty) return tr('msg_no_target_sets');
+      final values = sets
+          .map((s) => setAxisValue(
+                trackingType: exercise.trackingType,
+                reps: s.targetReps,
+                durationSeconds: s.targetDurationSeconds,
+                distanceM: s.targetDistanceM,
+              ))
+          .toList();
+      // Identical sets collapse to "3 × 60giây" rather than repeating.
+      if (values.every((v) => v == values.first) && values.first != '-') {
+        return '${sets.length} × ${values.first}';
       }
-      return reps.map((r) => r?.toString() ?? '-').join(' / ');
+      return values.join(' / ');
     }
 
     return Container(
@@ -817,7 +861,7 @@ class _ExerciseRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: tr('exerciseDetail'),
+            tooltip: tr('title_exercise_detail'),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -829,7 +873,7 @@ class _ExerciseRow extends StatelessWidget {
                 color: colors.textSecondary, size: 19),
           ),
           IconButton(
-            tooltip: tr('remove'),
+            tooltip: tr('btn_remove'),
             onPressed: onRemove,
             icon: const Icon(Icons.close, color: Color(0xFFE74C3C), size: 19),
           ),
@@ -878,9 +922,16 @@ class _SetLine extends StatelessWidget {
   /// carried into the session but never touched has nothing to list, and an
   /// empty string beside "TT" reads as a rendering bug rather than as "none".
   static String _actualReps(SessionExercise done) {
-    if (done.sets.isEmpty) return tr('notLogged');
+    if (done.sets.isEmpty) return tr('label_not_logged');
     return done.sets
-        .map((s) => s.isLogged ? (s.reps?.toString() ?? '-') : '-')
+        .map((s) => s.isLogged
+            ? setAxisValue(
+                trackingType: done.trackingType,
+                reps: s.reps,
+                durationSeconds: s.durationSeconds,
+                distanceM: s.distanceM,
+              )
+            : '-')
         .join(' / ');
   }
 
@@ -903,7 +954,7 @@ class _SetLine extends StatelessWidget {
           children: [
             label(planned, colors.textSecondary),
             const SizedBox(height: 2),
-            label(tr('notTrained'), colors.textSecondary),
+            label(tr('label_not_trained'), colors.textSecondary),
           ],
         );
       }
@@ -920,7 +971,7 @@ class _SetLine extends StatelessWidget {
           Row(
             children: [
               label(
-                tr('setProgress')
+                tr('label_set_progress')
                     .replaceFirst('{done}', '$logged')
                     .replaceFirst('{total}', '$total'),
                 logged == total && total > 0
@@ -946,7 +997,7 @@ class _SetLine extends StatelessWidget {
           ),
           if (logged > 0) ...[
             const SizedBox(height: 3),
-            label('${tr("actualShort")} ${_actualReps(done)}',
+            label('${tr("label_actual_short")} ${_actualReps(done)}',
                 colors.textSecondary),
           ],
         ],
@@ -960,11 +1011,11 @@ class _SetLine extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         label(
-          plannedSetCount == 0 ? planned : '${tr("plannedShort")} $planned',
+          plannedSetCount == 0 ? planned : '${tr("label_planned_short")} $planned',
           colors.textSecondary,
         ),
         const SizedBox(height: 2),
-        label('${tr("actualShort")} ${_actualReps(done)}',
+        label('${tr("label_actual_short")} ${_actualReps(done)}',
             const Color(0xFF27AE60), weight: FontWeight.w600),
       ],
     );

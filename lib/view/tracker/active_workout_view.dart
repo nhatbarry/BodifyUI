@@ -7,6 +7,9 @@ import '../../common/app_colors.dart';
 import '../../common_widget/exercise_thumbnail.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
+import '../../common_widget/achievement_unlock_dialog.dart';
+import '../../common_widget/set_input_fields.dart';
+import '../../models/progress_models.dart';
 import '../../models/workout_session_models.dart';
 import '../../services/workout_session_service.dart';
 
@@ -45,6 +48,24 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
   void initState() {
     super.initState();
     _restartTicker();
+    _syncWithPlan();
+  }
+
+  /// Pulls the session's exercise list back in line with the plan for its date.
+  ///
+  /// Run on open rather than only on start: the copy taken when the workout
+  /// began goes stale the moment the user edits the day and comes back, which
+  /// left them looking at exercises they had just replaced with no way out.
+  ///
+  /// Failure is swallowed on purpose. The session on screen is still the one
+  /// the server has; refusing to show a workout because a re-sync failed would
+  /// be a worse outcome than showing a slightly stale list.
+  Future<void> _syncWithPlan() async {
+    try {
+      final synced = await WorkoutSessionService.instance
+          .syncSessionWithPlan(_session.sessionId);
+      if (mounted) _apply(synced);
+    } catch (_) {}
   }
 
   @override
@@ -108,7 +129,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: context.colors.surface,
-        title: Text(tr('finishWorkout'),
+        title: Text(tr('btn_finish_workout'),
             style: TextStyle(
                 color: context.colors.textPrimary,
                 fontSize: 16,
@@ -117,21 +138,21 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
           // Worth saying out loud: an unfinished workout is easy to walk away
           // from by accident, and finishing cannot be undone.
           logged < total
-              ? tr('finishWithUnlogged')
+              ? tr('msg_finish_with_unlogged')
                   .replaceFirst('{done}', '$logged')
                   .replaceFirst('{total}', '$total')
-              : tr('finishConfirm'),
+              : tr('msg_finish_confirm'),
           style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(tr('cancel'),
+            child: Text(tr('btn_cancel'),
                 style: TextStyle(color: context.colors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(tr('finishWorkout'),
+            child: Text(tr('btn_finish_workout'),
                 style: TextStyle(color: context.colors.primary1)),
           ),
         ],
@@ -141,7 +162,17 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
 
     setState(() => _busy = true);
     try {
+      // Snapshotted before finishing: the backend decides unlocks during the
+      // finish call, so the only way to know which ones are new is to have
+      // asked beforehand. "The count went up" would celebrate again on every
+      // reload.
+      final before = await unlockedAchievementIds();
       await WorkoutSessionService.instance.finishSession(_session.sessionId);
+      if (!mounted) return;
+
+      // Celebrate before leaving: popping first would put the dialog on a
+      // screen that is already tearing down.
+      await showNewUnlocks(context, before);
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
@@ -150,18 +181,31 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
     }
   }
 
+  /// The last set before this one that actually has numbers in it.
+  ///
+  /// Skips untouched sets: a plan of three copies in three blanks, and
+  /// prefilling set 3 from an empty set 2 would just clear the form.
+  static SessionSet? _previousLogged(SessionExercise exercise, SessionSet current) {
+    SessionSet? found;
+    for (final set in exercise.sets) {
+      if (set.setOrder >= current.setOrder) break;
+      if (set.isLogged) found = set;
+    }
+    return found;
+  }
+
   /// Records one set, then re-reads the session so the totals at the top stay
   /// consistent with the rows underneath.
   Future<void> _logSet(SessionExercise exercise, SessionSet target) async {
-    final values = await showDialog<_Performed>(
+    final spec = SetFieldSpec.of(exercise.trackingType);
+    final values = await showDialog<SetValues>(
       context: context,
       builder: (_) => _SetDialog(
         title: '${exercise.name ?? ""} · '
-            '${tr("setNumber").replaceFirst("{n}", "${target.setOrder}")}',
-        reps: target.reps ?? target.targetReps,
-        weight: target.weightKg ?? target.targetWeightKg,
-        targetReps: target.targetReps,
-        targetWeight: target.targetWeightKg,
+            '${tr("title_set_number").replaceFirst("{n}", "${target.setOrder}")}',
+        trackingType: exercise.trackingType,
+        from: target,
+        previous: _previousLogged(exercise, target),
       ),
     );
     if (values == null) return;
@@ -171,10 +215,16 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
       await WorkoutSessionService.instance.recordSet(
         target.id,
         reps: values.reps,
-        weightKg: values.weight,
+        weightKg: values.weightKg,
+        durationSeconds: values.durationSeconds,
+        distanceM: values.distanceM,
         completed: true,
-        clearReps: values.reps == null,
-        clearWeight: values.weight == null,
+        // Only the axes this exercise uses can be cleared. Sending null for a
+        // Plank's reps would be a correction the user never made.
+        clearReps: values.reps == null && spec.reps,
+        clearWeight: values.weightKg == null,
+        clearDuration: values.durationSeconds == null && spec.duration,
+        clearDistance: values.distanceM == null && spec.distance,
       );
       await _reload();
       if (mounted) setState(() => _busy = false);
@@ -186,20 +236,26 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
 
   Future<void> _addSet(SessionExercise exercise) async {
     final last = exercise.sets.isEmpty ? null : exercise.sets.last;
-    final values = await showDialog<_Performed>(
+    final values = await showDialog<SetValues>(
       context: context,
       builder: (_) => _SetDialog(
-        title: '${exercise.name ?? ""} · ${tr("addSet")}',
-        reps: last?.reps,
-        weight: last?.weightKg,
+        title: '${exercise.name ?? ""} · ${tr("btn_add_set")}',
+        trackingType: exercise.trackingType,
+        from: last,
+        showTarget: false,
       ),
     );
     if (values == null) return;
 
     setState(() => _busy = true);
     try {
-      await WorkoutSessionService.instance
-          .addSet(exercise.id, reps: values.reps, weightKg: values.weight);
+      await WorkoutSessionService.instance.addSet(
+        exercise.id,
+        reps: values.reps,
+        weightKg: values.weightKg,
+        durationSeconds: values.durationSeconds,
+        distanceM: values.distanceM,
+      );
       await _reload();
       if (mounted) setState(() => _busy = false);
     } catch (e) {
@@ -252,7 +308,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
             // Not dayName: days created from the calendar are named with the
             // ISO date, which is an identifier for the plan, not a label for
             // a screen. The plan's own name is what the user recognises.
-            _session.planName ?? tr('workoutInProgress'),
+            _session.planName ?? tr('label_workout_in_progress'),
             style: TextStyle(
                 color: colors.textPrimary,
                 fontSize: 15,
@@ -277,7 +333,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 40),
                           child: Text(
-                            tr('noExercisesInSession'),
+                            tr('msg_no_exercises_in_session'),
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 color: colors.textSecondary, fontSize: 13),
@@ -354,16 +410,16 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
           if (paused)
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text(tr('workoutPaused'),
+              child: Text(tr('label_workout_paused'),
                   style: TextStyle(color: colors.primary1, fontSize: 12)),
             ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              stat('${s.completedSetCount}/${s.setCount}', tr('setsLabel')),
-              stat('${s.totalReps}', tr('reps')),
-              stat(_volume(s.totalVolumeKg), tr('volumeLabel')),
+              stat('${s.completedSetCount}/${s.setCount}', tr('label_sets')),
+              stat('${s.totalReps}', tr('label_reps')),
+              stat(_volume(s.totalVolumeKg), tr('label_volume')),
             ],
           ),
         ],
@@ -398,7 +454,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
                       borderRadius: BorderRadius.circular(14)),
                 ),
                 label: Text(
-                  _session.isPaused ? tr('resumeWorkout') : tr('pauseWorkout'),
+                  _session.isPaused ? tr('btn_resume_workout') : tr('btn_pause_workout'),
                   style: TextStyle(
                       color: colors.primary1, fontWeight: FontWeight.w600),
                 ),
@@ -416,7 +472,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                 ),
-                label: Text(tr('finishWorkout'),
+                label: Text(tr('btn_finish_workout'),
                     style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
             ),
@@ -481,7 +537,7 @@ class _ExerciseCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      tr('setProgress')
+                      tr('label_set_progress')
                           .replaceFirst('{done}', '$logged')
                           .replaceFirst('{total}', '${exercise.sets.length}'),
                       style: TextStyle(
@@ -513,7 +569,7 @@ class _ExerciseCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-              label: Text(tr('addSet'),
+              label: Text(tr('btn_add_set'),
                   style: TextStyle(color: colors.primary1, fontSize: 12)),
             ),
           ),
@@ -530,28 +586,32 @@ class _SetRow extends StatelessWidget {
 
   const _SetRow({required this.set, this.onTap, this.onDelete});
 
-  static String _trim(double v) =>
-      v == v.roundToDouble() ? '${v.round()}' : '$v';
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final done = set.isLogged;
 
+    // Built from whichever axes the set carries, so a Plank reads "60 giây"
+    // instead of "— × —".
     String target() {
-      if (set.targetReps == null && set.targetWeightKg == null) return '—';
-      final reps = set.targetReps?.toString() ?? '—';
-      final w = set.targetWeightKg == null
-          ? ''
-          : ' × ${_trim(set.targetWeightKg!)}kg';
-      return '$reps$w';
+      final text = formatTarget(
+        reps: set.targetReps,
+        weightKg: set.targetWeightKg,
+        durationSeconds: set.targetDurationSeconds,
+        distanceM: set.targetDistanceM,
+      );
+      return text.isEmpty ? '—' : text;
     }
 
     String actual() {
-      if (!done) return tr('notLogged');
-      final reps = set.reps?.toString() ?? '—';
-      final w = set.weightKg == null ? '' : ' × ${_trim(set.weightKg!)}kg';
-      return '$reps$w';
+      if (!done) return tr('label_not_logged');
+      final text = formatTarget(
+        reps: set.reps,
+        weightKg: set.weightKg,
+        durationSeconds: set.durationSeconds,
+        distanceM: set.distanceM,
+      );
+      return text.isEmpty ? '—' : text;
     }
 
     return InkWell(
@@ -582,13 +642,13 @@ class _SetRow extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text('${tr("plannedShort")} ${target()}',
+                    child: Text('${tr("label_planned_short")} ${target()}',
                         style: TextStyle(
                             color: colors.textSecondary, fontSize: 11)),
                   ),
                   Expanded(
                     child: Text(
-                      '${tr("actualShort")} ${actual()}',
+                      '${tr("label_actual_short")} ${actual()}',
                       style: TextStyle(
                           color:
                               done ? colors.textPrimary : colors.textSecondary,
@@ -612,26 +672,29 @@ class _SetRow extends StatelessWidget {
   }
 }
 
-class _Performed {
-  final int? reps;
-  final double? weight;
-
-  const _Performed(this.reps, this.weight);
-}
+// Replaced by SetValues from set_input_fields.dart, which carries every axis.
 
 class _SetDialog extends StatefulWidget {
   final String title;
-  final int? reps;
-  final double? weight;
-  final int? targetReps;
-  final double? targetWeight;
+  final TrackingType trackingType;
+  final SessionSet? from;
+
+  /// The set logged just before this one, if any. Sets in a row usually
+  /// repeat, and after the first one the number the user is about to type is
+  /// far more likely to be "the same as last set" than "whatever the plan said
+  /// weeks ago".
+  final SessionSet? previous;
+
+  /// An extra set has no plan of its own, so the previous set's target must
+  /// not be shown as if it were this one's.
+  final bool showTarget;
 
   const _SetDialog({
     required this.title,
-    this.reps,
-    this.weight,
-    this.targetReps,
-    this.targetWeight,
+    required this.trackingType,
+    this.from,
+    this.previous,
+    this.showTarget = true,
   });
 
   @override
@@ -639,53 +702,58 @@ class _SetDialog extends StatefulWidget {
 }
 
 class _SetDialogState extends State<_SetDialog> {
-  late final _reps = TextEditingController(text: widget.reps?.toString() ?? '');
-  late final _weight = TextEditingController(
-      text: widget.weight == null ? '' : _trim(widget.weight!));
-
   static String _trim(double v) =>
       v == v.roundToDouble() ? '${v.round()}' : '$v';
+  static String _pre(double? v) => v == null ? '' : _trim(v);
+
+  // Prefilled from the performed value if there is one, otherwise the target:
+  // most sets go as planned, so the common case is one tap.
+  // Prefill order: what is already on this set, then what the previous set was
+  // actually done at, then the plan. Sets in a row usually repeat, so after
+  // the first one "the same as last set" beats "whatever the plan said weeks
+  // ago" as a starting guess.
+  late final _reps = TextEditingController(
+      text: '${widget.from?.reps ?? widget.previous?.reps ?? widget.from?.targetReps ?? ''}');
+  late final _weight = TextEditingController(
+      text: _pre(widget.from?.weightKg ??
+          widget.previous?.weightKg ??
+          widget.from?.targetWeightKg));
+  late final _duration = TextEditingController(
+      text: '${widget.from?.durationSeconds ?? widget.previous?.durationSeconds ?? widget.from?.targetDurationSeconds ?? ''}');
+  late final _distance = TextEditingController(
+      text: _pre(widget.from?.distanceM ??
+          widget.previous?.distanceM ??
+          widget.from?.targetDistanceM));
 
   @override
   void dispose() {
     _reps.dispose();
     _weight.dispose();
+    _duration.dispose();
+    _distance.dispose();
     super.dispose();
   }
+
+  String _label(String key) => switch (key) {
+        'duration' => tr('label_duration_seconds'),
+        'distance' => tr('label_distance_m'),
+        'weight' => tr('label_target_weight_kg'),
+        _ => tr('label_reps'),
+      };
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final set = widget.from;
 
-    Widget field(String label, TextEditingController c,
-            {bool decimal = false, bool autofocus = false}) =>
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: TextField(
-            controller: c,
-            autofocus: autofocus,
-            // Select-all on focus: the field is pre-filled with the target,
-            // and the usual edit is to replace it, not to append to it.
-            onTap: () => c.selection =
-                TextSelection(baseOffset: 0, extentOffset: c.text.length),
-            keyboardType: TextInputType.numberWithOptions(decimal: decimal),
-            style: TextStyle(color: colors.textPrimary),
-            decoration: InputDecoration(
-              labelText: label,
-              labelStyle:
-                  TextStyle(color: colors.textSecondary, fontSize: 13),
-              isDense: true,
-              filled: true,
-              fillColor: colors.surfaceVariant,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        );
-
-    final hasTarget = widget.targetReps != null || widget.targetWeight != null;
+    final target = set == null || !widget.showTarget
+        ? ''
+        : formatTarget(
+            reps: set.targetReps,
+            weightKg: set.targetWeightKg,
+            durationSeconds: set.targetDurationSeconds,
+            distanceM: set.targetDistanceM,
+          );
 
     return AlertDialog(
       backgroundColor: colors.surface,
@@ -699,37 +767,44 @@ class _SetDialogState extends State<_SetDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (hasTarget)
+          if (target.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  '${tr("plannedShort")} ${widget.targetReps ?? "—"}'
-                  '${widget.targetWeight == null ? "" : " × ${_trim(widget.targetWeight!)}kg"}',
-                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
-                ),
+                child: Text('${tr("label_planned_short")} $target',
+                    style:
+                        TextStyle(color: colors.textSecondary, fontSize: 12)),
               ),
             ),
-          field(tr('reps'), _reps, autofocus: true),
-          field(tr('targetWeightKg'), _weight, decimal: true),
+          SetInputFields(
+            trackingType: widget.trackingType,
+            reps: _reps,
+            weight: _weight,
+            duration: _duration,
+            distance: _distance,
+            label: _label,
+          ),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(tr('cancel'),
+          child: Text(tr('btn_cancel'),
               style: TextStyle(color: colors.textSecondary)),
         ),
         TextButton(
           onPressed: () => Navigator.pop(
             context,
-            _Performed(
-              int.tryParse(_reps.text.trim()),
-              double.tryParse(_weight.text.trim().replaceAll(',', '.')),
+            readSetValues(
+              trackingType: widget.trackingType,
+              reps: _reps,
+              weight: _weight,
+              duration: _duration,
+              distance: _distance,
             ),
           ),
-          child: Text(tr('save'), style: TextStyle(color: colors.primary1)),
+          child: Text(tr('btn_save'), style: TextStyle(color: colors.primary1)),
         ),
       ],
     );

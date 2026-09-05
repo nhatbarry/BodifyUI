@@ -44,6 +44,9 @@ class _NotificationViewState extends State<NotificationView> {
               width: 15,
               height: 15,
               fit: BoxFit.contain,
+              // Solid near-black artwork: drawn untinted it disappears against
+              // a dark background.
+              color: context.colors.textPrimary,
             ),
           ),
         ),
@@ -68,6 +71,7 @@ class _NotificationViewState extends State<NotificationView> {
                 width: 12,
                 height: 12,
                 fit: BoxFit.contain,
+                color: context.colors.textSecondary,
               ),
             ),
           )

@@ -26,7 +26,7 @@ class _TrackerViewState extends State<TrackerView> {
         centerTitle: true,
         automaticallyImplyLeading: false,
         title: Text(
-          tr('tracker'),
+          tr('nav_tracker'),
           style: TextStyle(
               color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -57,8 +57,8 @@ class _TrackerViewState extends State<TrackerView> {
       ),
       child: Row(
         children: [
-          _tab(tr('workoutTracker'), 0),
-          _tab(tr('mealPlanner'), 1),
+          _tab(tr('title_workout_tracker'), 0),
+          _tab(tr('nav_meal_planner'), 1),
         ],
       ),
     );
@@ -114,7 +114,7 @@ class _MealPlannerTab extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              tr('mealPlanner'),
+              tr('nav_meal_planner'),
               style: TextStyle(
                   color: context.colors.textPrimary,
                   fontSize: 16,
@@ -122,7 +122,7 @@ class _MealPlannerTab extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              tr('featureInProgress'),
+              tr('msg_feature_in_progress'),
               textAlign: TextAlign.center,
               style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
             ),

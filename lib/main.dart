@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'common/app_colors.dart';
 import 'core/app_locale.dart';
@@ -38,6 +39,16 @@ class MyApp extends StatelessWidget {
           title: 'Bodify',
           debugShowCheckedModeBanner: false,
           locale: LocaleController.instance.locale,
+          // Without these the framework's own copy - the date picker's
+          // "Select date"/"Cancel"/"OK", the text-selection menu - stays
+          // English no matter what `locale` says, because Material ships its
+          // strings separately from the app's table.
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('vi'), Locale('en')],
           theme: buildBodifyTheme(Brightness.light),
           darkTheme: buildBodifyTheme(Brightness.dark),
           themeMode: ThemeController.instance.mode,

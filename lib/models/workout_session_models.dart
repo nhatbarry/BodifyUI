@@ -6,6 +6,8 @@
 /// into one object, because a plan keeps changing and a finished session does
 /// not.
 
+import 'progress_models.dart';
+
 /// One set as performed. `targetReps` / `targetWeightKg` are the plan's numbers
 /// as they stood when the set was recorded - a snapshot, not a live reading, so
 /// editing the plan afterwards cannot rewrite them.
@@ -15,11 +17,15 @@ class SessionSet {
 
   final int? reps;
   final double? weightKg;
+  final int? durationSeconds;
+  final double? distanceM;
   final int? restSeconds;
   final bool completed;
 
   final int? targetReps;
   final double? targetWeightKg;
+  final int? targetDurationSeconds;
+  final double? targetDistanceM;
 
   const SessionSet({
     required this.id,
@@ -27,14 +33,25 @@ class SessionSet {
     required this.completed,
     this.reps,
     this.weightKg,
+    this.durationSeconds,
+    this.distanceM,
     this.restSeconds,
     this.targetReps,
     this.targetWeightKg,
+    this.targetDurationSeconds,
+    this.targetDistanceM,
   });
 
   /// True once the user has actually put a number against this set. A set
-  /// copied in from the plan and not yet touched has targets but no reps.
-  bool get isLogged => reps != null || weightKg != null;
+  /// copied in from the plan and not yet touched has targets but no numbers.
+  ///
+  /// All four axes count: a Plank is logged with seconds and no reps, a carry
+  /// with metres, so checking reps alone would call them untouched forever.
+  bool get isLogged =>
+      reps != null ||
+      weightKg != null ||
+      durationSeconds != null ||
+      distanceM != null;
 
   static double? _num(dynamic v) =>
       v == null ? null : double.tryParse('$v');
@@ -45,10 +62,14 @@ class SessionSet {
         reps: json['reps'] as int?,
         // NUMERIC arrives as a string from JSON, not a double.
         weightKg: _num(json['weight_kg']),
+        durationSeconds: json['duration_seconds'] as int?,
+        distanceM: _num(json['distance_m']),
         restSeconds: json['rest_seconds'] as int?,
         completed: json['completed'] as bool,
         targetReps: json['target_reps'] as int?,
         targetWeightKg: _num(json['target_weight_kg']),
+        targetDurationSeconds: json['target_duration_seconds'] as int?,
+        targetDistanceM: _num(json['target_distance_m']),
       );
 }
 
@@ -60,6 +81,10 @@ class SessionExercise {
   final String? name;
   final int exerciseOrder;
   final String? thumbnailUrl;
+  /// What the effort is counted in - reps, seconds or metres - so the logging
+  /// form asks for the right thing. Weight is orthogonal and applies to all of
+  /// them: a Farmer's Carry is metres *and* 40 kg.
+  final TrackingType trackingType;
   final List<SessionSet> sets;
 
   const SessionExercise({
@@ -69,12 +94,14 @@ class SessionExercise {
     required this.sets,
     this.name,
     this.thumbnailUrl,
+    this.trackingType = TrackingType.reps,
   });
 
   int get loggedSetCount => sets.where((s) => s.isLogged).length;
 
   factory SessionExercise.fromJson(Map<String, dynamic> json) => SessionExercise(
         id: json['session_exercise_id'] as int,
+        trackingType: TrackingType.parse(json['tracking_type'] as String?),
         exerciseId: json['exercise_id'] as int,
         name: json['exercise_name'] as String?,
         exerciseOrder: json['exercise_order'] as int,

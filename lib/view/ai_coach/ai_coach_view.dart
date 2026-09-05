@@ -18,7 +18,7 @@ class AiCoachView extends StatelessWidget {
         centerTitle: true,
         automaticallyImplyLeading: false,
         title: Text(
-          tr('aiCoach'),
+          tr('nav_ai_coach'),
           style: TextStyle(
               color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -41,7 +41,7 @@ class AiCoachView extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                tr('aiCoach'),
+                tr('nav_ai_coach'),
                 style: TextStyle(
                     color: context.colors.textPrimary,
                     fontSize: 18,
@@ -49,7 +49,7 @@ class AiCoachView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                "${tr('aiCoachSubtitle')}\n${tr('featureInProgress')}",
+                "${tr('subtitle_ai_coach')}\n${tr('msg_feature_in_progress')}",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.colors.textSecondary, fontSize: 13, height: 1.5),
               ),

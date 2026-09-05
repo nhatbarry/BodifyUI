@@ -188,7 +188,7 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> {
         children: [
           Expanded(
             child: Text(
-              tr('pickExercises'),
+              tr('title_pick_exercises'),
               style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: 16,
@@ -197,7 +197,7 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> {
           ),
           if (_selected.isNotEmpty)
             Text(
-              tr('selectedCount').replaceFirst('{n}', '${_selected.length}'),
+              tr('label_selected_count').replaceFirst('{n}', '${_selected.length}'),
               style: TextStyle(color: colors.primary1, fontSize: 12),
             ),
           IconButton(
@@ -218,7 +218,7 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> {
         onChanged: _onSearchChanged,
         style: TextStyle(color: colors.textPrimary, fontSize: 13),
         decoration: InputDecoration(
-          hintText: tr('searchExercises'),
+          hintText: tr('hint_search_exercises'),
           hintStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
           prefixIcon:
               Icon(Icons.search, color: colors.textSecondary, size: 20),
@@ -311,7 +311,7 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> {
               const SizedBox(height: 10),
               TextButton(
                   onPressed: () => _load(reset: true),
-                  child: Text(tr('retry'))),
+                  child: Text(tr('btn_retry'))),
             ],
           ),
         ),
@@ -320,7 +320,7 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> {
 
     if (_items.isEmpty) {
       return Center(
-        child: Text(tr('noExercisesFound'),
+        child: Text(tr('msg_no_exercises_found'),
             style: TextStyle(color: colors.textSecondary, fontSize: 13)),
       );
     }
@@ -371,8 +371,8 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> {
             Expanded(
               child: Text(
                 _selected.isEmpty
-                    ? tr('emptySelectionClearsDay')
-                    : tr('selectedCount')
+                    ? tr('msg_empty_selection_clears_day')
+                    : tr('label_selected_count')
                         .replaceFirst('{n}', '${_selected.length}'),
                 style:
                     TextStyle(color: colors.textSecondary, fontSize: 12),
@@ -389,7 +389,7 @@ class _ExercisePickerSheetState extends State<ExercisePickerSheet> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 26, vertical: 12),
               ),
-              child: Text(tr('save'),
+              child: Text(tr('btn_save'),
                   style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],

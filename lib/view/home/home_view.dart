@@ -10,10 +10,13 @@ import '../../common/app_colors.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
 import '../../models/body_metric.dart';
+import '../../models/profile.dart';
 import '../../services/body_metric_service.dart';
+import '../../services/profile_service.dart';
 import '../body_metrics/bmi_view.dart';
 import 'activity_tracker_view.dart';
 import 'notification_view.dart';
+import '../../common_widget/activity_progress_card.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -24,11 +27,23 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   BodyMetric? _latestMetric;
+  Profile? _profile;
 
   @override
   void initState() {
     super.initState();
     _loadLatestMetric();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await ProfileService.instance.get();
+      if (mounted) setState(() => _profile = profile);
+    } on ApiException {
+      // The greeting falls back to a neutral one; the rest of the screen is
+      // unaffected by not knowing the name.
+    }
   }
 
   Future<void> _loadLatestMetric() async {
@@ -49,7 +64,10 @@ class _HomeViewState extends State<HomeView> {
     _loadLatestMetric();
   }
 
-  List<int> showingTooltipOnSpots = [21];
+  // Empty until there is a real reading. The chart line is a placeholder, but
+  // "21 mins ago" is a specific claim, and pairing it with a "--" value reads
+  // as a bug rather than as "not connected yet".
+  List<int> showingTooltipOnSpots = [];
 
   List<FlSpot> get allSpots => const [
         FlSpot(0, 20),
@@ -135,11 +153,16 @@ class _HomeViewState extends State<HomeView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Welcome Back,",
+                          tr('label_welcome_back'),
                           style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                         ),
                         Text(
-                          "Stefani Wong",
+                          // The kit shipped a hardcoded name here. Until the
+                          // profile arrives, a neutral word beats someone
+                          // else's name.
+                          _profile?.name ?? tr('label_bodify_user'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               color: context.colors.textPrimary,
                               fontSize: 20,
@@ -164,9 +187,7 @@ class _HomeViewState extends State<HomeView> {
                         ))
                   ],
                 ),
-                SizedBox(
-                  height: media.width * 0.05,
-                ),
+                SizedBox(height: media.width * 0.05),
                 Container(
                   height: media.width * 0.4,
                   decoration: BoxDecoration(
@@ -195,7 +216,7 @@ class _HomeViewState extends State<HomeView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                tr('bmiTitle'),
+                                tr('title_bmi'),
                                 style: TextStyle(
                                     color: context.colors.surface,
                                     fontSize: 14,
@@ -203,7 +224,7 @@ class _HomeViewState extends State<HomeView> {
                               ),
                               Text(
                                 _latestMetric?.bmi == null
-                                    ? tr('noBmiYet')
+                                    ? tr('msg_no_bmi_yet')
                                     : bmiCategoryLabel(_latestMetric!.bmi!),
                                 style: TextStyle(
                                     color: context.colors.surface.withOpacity(0.7),
@@ -216,7 +237,7 @@ class _HomeViewState extends State<HomeView> {
                                   width: 120,
                                   height: 35,
                                   child: RoundButton(
-                                      title: tr('viewMore'),
+                                      title: tr('btn_view_more'),
                                       type: RoundButtonType.bgSGradient,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w400,
@@ -246,53 +267,9 @@ class _HomeViewState extends State<HomeView> {
                     )
                   ]),
                 ),
-                SizedBox(
-                  height: media.width * 0.05,
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-                  decoration: BoxDecoration(
-                    color: context.colors.primary2.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Today Target",
-                        style: TextStyle(
-                            color: context.colors.textPrimary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700),
-                      ),
-                      SizedBox(
-                        width: 70,
-                        height: 25,
-                        child: RoundButton(
-                          title: "Check",
-                          type: RoundButtonType.bgGradient,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const ActivityTrackerView(),
-                              ),
-                            );
-                          },
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-                SizedBox(
-                  height: media.width * 0.05,
-                ),
+                SizedBox(height: media.width * 0.05),
                 Text(
-                  "Activity Status",
+                  tr('title_activity_status'),
                   style: TextStyle(
                       color: context.colors.textPrimary,
                       fontSize: 16,
@@ -322,7 +299,7 @@ class _HomeViewState extends State<HomeView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Heart Rate",
+                                tr('label_heart_rate'),
                                 style: TextStyle(
                                     color: context.colors.textPrimary,
                                     fontSize: 16,
@@ -339,7 +316,10 @@ class _HomeViewState extends State<HomeView> {
                                           0, 0, bounds.width, bounds.height));
                                 },
                                 child: Text(
-                                  "78 BPM",
+                                  // Waiting on Google Health Connect like the
+                                  // two tiles below. A plausible number here
+                                  // would be read as a measurement.
+                                  '--',
                                   style: TextStyle(
                                       color: context.colors.surface.withOpacity(0.7),
                                       fontWeight: FontWeight.w700,
@@ -446,478 +426,20 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                 ),
-                SizedBox(
-                  height: media.width * 0.05,
-                ),
+                SizedBox(height: media.width * 0.05),
                 Row(
                   children: [
-                    Expanded(
-                      child: Container(
-                        height: media.width * 0.95,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 25, horizontal: 20),
-                        decoration: BoxDecoration(
-                            color: context.colors.surface,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black12, blurRadius: 2)
-                            ]),
-                        child: Row(
-                          children: [
-                            SimpleAnimationProgressBar(
-                              height: media.width * 0.85,
-                              width: media.width * 0.07,
-                              backgroundColor: Colors.grey.shade100,
-                              foregroundColor: Colors.purple,
-                              ratio: 0.5,
-                              direction: Axis.vertical,
-                              curve: Curves.fastLinearToSlowEaseIn,
-                              duration: const Duration(seconds: 3),
-                              borderRadius: BorderRadius.circular(15),
-                              gradientColor: LinearGradient(
-                                  colors: context.colors.primaryGradient,
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter),
-                            ),
-                            const SizedBox(
-                              width: 10,
-                            ),
-                            Expanded(
-                                child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Water Intake",
-                                  style: TextStyle(
-                                      color: context.colors.textPrimary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700),
-                                ),
-                                ShaderMask(
-                                  blendMode: BlendMode.srcIn,
-                                  shaderCallback: (bounds) {
-                                    return LinearGradient(
-                                            colors: context.colors.primaryGradient,
-                                            begin: Alignment.centerLeft,
-                                            end: Alignment.centerRight)
-                                        .createShader(Rect.fromLTRB(
-                                            0, 0, bounds.width, bounds.height));
-                                  },
-                                  child: Text(
-                                    "4 Liters",
-                                    style: TextStyle(
-                                        color: context.colors.surface.withOpacity(0.7),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14),
-                                  ),
-                                ),
-                                const SizedBox(
-                                  height: 10,
-                                ),
-                                Text(
-                                  "Real time updates",
-                                  style: TextStyle(
-                                    color: context.colors.textSecondary,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: waterArr.map((wObj) {
-                                    var isLast = wObj == waterArr.last;
-                                    return Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Container(
-                                              margin:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 4),
-                                              width: 10,
-                                              height: 10,
-                                              decoration: BoxDecoration(
-                                                color: context.colors.secondary1
-                                                    .withOpacity(0.5),
-                                                borderRadius:
-                                                    BorderRadius.circular(5),
-                                              ),
-                                            ),
-                                            if (!isLast)
-                                              DottedDashedLine(
-                                                  height: media.width * 0.078,
-                                                  width: 0,
-                                                  dashColor: context.colors.secondary1
-                                                      .withOpacity(0.5),
-                                                  axis: Axis.vertical)
-                                          ],
-                                        ),
-                                        const SizedBox(
-                                          width: 10,
-                                        ),
-                                        Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              wObj["title"].toString(),
-                                              style: TextStyle(
-                                                color: context.colors.textSecondary,
-                                                fontSize: 10,
-                                              ),
-                                            ),
-                                            ShaderMask(
-                                              blendMode: BlendMode.srcIn,
-                                              shaderCallback: (bounds) {
-                                                return LinearGradient(
-                                                        colors:
-                                                            context.colors.secondaryGradient,
-                                                        begin: Alignment
-                                                            .centerLeft,
-                                                        end: Alignment
-                                                            .centerRight)
-                                                    .createShader(Rect.fromLTRB(
-                                                        0,
-                                                        0,
-                                                        bounds.width,
-                                                        bounds.height));
-                                              },
-                                              child: Text(
-                                                wObj["subtitle"].toString(),
-                                                style: TextStyle(
-                                                    color: context.colors.surface
-                                                        .withOpacity(0.7),
-                                                    fontSize: 12),
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      ],
-                                    );
-                                  }).toList(),
-                                )
-                              ],
-                            ))
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: media.width * 0.05,
-                    ),
-                    Expanded(
-                        child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: double.maxFinite,
-                          height: media.width * 0.45,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 25, horizontal: 20),
-                          decoration: BoxDecoration(
-                              color: context.colors.surface,
-                              borderRadius: BorderRadius.circular(25),
-                              boxShadow: const [
-                                BoxShadow(color: Colors.black12, blurRadius: 2)
-                              ]),
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Sleep",
-                                  style: TextStyle(
-                                      color: context.colors.textPrimary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700),
-                                ),
-                                ShaderMask(
-                                  blendMode: BlendMode.srcIn,
-                                  shaderCallback: (bounds) {
-                                    return LinearGradient(
-                                            colors: context.colors.primaryGradient,
-                                            begin: Alignment.centerLeft,
-                                            end: Alignment.centerRight)
-                                        .createShader(Rect.fromLTRB(
-                                            0, 0, bounds.width, bounds.height));
-                                  },
-                                  child: Text(
-                                    "8h 20m",
-                                    style: TextStyle(
-                                        color: context.colors.surface.withOpacity(0.7),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14),
-                                  ),
-                                ),
-                                const Spacer(),
-                                Image.asset("assets/img/sleep_grap.png",
-                                    width: double.maxFinite,
-                                    fit: BoxFit.fitWidth)
-                              ]),
-                        ),
-                        SizedBox(
-                          height: media.width * 0.05,
-                        ),
-                        Container(
-                          width: double.maxFinite,
-                          height: media.width * 0.45,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 25, horizontal: 20),
-                          decoration: BoxDecoration(
-                              color: context.colors.surface,
-                              borderRadius: BorderRadius.circular(25),
-                              boxShadow: const [
-                                BoxShadow(color: Colors.black12, blurRadius: 2)
-                              ]),
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Calories",
-                                  style: TextStyle(
-                                      color: context.colors.textPrimary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700),
-                                ),
-                                ShaderMask(
-                                  blendMode: BlendMode.srcIn,
-                                  shaderCallback: (bounds) {
-                                    return LinearGradient(
-                                            colors: context.colors.primaryGradient,
-                                            begin: Alignment.centerLeft,
-                                            end: Alignment.centerRight)
-                                        .createShader(Rect.fromLTRB(
-                                            0, 0, bounds.width, bounds.height));
-                                  },
-                                  child: Text(
-                                    "760 kCal",
-                                    style: TextStyle(
-                                        color: context.colors.surface.withOpacity(0.7),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14),
-                                  ),
-                                ),
-                                const Spacer(),
-                                Container(
-                                  alignment: Alignment.center,
-                                  child: SizedBox(
-                                    width: media.width * 0.2,
-                                    height: media.width * 0.2,
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        Container(
-                                          width: media.width * 0.15,
-                                          height: media.width * 0.15,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                                colors: context.colors.primaryGradient),
-                                            borderRadius: BorderRadius.circular(
-                                                media.width * 0.075),
-                                          ),
-                                          child: FittedBox(
-                                            child: Text(
-                                              "230kCal\nleft",
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                  color: context.colors.surface,
-                                                  fontSize: 11),
-                                            ),
-                                          ),
-                                        ),
-                                        SimpleCircularProgressBar(
-                                          progressStrokeWidth: 10,
-                                          backStrokeWidth: 10,
-                                          progressColors: context.colors.primaryGradient,
-                                          backColor: Colors.grey.shade100,
-                                          valueNotifier: ValueNotifier(50),
-                                          startAngle: -180,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              ]),
-                        ),
-                      ],
-                    ))
+                    // Calories and steps both wait on Google Health Connect.
+                    // A dash says "not connected"; a plausible number would be
+                    // read as fact, which is the one thing it must not be.
+                    Expanded(child: _metricCard(media, tr('label_calories'))),
+                    SizedBox(width: media.width * 0.05),
+                    Expanded(child: _metricCard(media, tr('label_steps'))),
                   ],
                 ),
-                SizedBox(
-                  height: media.width * 0.1,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Workout Progress",
-                      style: TextStyle(
-                          color: context.colors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700),
-                    ),
-                    Container(
-                        height: 30,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: context.colors.primaryGradient),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton(
-                            items: ["Weekly", "Monthly"]
-                                .map((name) => DropdownMenuItem(
-                                      value: name,
-                                      child: Text(
-                                        name,
-                                        style: TextStyle(
-                                            color: context.colors.textSecondary, fontSize: 14),
-                                      ),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {},
-                            icon: Icon(Icons.expand_more, color: context.colors.surface),
-                            hint: Text(
-                              "Weekly",
-                              textAlign: TextAlign.center,
-                              style:
-                                  TextStyle(color: context.colors.surface, fontSize: 12),
-                            ),
-                          ),
-                        )),
-                  ],
-                ),
-                SizedBox(
-                  height: media.width * 0.05,
-                ),
-                Container(
-                    padding: const EdgeInsets.only(left: 15),
-                    height: media.width * 0.5,
-                    width: double.maxFinite,
-                    child: LineChart(
-                      LineChartData(
-                        showingTooltipIndicators:
-                            showingTooltipOnSpots.map((index) {
-                          return ShowingTooltipIndicators([
-                            LineBarSpot(
-                              tooltipsOnBar,
-                              lineBarsData.indexOf(tooltipsOnBar),
-                              tooltipsOnBar.spots[index],
-                            ),
-                          ]);
-                        }).toList(),
-                        lineTouchData: LineTouchData(
-                          enabled: true,
-                          handleBuiltInTouches: false,
-                          touchCallback: (FlTouchEvent event,
-                              LineTouchResponse? response) {
-                            if (response == null ||
-                                response.lineBarSpots == null) {
-                              return;
-                            }
-                            if (event is FlTapUpEvent) {
-                              final spotIndex =
-                                  response.lineBarSpots!.first.spotIndex;
-                              showingTooltipOnSpots.clear();
-                              setState(() {
-                                showingTooltipOnSpots.add(spotIndex);
-                              });
-                            }
-                          },
-                          mouseCursorResolver: (FlTouchEvent event,
-                              LineTouchResponse? response) {
-                            if (response == null ||
-                                response.lineBarSpots == null) {
-                              return SystemMouseCursors.basic;
-                            }
-                            return SystemMouseCursors.click;
-                          },
-                          getTouchedSpotIndicator: (LineChartBarData barData,
-                              List<int> spotIndexes) {
-                            return spotIndexes.map((index) {
-                              return TouchedSpotIndicatorData(
-                                FlLine(
-                                  color: Colors.transparent,
-                                ),
-                                FlDotData(
-                                  show: true,
-                                  getDotPainter:
-                                      (spot, percent, barData, index) =>
-                                          FlDotCirclePainter(
-                                    radius: 3,
-                                    color: Colors.white,
-                                    strokeWidth: 3,
-                                    strokeColor: context.colors.secondary1,
-                                  ),
-                                ),
-                              );
-                            }).toList();
-                          },
-                          touchTooltipData: LineTouchTooltipData(
-                            getTooltipColor: (_) => context.colors.secondary1,
-                            tooltipBorderRadius: BorderRadius.circular(20),
-                            getTooltipItems: (List<LineBarSpot> lineBarsSpot) {
-                              return lineBarsSpot.map((lineBarSpot) {
-                                return LineTooltipItem(
-                                  "${lineBarSpot.x.toInt()} mins ago",
-                                  const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                );
-                              }).toList();
-                            },
-                          ),
-                        ),
-                        lineBarsData: lineBarsData1,
-                        minY: -0.5,
-                        maxY: 110,
-                        titlesData: FlTitlesData(
-                            show: true,
-                            leftTitles: AxisTitles(),
-                            topTitles: AxisTitles(),
-                            bottomTitles: AxisTitles(
-                              sideTitles: bottomTitles,
-                            ),
-                            rightTitles: AxisTitles(
-                              sideTitles: rightTitles,
-                            )),
-                        gridData: FlGridData(
-                          show: true,
-                          drawHorizontalLine: true,
-                          horizontalInterval: 25,
-                          drawVerticalLine: false,
-                          getDrawingHorizontalLine: (value) {
-                            return FlLine(
-                              color: context.colors.textSecondary.withOpacity(0.15),
-                              strokeWidth: 2,
-                            );
-                          },
-                        ),
-                        borderData: FlBorderData(
-                          show: true,
-                          border: Border.all(
-                            color: Colors.transparent,
-                          ),
-                        ),
-                      ),
-                    )),
-                SizedBox(
-                  height: media.width * 0.05,
-                ),
-                const LatestWorkoutSection(),
-                SizedBox(
-                  height: media.width * 0.1,
-                ),
+                SizedBox(height: media.width * 0.05),
+                const ActivityProgressCard(),
+                SizedBox(height: media.width * 0.1),
               ],
             ),
           ),
@@ -966,146 +488,40 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  LineTouchData get lineTouchData1 => LineTouchData(
-        handleBuiltInTouches: true,
-        touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (_) => Colors.blueGrey.withOpacity(0.8),
-        ),
-      );
-
-  List<LineChartBarData> get lineBarsData1 => [
-        lineChartBarData1_1,
-        lineChartBarData1_2,
-      ];
-
-  LineChartBarData get lineChartBarData1_1 => LineChartBarData(
-        isCurved: true,
-        gradient: LinearGradient(colors: [
-          context.colors.primary2.withOpacity(0.5),
-          context.colors.primary1.withOpacity(0.5),
-        ]),
-        barWidth: 4,
-        isStrokeCapRound: true,
-        dotData: FlDotData(show: false),
-        belowBarData: BarAreaData(show: false),
-        spots: const [
-          FlSpot(1, 35),
-          FlSpot(2, 70),
-          FlSpot(3, 40),
-          FlSpot(4, 80),
-          FlSpot(5, 25),
-          FlSpot(6, 70),
-          FlSpot(7, 35),
+  /// One of the two square tiles under the heart-rate chart.
+  ///
+  /// No value argument: neither figure has a source yet, and the tile exists
+  /// to hold the place until Health Connect fills it.
+  Widget _metricCard(Size media, String title) {
+    final colors = context.colors;
+    return Container(
+      width: double.maxFinite,
+      height: media.width * 0.26,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          Text('--',
+              style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700)),
+          const Spacer(),
+          Text(tr('msg_not_connected'),
+              style: TextStyle(color: colors.textSecondary, fontSize: 11)),
         ],
-      );
-
-  LineChartBarData get lineChartBarData1_2 => LineChartBarData(
-        isCurved: true,
-        gradient: LinearGradient(colors: [
-          context.colors.secondary2.withOpacity(0.5),
-          context.colors.secondary1.withOpacity(0.5),
-        ]),
-        barWidth: 2,
-        isStrokeCapRound: true,
-        dotData: FlDotData(show: false),
-        belowBarData: BarAreaData(
-          show: false,
-        ),
-        spots: const [
-          FlSpot(1, 80),
-          FlSpot(2, 50),
-          FlSpot(3, 90),
-          FlSpot(4, 40),
-          FlSpot(5, 80),
-          FlSpot(6, 35),
-          FlSpot(7, 60),
-        ],
-      );
-
-  SideTitles get rightTitles => SideTitles(
-        getTitlesWidget: rightTitleWidgets,
-        showTitles: true,
-        interval: 20,
-        reservedSize: 40,
-      );
-
-  Widget rightTitleWidgets(double value, TitleMeta meta) {
-    String text;
-    switch (value.toInt()) {
-      case 0:
-        text = '0%';
-        break;
-      case 20:
-        text = '20%';
-        break;
-      case 40:
-        text = '40%';
-        break;
-      case 60:
-        text = '60%';
-        break;
-      case 80:
-        text = '80%';
-        break;
-      case 100:
-        text = '100%';
-        break;
-      default:
-        return Container();
-    }
-
-    return Text(text,
-        style: TextStyle(
-          color: context.colors.textSecondary,
-          fontSize: 12,
-        ),
-        textAlign: TextAlign.center);
-  }
-
-  SideTitles get bottomTitles => SideTitles(
-        showTitles: true,
-        reservedSize: 32,
-        interval: 1,
-        getTitlesWidget: bottomTitleWidgets,
-      );
-
-  Widget bottomTitleWidgets(double value, TitleMeta meta) {
-    var style = TextStyle(
-      color: context.colors.textSecondary,
-      fontSize: 12,
-    );
-    Widget text;
-    switch (value.toInt()) {
-      case 1:
-        text = Text('Sun', style: style);
-        break;
-      case 2:
-        text = Text('Mon', style: style);
-        break;
-      case 3:
-        text = Text('Tue', style: style);
-        break;
-      case 4:
-        text = Text('Wed', style: style);
-        break;
-      case 5:
-        text = Text('Thu', style: style);
-        break;
-      case 6:
-        text = Text('Fri', style: style);
-        break;
-      case 7:
-        text = Text('Sat', style: style);
-        break;
-      default:
-        text = const Text('');
-        break;
-    }
-
-    return SideTitleWidget(
-      meta: meta,
-      space: 10,
-      child: text,
+      ),
     );
   }
 }

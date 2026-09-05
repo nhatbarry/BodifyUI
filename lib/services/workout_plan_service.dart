@@ -272,6 +272,8 @@ class WorkoutPlanService {
     int workoutExerciseId, {
     int? targetReps,
     double? targetWeightKg,
+    int? targetDurationSeconds,
+    double? targetDistanceM,
     int? restSeconds,
   }) async {
     final response = await _send((token) => _client.post(
@@ -280,6 +282,9 @@ class WorkoutPlanService {
           body: jsonEncode({
             if (targetReps != null) 'target_reps': targetReps,
             if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,
+            if (targetDurationSeconds != null)
+              'target_duration_seconds': targetDurationSeconds,
+            if (targetDistanceM != null) 'target_distance_m': targetDistanceM,
             if (restSeconds != null) 'rest_seconds': restSeconds,
           }),
         ));
@@ -294,8 +299,12 @@ class WorkoutPlanService {
     int setId, {
     int? targetReps,
     double? targetWeightKg,
+    int? targetDurationSeconds,
+    double? targetDistanceM,
     int? restSeconds,
     bool clearWeight = false,
+    bool clearDuration = false,
+    bool clearDistance = false,
     bool clearRest = false,
   }) async {
     final response = await _send((token) => _client.put(
@@ -305,6 +314,12 @@ class WorkoutPlanService {
             if (targetReps != null) 'target_reps': targetReps,
             if (clearWeight) 'target_weight_kg': null
             else if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,
+            if (clearDuration) 'target_duration_seconds': null
+            else if (targetDurationSeconds != null)
+              'target_duration_seconds': targetDurationSeconds,
+            if (clearDistance) 'target_distance_m': null
+            else if (targetDistanceM != null)
+              'target_distance_m': targetDistanceM,
             if (clearRest) 'rest_seconds': null
             else if (restSeconds != null) 'rest_seconds': restSeconds,
           }),

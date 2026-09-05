@@ -46,13 +46,13 @@ class _SignUpViewState extends State<SignUpView> {
       ].where((part) => part.isNotEmpty).join(' ');
 
   String? _validate() {
-    if (_fullName.isEmpty) return tr('enterName');
+    if (_fullName.isEmpty) return tr('error_enter_name');
     final email = _emailController.text.trim();
-    if (email.isEmpty || !email.contains('@')) return tr('invalidEmail');
+    if (email.isEmpty || !email.contains('@')) return tr('error_invalid_email');
     if (_passwordController.text.length < 6) {
-      return tr('passwordTooShort');
+      return tr('error_password_too_short');
     }
-    if (!isCheck) return tr('acceptTerms');
+    if (!isCheck) return tr('error_accept_terms');
     return null;
   }
 
@@ -74,7 +74,7 @@ class _SignUpViewState extends State<SignUpView> {
       if (!mounted) return;
 
       if (result.needsEmailConfirmation) {
-        _showMessage(tr('confirmEmailThenLogin'));
+        _showMessage(tr('toast_confirm_email'));
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const LoginView()),
@@ -89,7 +89,7 @@ class _SignUpViewState extends State<SignUpView> {
     } on ApiException catch (e) {
       _showMessage(e.message);
     } catch (_) {
-      _showMessage(tr('registerFailed'));
+      _showMessage(tr('error_register_failed'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -108,11 +108,11 @@ class _SignUpViewState extends State<SignUpView> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  "Hey there,",
+                  tr('label_hey_there'),
                   style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
                 ),
                 Text(
-                  "Create an Account",
+                  tr('title_create_account'),
                   style: TextStyle(
                       color: context.colors.textPrimary,
                       fontSize: 20,
@@ -123,7 +123,7 @@ class _SignUpViewState extends State<SignUpView> {
                 ),
                 RoundTextField(
                   controller: _firstNameController,
-                  hitText: "First Name",
+                  hitText: tr('label_first_name'),
                   icon: "assets/img/user_text.png",
                 ),
                 SizedBox(
@@ -131,7 +131,7 @@ class _SignUpViewState extends State<SignUpView> {
                 ),
                 RoundTextField(
                   controller: _lastNameController,
-                  hitText: "Last Name",
+                  hitText: tr('label_last_name'),
                   icon: "assets/img/user_text.png",
                 ),
                 SizedBox(
@@ -139,7 +139,7 @@ class _SignUpViewState extends State<SignUpView> {
                 ),
                 RoundTextField(
                   controller: _emailController,
-                  hitText: "Email",
+                  hitText: tr('label_email'),
                   icon: "assets/img/email.png",
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -148,7 +148,7 @@ class _SignUpViewState extends State<SignUpView> {
                 ),
                 RoundTextField(
                   controller: _passwordController,
-                  hitText: "Password",
+                  hitText: tr('label_password'),
                   icon: "assets/img/lock.png",
                   obscureText: _obscurePassword,
                   rigtIcon: TextButton(
@@ -189,7 +189,7 @@ class _SignUpViewState extends State<SignUpView> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child:  Text(
-                          "By continuing you accept our Privacy Policy and\nTerm of Use",
+                          tr('label_accept_terms'),
                           style: TextStyle(color: context.colors.textSecondary, fontSize: 10),
                         ),
 
@@ -206,7 +206,7 @@ class _SignUpViewState extends State<SignUpView> {
                         child: CircularProgressIndicator(
                             color: context.colors.primary1),
                       )
-                    : RoundButton(title: "Register", onPressed: _register),
+                    : RoundButton(title: tr('btn_register'), onPressed: _register),
                 SizedBox(
                   height: media.width * 0.04,
                 ),
@@ -219,7 +219,7 @@ class _SignUpViewState extends State<SignUpView> {
                       color: context.colors.textSecondary.withOpacity(0.5),
                     )),
                     Text(
-                      "  Or  ",
+                      "  ${tr('label_or')}  ",
                       style: TextStyle(color: context.colors.textPrimary, fontSize: 12),
                     ),
                     Expanded(
@@ -298,14 +298,14 @@ class _SignUpViewState extends State<SignUpView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Already have an account? ",
+                        tr('label_already_have_account'),
                         style: TextStyle(
                           color: context.colors.textPrimary,
                           fontSize: 14,
                         ),
                       ),
                       Text(
-                        "Login",
+                        tr('btn_login_link'),
                         style: TextStyle(
                             color: context.colors.textPrimary,
                             fontSize: 14,

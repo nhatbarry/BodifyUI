@@ -203,7 +203,7 @@ class _ExerciseVideoState extends State<ExerciseVideo> {
         if (!started) ...[
           const SizedBox(height: 6),
           Text(
-            tr('videoTapToPlay'),
+            tr('msg_video_tap_to_play'),
             style: TextStyle(color: context.colors.textSecondary, fontSize: 11),
           ),
         ],
@@ -269,7 +269,7 @@ class _ExerciseVideoState extends State<ExerciseVideo> {
             right: 12,
             bottom: 10,
             child: Text(
-              tr('videoFailed'),
+              tr('msg_video_failed'),
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white, fontSize: 12),
             ),

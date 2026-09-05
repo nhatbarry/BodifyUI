@@ -1,4 +1,5 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:bodify/core/app_strings.dart';
 import 'package:bodify/view/login/welcome_view.dart';
 import 'package:flutter/material.dart';
 
@@ -15,26 +16,25 @@ class WhatYourGoalView extends StatefulWidget {
 class _WhatYourGoalViewState extends State<WhatYourGoalView> {
   CarouselSliderController buttonCarouselController = CarouselSliderController();
 
-  List goalArr = [
-    {
-      "image": "assets/img/goal_1.png",
-      "title": "Improve Shape",
-      "subtitle":
-          "I have a low amount of body fat\nand need / want to build more\nmuscle"
-    },
-    {
-      "image": "assets/img/goal_2.png",
-      "title": "Lean & Tone",
-      "subtitle":
-          "I’m “skinny fat”. look thin but have\nno shape. I want to add learn\nmuscle in the right way"
-    },
-    {
-      "image": "assets/img/goal_3.png",
-      "title": "Lose a Fat",
-      "subtitle":
-          "I have over 20 lbs to lose. I want to\ndrop all this fat and gain muscle\nmass"
-    },
-  ];
+  // A getter, not a field: `tr` reads the live language, and a list built once
+  // at construction would keep whichever language was active then.
+  List<Map<String, String>> get goalArr => [
+        {
+          "image": "assets/img/goal_1.png",
+          "title": tr('goal_improve_shape'),
+          "subtitle": tr('goal_improve_shape_desc'),
+        },
+        {
+          "image": "assets/img/goal_2.png",
+          "title": tr('goal_lean_tone'),
+          "subtitle": tr('goal_lean_tone_desc'),
+        },
+        {
+          "image": "assets/img/goal_3.png",
+          "title": tr('goal_lose_fat'),
+          "subtitle": tr('goal_lose_fat_desc'),
+        },
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -116,14 +116,14 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
                   height: media.width * 0.05,
                 ),
                 Text(
-                  "What is your goal ?",
+                  tr('title_what_goal'),
                   style: TextStyle(
                       color: context.colors.textPrimary,
                       fontSize: 20,
                       fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  "It will help us to choose a best\nprogram for you",
+                  tr('subtitle_what_goal'),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
                 ),
@@ -132,7 +132,7 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
                   height: media.width * 0.05,
                 ),
                 RoundButton(
-                    title: "Confirm",
+                    title: tr('btn_confirm'),
                     onPressed: () {
                       Navigator.push(
                           context,
