@@ -37,11 +37,11 @@ class _LoginViewState extends State<LoginView> {
   Future<void> _login() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      _showMessage(tr('invalidEmail'));
+      _showMessage(tr('error_invalid_email'));
       return;
     }
     if (_passwordController.text.isEmpty) {
-      _showMessage(tr('enterPassword'));
+      _showMessage(tr('error_enter_password'));
       return;
     }
 
@@ -62,7 +62,7 @@ class _LoginViewState extends State<LoginView> {
     } on ApiException catch (e) {
       _showMessage(e.message);
     } catch (_) {
-      _showMessage(tr('loginFailed'));
+      _showMessage(tr('error_login_failed'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -74,61 +74,15 @@ class _LoginViewState extends State<LoginView> {
   /// registered, so that this cannot be used to discover which emails have
   /// accounts. Reporting "no such user" here would hand that back.
   Future<void> _forgotPassword() async {
-    final controller =
-        TextEditingController(text: _emailController.text.trim());
-
+    // The dialog owns its own controller. Disposing a TextEditingController
+    // here, straight after `showDialog` returns, tore it out from under the
+    // TextField that was still mounted for the dialog's exit animation and
+    // crashed with `_dependents.isEmpty: is not true` - on Cancel as well as
+    // on Send, so it was the dispose, not the request.
     final email = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        title: Text(tr('forgotPasswordTitle'),
-            style: TextStyle(
-                color: context.colors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w700)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(tr('forgotPasswordHint'),
-                style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 12)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              keyboardType: TextInputType.emailAddress,
-              style: TextStyle(color: context.colors.textPrimary),
-              decoration: InputDecoration(
-                labelText: "Email",
-                labelStyle: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 13),
-                isDense: true,
-                filled: true,
-                fillColor: context.colors.surfaceVariant,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(tr('cancel'),
-                style: TextStyle(color: context.colors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, controller.text.trim()),
-            child: Text(tr('sendResetLink'),
-                style: TextStyle(color: context.colors.primary1)),
-          ),
-        ],
-      ),
+      builder: (_) => _ResetPasswordDialog(initialEmail: _emailController.text.trim()),
     );
-    controller.dispose();
 
     if (email == null || email.isEmpty) return;
 
@@ -144,7 +98,7 @@ class _LoginViewState extends State<LoginView> {
     }
     if (!mounted) return;
     setState(() => _isLoading = false);
-    _showMessage(tr('resetLinkSent'));
+    _showMessage(tr('toast_reset_link_sent'));
   }
 
   @override
@@ -161,11 +115,11 @@ class _LoginViewState extends State<LoginView> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  "Hey there,",
+                  tr('label_hey_there'),
                   style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
                 ),
                 Text(
-                  "Welcome Back",
+                  tr('title_welcome_back'),
                   style: TextStyle(
                       color: context.colors.textPrimary,
                       fontSize: 20,
@@ -179,7 +133,7 @@ class _LoginViewState extends State<LoginView> {
                 ),
                 RoundTextField(
                   controller: _emailController,
-                  hitText: "Email",
+                  hitText: tr('label_email'),
                   icon: "assets/img/email.png",
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -188,7 +142,7 @@ class _LoginViewState extends State<LoginView> {
                 ),
                 RoundTextField(
                   controller: _passwordController,
-                  hitText: "Password",
+                  hitText: tr('label_password'),
                   icon: "assets/img/lock.png",
                   obscureText: _obscurePassword,
                   rigtIcon: TextButton(
@@ -221,7 +175,7 @@ class _LoginViewState extends State<LoginView> {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        tr('forgotPassword'),
+                        tr('label_forgot_password'),
                         style: TextStyle(
                             color: context.colors.textSecondary,
                             fontSize: 10,
@@ -238,7 +192,7 @@ class _LoginViewState extends State<LoginView> {
                         child: CircularProgressIndicator(
                             color: context.colors.primary1),
                       )
-                    : RoundButton(title: "Login", onPressed: _login),
+                    : RoundButton(title: tr('btn_login'), onPressed: _login),
                 SizedBox(
                   height: media.width * 0.04,
                 ),
@@ -251,7 +205,7 @@ class _LoginViewState extends State<LoginView> {
                       color: context.colors.textSecondary.withOpacity(0.5),
                     )),
                     Text(
-                      "  Or  ",
+                      "  ${tr('label_or')}  ",
                       style: TextStyle(color: context.colors.textPrimary, fontSize: 12),
                     ),
                     Expanded(
@@ -325,14 +279,14 @@ class _LoginViewState extends State<LoginView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Don’t have an account yet? ",
+                        tr('label_no_account_yet'),
                         style: TextStyle(
                           color: context.colors.textPrimary,
                           fontSize: 14,
                         ),
                       ),
                       Text(
-                        "Register",
+                        tr('btn_register_link'),
                         style: TextStyle(
                             color: context.colors.textPrimary,
                             fontSize: 14,
@@ -349,6 +303,82 @@ class _LoginViewState extends State<LoginView> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The "reset password" prompt.
+///
+/// A separate widget so the text controller's lifetime is tied to the dialog
+/// itself rather than to the `await showDialog` that opened it: the dialog is
+/// still on screen, animating out, when that await returns.
+class _ResetPasswordDialog extends StatefulWidget {
+  const _ResetPasswordDialog({required this.initialEmail});
+
+  final String initialEmail;
+
+  @override
+  State<_ResetPasswordDialog> createState() => _ResetPasswordDialogState();
+}
+
+class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initialEmail);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return AlertDialog(
+      backgroundColor: colors.surface,
+      title: Text(tr('title_reset_password'),
+          style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(tr('hint_reset_password'),
+              style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            keyboardType: TextInputType.emailAddress,
+            style: TextStyle(color: colors.textPrimary),
+            decoration: InputDecoration(
+              labelText: tr('label_email'),
+              labelStyle:
+                  TextStyle(color: colors.textSecondary, fontSize: 13),
+              isDense: true,
+              filled: true,
+              fillColor: colors.surfaceVariant,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(tr('btn_cancel'),
+              style: TextStyle(color: colors.textSecondary)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: Text(tr('btn_send_reset_link'),
+              style: TextStyle(color: colors.primary1)),
+        ),
+      ],
     );
   }
 }

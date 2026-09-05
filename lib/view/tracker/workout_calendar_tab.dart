@@ -32,7 +32,7 @@ class WorkoutCalendarTab extends StatefulWidget {
 class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
   // Monday-first, matching how Vietnamese calendars are written.
   List<String> get _dayHeaders =>
-      List.generate(7, (i) => tr('dow${i + 1}'));
+      const ['dow_mon', 'dow_tue', 'dow_wed', 'dow_thu', 'dow_fri', 'dow_sat', 'dow_sun'].map(tr).toList();
 
   late DateTime _today;
   late DateTime _selectedDate;
@@ -95,7 +95,7 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
               ),
               Expanded(
                 child: Text(
-                  "${tr('month${_displayMonth.month}')} ${_displayMonth.year}",
+                  "${tr('month_${_displayMonth.month}')} ${_displayMonth.year}",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: context.colors.textPrimary,
@@ -222,7 +222,7 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
     final entries = _selectedDayEntries;
     final isToday = _selectedDate == _today;
     final label = isToday
-        ? tr('today')
+        ? tr('label_today')
         : "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}";
 
     return Column(
@@ -247,12 +247,12 @@ class _WorkoutCalendarTabState extends State<WorkoutCalendarTab> {
                 Icon(Icons.event_note, color: context.colors.textSecondary, size: 32),
                 const SizedBox(height: 10),
                 Text(
-                  tr('noScheduleForDay'),
+                  tr('msg_no_schedule_for_day'),
                   style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  tr('scheduleApiPending'),
+                  tr('msg_schedule_api_pending'),
                   style: TextStyle(
                       color: context.colors.textSecondary.withOpacity(0.7), fontSize: 11),
                 ),

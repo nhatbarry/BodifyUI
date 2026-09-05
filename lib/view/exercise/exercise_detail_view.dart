@@ -60,7 +60,7 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
         centerTitle: true,
         iconTheme: IconThemeData(color: context.colors.textPrimary),
         title: Text(
-          tr('exerciseDetail'),
+          tr('title_exercise_detail'),
           style: TextStyle(
               color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -84,7 +84,7 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
             Text(_error!, style: TextStyle(color: context.colors.textSecondary, fontSize: 13)),
             TextButton(
               onPressed: _load,
-              child: Text(tr('retry'), style: TextStyle(color: context.colors.primary1)),
+              child: Text(tr('btn_retry'), style: TextStyle(color: context.colors.primary1)),
             ),
           ],
         ),
@@ -149,7 +149,7 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
           ),
           if (exercise.videoUrl != null) ...[
           ],
-          _section(tr('muscles'), exercise.muscles.isEmpty
+          _section(tr('label_muscles'), exercise.muscles.isEmpty
               ? null
               : Wrap(
                   spacing: 8,
@@ -160,7 +160,7 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
                           highlight: muscle.role == "primary"),
                   ],
                 )),
-          _section(tr('equipment'), exercise.equipment.isEmpty
+          _section(tr('label_equipment'), exercise.equipment.isEmpty
               ? null
               : Wrap(
                   spacing: 8,
@@ -169,11 +169,11 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
                     for (final item in exercise.equipment) _tag(item.name),
                   ],
                 )),
-          _section(tr('overview'), _text(exercise.overview)),
-          _section(tr('instructions'), _text(exercise.instructions)),
-          _section(tr('tips'), _text(exercise.tips)),
+          _section(tr('label_overview'), _text(exercise.overview)),
+          _section(tr('label_instructions'), _text(exercise.instructions)),
+          _section(tr('label_tips'), _text(exercise.tips)),
           _section(
-            tr('videoGuide'),
+            tr('label_video_guide'),
             exercise.videoUrl == null
                 ? null
                 : ExerciseVideo(

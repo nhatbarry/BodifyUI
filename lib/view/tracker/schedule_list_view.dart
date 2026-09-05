@@ -113,21 +113,21 @@ class _ScheduleListViewState extends State<ScheduleListView> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: context.colors.surface,
-        title: Text(tr('deleteSchedule'),
+        title: Text(tr('title_delete_schedule'),
             style: TextStyle(color: context.colors.textPrimary, fontSize: 16)),
         content: Text(
-          tr('deleteScheduleWarning').replaceFirst('{name}', plan.name),
+          tr('msg_delete_schedule_warning').replaceFirst('{name}', plan.name),
           style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(tr('cancel'),
+            child: Text(tr('btn_cancel'),
                 style: TextStyle(color: context.colors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(tr('delete'),
+            child: Text(tr('btn_delete'),
                 style: const TextStyle(color: Color(0xFFE74C3C))),
           ),
         ],
@@ -190,7 +190,7 @@ class _ScheduleListViewState extends State<ScheduleListView> {
                   style: TextStyle(
                       color: context.colors.textSecondary, fontSize: 13)),
               const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: Text(tr('retry'))),
+              TextButton(onPressed: _load, child: Text(tr('btn_retry'))),
             ],
           ),
         ),
@@ -214,13 +214,13 @@ class _ScheduleListViewState extends State<ScheduleListView> {
                     color: context.colors.textSecondary, size: 34),
               ),
               const SizedBox(height: 18),
-              Text(tr('noSchedules'),
+              Text(tr('msg_no_schedules'),
                   style: TextStyle(
                       color: context.colors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
-              Text(tr('noSchedulesHint'),
+              Text(tr('msg_no_schedules_hint'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: context.colors.textSecondary, fontSize: 13)),
@@ -314,8 +314,8 @@ class _ScheduleCard extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         dayCount == 0
-                            ? tr('noWorkoutDaysYet')
-                            : tr('workoutDaysCount')
+                            ? tr('msg_no_workout_days')
+                            : tr('label_workout_days_count')
                                 .replaceFirst('{n}', '$dayCount'),
                         style: TextStyle(
                             color: dayCount == 0
@@ -327,7 +327,7 @@ class _ScheduleCard extends StatelessWidget {
                       if (plan.isActive) ...[
                         const SizedBox(height: 3),
                         Text(
-                          tr('currentlyFollowing'),
+                          tr('label_currently_following'),
                           style: TextStyle(
                               color: colors.textSecondary, fontSize: 11),
                         ),
@@ -351,12 +351,12 @@ class _ScheduleCard extends StatelessWidget {
                   itemBuilder: (_) => [
                     PopupMenuItem(
                       value: 'rename',
-                      child: Text(tr('rename'),
+                      child: Text(tr('btn_rename'),
                           style: TextStyle(color: colors.textPrimary)),
                     ),
                     PopupMenuItem(
                       value: 'delete',
-                      child: Text(tr('delete'),
+                      child: Text(tr('btn_delete'),
                           style: const TextStyle(color: Color(0xFFE74C3C))),
                     ),
                   ],
@@ -395,7 +395,7 @@ class _NameDialogState extends State<_NameDialog> {
     return AlertDialog(
       backgroundColor: colors.surface,
       title: Text(
-        widget.initial == null ? tr('newSchedule') : tr('rename'),
+        widget.initial == null ? tr('title_new_schedule') : tr('btn_rename'),
         style: TextStyle(
             color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
       ),
@@ -405,7 +405,7 @@ class _NameDialogState extends State<_NameDialog> {
         textCapitalization: TextCapitalization.sentences,
         style: TextStyle(color: colors.textPrimary),
         decoration: InputDecoration(
-          hintText: tr('scheduleNameHint'),
+          hintText: tr('hint_schedule_name'),
           hintStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
           filled: true,
           fillColor: colors.surfaceVariant,
@@ -420,11 +420,11 @@ class _NameDialogState extends State<_NameDialog> {
         TextButton(
           onPressed: () => Navigator.pop(context),
           child:
-              Text(tr('cancel'), style: TextStyle(color: colors.textSecondary)),
+              Text(tr('btn_cancel'), style: TextStyle(color: colors.textSecondary)),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, _controller.text.trim()),
-          child: Text(tr('save'), style: TextStyle(color: colors.primary1)),
+          child: Text(tr('btn_save'), style: TextStyle(color: colors.primary1)),
         ),
       ],
     );

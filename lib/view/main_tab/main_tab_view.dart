@@ -29,12 +29,21 @@ class _MainTabViewState extends State<MainTabView> {
         width: 70,
         height: 70,
         child: InkWell(
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            // The explorer can ask to be closed onto a tab - "you have no
+            // schedule yet, go make one". Returning the tab index rather than
+            // pushing ScheduleListView itself keeps that screen inside the
+            // Tracker tab it belongs to, chrome and all.
+            final tab = await Navigator.push<int>(
               context,
               MaterialPageRoute(
                   builder: (context) => const ExerciseExplorerView()),
             );
+            if (tab == null || !context.mounted) return;
+            setState(() {
+              selectTab = tab;
+              currentTab = const TrackerView();
+            });
           },
           child: Container(
             width: 65,

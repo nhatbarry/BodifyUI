@@ -16,11 +16,17 @@ class Profile {
   final double? heightCm;
   final double? weightKg;
 
+  /// Bumped by the database on every write, which is what makes it usable as
+  /// a cache-busting key for the avatar: the signed URL is re-signed on every
+  /// read and so cannot serve that purpose itself.
+  final DateTime updatedAt;
+
   const Profile({
     required this.userId,
     required this.profileId,
     required this.name,
     required this.role,
+    required this.updatedAt,
     this.avatarUrl,
     this.dateOfBirth,
     this.gender,
@@ -48,6 +54,8 @@ class Profile {
         email: json['email'] as String?,
         heightCm: _toDouble(json['height_cm']),
         weightKg: _toDouble(json['weight_kg']),
+        updatedAt: DateTime.tryParse('${json['updated_at']}') ??
+            DateTime.fromMillisecondsSinceEpoch(0),
       );
 
   /// Age in whole years, or null when no birth date is recorded.

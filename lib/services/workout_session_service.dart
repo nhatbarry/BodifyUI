@@ -159,13 +159,20 @@ class WorkoutSessionService {
   ///
   /// Sending null clears a value; omitting the key keeps it. The target
   /// numbers are not settable here - they are the plan's snapshot.
+  /// The `clear*` flags exist because omitting a key and sending null mean
+  /// different things: omit keeps the current value, null wipes it. Clearing
+  /// matters when a user corrects a set down to nothing on one axis.
   Future<SessionSet> recordSet(
     int setId, {
     int? reps,
     double? weightKg,
+    int? durationSeconds,
+    double? distanceM,
     bool? completed,
     bool clearReps = false,
     bool clearWeight = false,
+    bool clearDuration = false,
+    bool clearDistance = false,
   }) async {
     final response = await _send((token) => _client.put(
           ApiConfig.path('/session-sets/$setId'),
@@ -176,10 +183,37 @@ class WorkoutSessionService {
               'weight_kg': null
             else if (weightKg != null)
               'weight_kg': weightKg,
+            if (clearDuration)
+              'duration_seconds': null
+            else if (durationSeconds != null)
+              'duration_seconds': durationSeconds,
+            if (clearDistance)
+              'distance_m': null
+            else if (distanceM != null)
+              'distance_m': distanceM,
             if (completed != null) 'completed': completed,
           }),
         ));
     return SessionSet.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
+  /// POST /workout-sessions/{id}/sync-plan - make the session's exercises
+  /// match the plan for its date.
+  ///
+  /// Called whenever the workout screen is opened. Starting a workout copies
+  /// the day in, and that copy went stale the moment the user edited the day
+  /// and came back: the open session still offered only the old exercises.
+  ///
+  /// Exercises dropped from the plan are removed even if sets were logged
+  /// against them - taking an exercise off today's plan is the user saying
+  /// they are not doing it. Exercises still planned keep their logged sets.
+  Future<WorkoutSession> syncSessionWithPlan(int sessionId) async {
+    final response = await _send((token) => _client.post(
+          ApiConfig.path('/workout-sessions/$sessionId/sync-plan')
+              .replace(queryParameters: {'language': _language}),
+          headers: _authJson(token),
+        ));
+    return WorkoutSession.fromJson(_decode(response) as Map<String, dynamic>);
   }
 
   /// POST /session-exercises/{id}/sets - an extra set beyond the plan.
@@ -187,6 +221,8 @@ class WorkoutSessionService {
     int sessionExerciseId, {
     int? reps,
     double? weightKg,
+    int? durationSeconds,
+    double? distanceM,
   }) async {
     final response = await _send((token) => _client.post(
           ApiConfig.path('/session-exercises/$sessionExerciseId/sets'),
@@ -194,6 +230,8 @@ class WorkoutSessionService {
           body: jsonEncode({
             if (reps != null) 'reps': reps,
             if (weightKg != null) 'weight_kg': weightKg,
+            if (durationSeconds != null) 'duration_seconds': durationSeconds,
+            if (distanceM != null) 'distance_m': distanceM,
           }),
         ));
     return SessionSet.fromJson(_decode(response) as Map<String, dynamic>);
@@ -214,6 +252,12 @@ class WorkoutSessionService {
   /// POST /workout-sessions/{id}/resume
   Future<WorkoutSession> resumeSession(int sessionId) =>
       _post('$sessionId/resume');
+
+  /// POST /workout-sessions/{id}/reopen - put a finished session back in
+  /// progress. The server banks the stretch since it was finished into
+  /// `paused_seconds`, so reopening does not inflate the duration.
+  Future<WorkoutSession> reopenSession(int sessionId) =>
+      _post('$sessionId/reopen');
 
   Future<WorkoutSession> _post(String suffix) async {
     final response = await _send((token) => _client.post(

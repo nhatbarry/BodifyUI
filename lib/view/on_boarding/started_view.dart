@@ -1,4 +1,5 @@
 import 'package:bodify/common/app_colors.dart';
+import 'package:bodify/core/app_strings.dart';
 import 'package:bodify/view/on_boarding/on_boarding_view.dart';
 import 'package:flutter/material.dart';
 
@@ -34,14 +35,14 @@ class _StartedViewState extends State<StartedView> {
             children: [
               const Spacer(),
               Text(
-                "Bodify",
+                tr('app_name'),
                 style: TextStyle(
                     color: context.colors.textPrimary,
                     fontSize: 36,
                     fontWeight: FontWeight.w700),
               ),
               Text(
-                "Everybody Can Train",
+                tr('app_tagline'),
                 style: TextStyle(
                   color: context.colors.textSecondary,
                   fontSize: 18,
@@ -52,7 +53,7 @@ class _StartedViewState extends State<StartedView> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: RoundButton(
-                    title: "Get Started",
+                    title: tr('btn_get_started'),
                     type: isChangeColor
                         ? RoundButtonType.textGradient
                         : RoundButtonType.bgGradient,

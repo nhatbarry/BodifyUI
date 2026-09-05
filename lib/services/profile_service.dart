@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -78,7 +79,6 @@ class ProfileService {
   /// the key mean different things to the backend: omit keeps, null clears.
   Future<Profile> update({
     String? name,
-    String? avatarUrl,
     DateTime? dateOfBirth,
     String? gender,
     bool clearDateOfBirth = false,
@@ -86,7 +86,6 @@ class ProfileService {
   }) async {
     final body = <String, dynamic>{
       if (name != null) 'name': name,
-      if (avatarUrl != null) 'avatar_url': avatarUrl,
       if (clearDateOfBirth)
         'date_of_birth': null
       else if (dateOfBirth != null)
@@ -112,5 +111,58 @@ class ProfileService {
     // user in step with what was just saved.
     await AuthService.instance.reloadCurrentUser();
     return profile;
+  }
+
+  /// POST /profile/avatar - upload a new profile picture.
+  ///
+  /// Multipart rather than a base64 body: the file goes up as bytes instead of
+  /// being inflated by a third on the way. The server re-encodes whatever
+  /// arrives - stripping EXIF, cropping square, converting to webp - so the
+  /// app sends the picked file untouched and does not try to shrink it first.
+  Future<Profile> uploadAvatar(File image) async {
+    final token = await AuthService.instance.validAccessToken();
+    if (token == null) {
+      throw const ApiException('Not signed in', statusCode: 401);
+    }
+
+    Future<http.Response> send(String bearer) async {
+      final request = http.MultipartRequest(
+        'POST',
+        ApiConfig.path('/profile/avatar'),
+      )
+        ..headers['Authorization'] = 'Bearer $bearer'
+        ..files.add(await http.MultipartFile.fromPath('file', image.path));
+      // A photo over a slow link needs longer than the 20s the JSON calls use.
+      final streamed = await request.send().timeout(const Duration(seconds: 60));
+      return http.Response.fromStream(streamed);
+    }
+
+    http.Response response;
+    try {
+      response = await send(token);
+    } on TimeoutException {
+      throw const ApiException('Upload took too long. Try a smaller photo.');
+    } catch (_) {
+      throw const ApiException('Cannot reach the server. Is the backend running?');
+    }
+
+    if (response.statusCode == 401) {
+      final session = await AuthService.instance.refreshSession();
+      if (session == null) {
+        throw const ApiException('Session expired', statusCode: 401);
+      }
+      response = await send(session.accessToken);
+    }
+
+    return Profile.fromJson(_decode(response));
+  }
+
+  /// DELETE /profile/avatar
+  Future<Profile> removeAvatar() async {
+    final response = await _send((token) => _client.delete(
+          ApiConfig.path('/profile/avatar'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    return Profile.fromJson(_decode(response));
   }
 }

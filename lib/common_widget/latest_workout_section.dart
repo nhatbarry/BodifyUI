@@ -17,9 +17,9 @@ enum HistoryRange {
   final int days;
 
   String get label => switch (this) {
-        HistoryRange.week => tr('range7Days'),
-        HistoryRange.month => tr('range1Month'),
-        HistoryRange.year => tr('range1Year'),
+        HistoryRange.week => tr('label_range_7_days'),
+        HistoryRange.month => tr('label_range_1_month'),
+        HistoryRange.year => tr('label_range_1_year'),
       };
 }
 
@@ -90,7 +90,7 @@ class _LatestWorkoutSectionState extends State<LatestWorkoutSection> {
           children: [
             Expanded(
               child: Text(
-                tr('latestWorkout'),
+                tr('title_latest_workout'),
                 style: TextStyle(
                     color: colors.textPrimary,
                     fontSize: 16,
@@ -110,7 +110,7 @@ class _LatestWorkoutSectionState extends State<LatestWorkoutSection> {
         else if (_error != null)
           _message(_error!)
         else if ((_history?.items ?? const []).isEmpty)
-          _message(tr('noWorkoutsInRange'))
+          _message(tr('msg_no_workouts_in_range'))
         else ...[
           _totalsLine(_history!.totals),
           const SizedBox(height: 8),
@@ -164,9 +164,9 @@ class _LatestWorkoutSectionState extends State<LatestWorkoutSection> {
   Widget _totalsLine(HistoryTotals totals) {
     final colors = context.colors;
     return Text(
-      '${totals.sessionCount} ${tr("sessionsLabel")}'
+      '${totals.sessionCount} ${tr("label_sessions")}'
       ' · ${formatDuration(totals.totalDurationSeconds)}'
-      ' · ${totals.totalSets} ${tr("setsLabel")}'
+      ' · ${totals.totalSets} ${tr("label_sets")}'
       ' · ${formatVolume(totals.totalVolumeKg)}',
       style: TextStyle(color: colors.textSecondary, fontSize: 12),
     );
@@ -201,7 +201,7 @@ class _SessionRow extends StatelessWidget {
 
     if (name != null && !isIsoDate) return name;
     if (date != null) return '${date.day}/${date.month}/${date.year}';
-    return session.planName ?? tr('workout');
+    return session.planName ?? tr('label_workout');
   }
 
   @override
@@ -250,7 +250,7 @@ class _SessionRow extends StatelessWidget {
                   // The kit showed calories here; nothing measures those, and
                   // an invented number is worse than a real one.
                   '${formatDuration(session.durationSeconds ?? 0)}'
-                  ' · ${summary.setCount} ${tr("setsLabel")}'
+                  ' · ${summary.setCount} ${tr("label_sets")}'
                   ' · ${formatVolume(summary.totalVolumeKg)}',
                   style:
                       TextStyle(color: colors.textSecondary, fontSize: 11),

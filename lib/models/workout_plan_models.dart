@@ -6,6 +6,8 @@
 /// between, but the code keeps the backend's vocabulary so the two never drift
 /// - `WorkoutPlan` here is `workout_plans` there, nothing else.
 
+import 'progress_models.dart';
+
 /// Strips the time so two DateTimes on the same day compare equal.
 DateTime dateOnly(DateTime value) => DateTime(value.year, value.month, value.day);
 
@@ -21,6 +23,8 @@ class TargetSet {
   final int setOrder;
   final int? targetReps;
   final double? targetWeightKg;
+  final int? targetDurationSeconds;
+  final double? targetDistanceM;
   final int? restSeconds;
   final String? notes;
 
@@ -29,6 +33,8 @@ class TargetSet {
     required this.setOrder,
     this.targetReps,
     this.targetWeightKg,
+    this.targetDurationSeconds,
+    this.targetDistanceM,
     this.restSeconds,
     this.notes,
   });
@@ -41,6 +47,10 @@ class TargetSet {
         targetWeightKg: json['target_weight_kg'] == null
             ? null
             : double.tryParse('${json['target_weight_kg']}'),
+        targetDurationSeconds: json['target_duration_seconds'] as int?,
+        targetDistanceM: json['target_distance_m'] == null
+            ? null
+            : double.tryParse('${json['target_distance_m']}'),
         restSeconds: json['rest_seconds'] as int?,
         notes: json['notes'] as String?,
       );
@@ -64,6 +74,9 @@ class PlannedExercise {
   /// Null for the 16 exercises with no thumbnail on file.
   final String? thumbnailUrl;
 
+  /// What the target editor should ask for: reps, seconds or metres.
+  final TrackingType trackingType;
+
   final List<TargetSet> sets;
 
   const PlannedExercise({
@@ -76,6 +89,7 @@ class PlannedExercise {
     this.language,
     this.iconUrl,
     this.thumbnailUrl,
+    this.trackingType = TrackingType.reps,
   });
 
   /// What a row should draw, and the cache identity that goes with it.
@@ -93,6 +107,7 @@ class PlannedExercise {
         language: json['language'] as String?,
         iconUrl: json['icon_url'] as String?,
         thumbnailUrl: json['thumbnail_url'] as String?,
+        trackingType: TrackingType.parse(json['tracking_type'] as String?),
         sets: (json['sets'] as List<dynamic>? ?? const [])
             .map((e) => TargetSet.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -150,7 +165,15 @@ class WorkoutDaySummary {
         name: json['name'] as String,
         dayOrder: json['day_order'] as int,
         isRestDay: json['is_rest_day'] as bool,
-        exerciseCount: json['exercise_count'] as int,
+        // Two shapes arrive here. `GET /workout-plans` sends a shallow preview
+        // with `exercise_count`; the detail responses - including the one
+        // `PUT /workout-plans/{id}/active` returns - send the full `exercises`
+        // list and no count at all. Casting the missing count straight to int
+        // was the "type 'Null' is not a subtype of type 'int'" crash on
+        // switching between two plans.
+        exerciseCount: json['exercise_count'] as int? ??
+            (json['exercises'] as List<dynamic>?)?.length ??
+            0,
       );
 }
 

@@ -10,13 +10,13 @@ import '../../services/body_metric_service.dart';
 String bmiCategoryLabel(double bmi) {
   switch (bmiCategoryOf(bmi)) {
     case BmiCategory.underweight:
-      return tr('bmiUnderweight');
+      return tr('bmi_underweight');
     case BmiCategory.normal:
-      return tr('bmiNormal');
+      return tr('bmi_normal');
     case BmiCategory.overweight:
-      return tr('bmiOverweight');
+      return tr('bmi_overweight');
     case BmiCategory.obese:
-      return tr('bmiObese');
+      return tr('bmi_obese');
   }
 }
 
@@ -124,7 +124,7 @@ class _BmiViewState extends State<BmiView> {
     final weightText = _weightController.text.trim();
 
     if (heightText.isEmpty && weightText.isEmpty) {
-      _showMessage(tr('needHeightOrWeight'));
+      _showMessage(tr('error_need_height_or_weight'));
       return;
     }
 
@@ -133,7 +133,20 @@ class _BmiViewState extends State<BmiView> {
 
     if ((heightText.isNotEmpty && (height == null || height <= 0)) ||
         (weightText.isNotEmpty && (weight == null || weight <= 0))) {
-      _showMessage(tr('invalidNumber'));
+      _showMessage(tr('error_invalid_number'));
+      return;
+    }
+
+    // The same bounds the API enforces, checked here so the user gets a
+    // translated sentence naming the field instead of the raw validator's
+    // "Input should be greater than or equal to 30", which says nothing about
+    // which of the two boxes it means.
+    if (height != null && (height < 30 || height > 280)) {
+      _showMessage(tr('error_height_range'));
+      return;
+    }
+    if (weight != null && (weight < 2 || weight > 650)) {
+      _showMessage(tr('error_weight_range'));
       return;
     }
 
@@ -141,7 +154,7 @@ class _BmiViewState extends State<BmiView> {
     try {
       await BodyMetricService.instance.record(heightCm: height, weightKg: weight);
       _weightController.clear();
-      _showMessage(tr('saved'));
+      _showMessage(tr('toast_saved'));
       await _load();
     } on ApiException catch (e) {
       _showMessage(e.message);
@@ -154,16 +167,16 @@ class _BmiViewState extends State<BmiView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(tr('delete')),
-        content: Text(tr('deleteConfirm')),
+        title: Text(tr('btn_delete')),
+        content: Text(tr('msg_delete_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(tr('cancel'), style: TextStyle(color: context.colors.textSecondary)),
+            child: Text(tr('btn_cancel'), style: TextStyle(color: context.colors.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(tr('delete'),
+            child: Text(tr('btn_delete'),
                 style: const TextStyle(color: Color(0xFFE74C3C))),
           ),
         ],
@@ -173,7 +186,7 @@ class _BmiViewState extends State<BmiView> {
 
     try {
       await BodyMetricService.instance.delete(metric.metricId);
-      _showMessage(tr('deleted'));
+      _showMessage(tr('toast_deleted'));
       await _load();
     } on ApiException catch (e) {
       _showMessage(e.message);
@@ -197,7 +210,7 @@ class _BmiViewState extends State<BmiView> {
         centerTitle: true,
         iconTheme: IconThemeData(color: context.colors.textPrimary),
         title: Text(
-          tr('bmiTitle'),
+          tr('title_bmi'),
           style: TextStyle(
               color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
         ),
@@ -215,7 +228,7 @@ class _BmiViewState extends State<BmiView> {
                   _buildForm(),
                   const SizedBox(height: 24),
                   Text(
-                    tr('bmiHistory'),
+                    tr('label_bmi_history'),
                     style: TextStyle(
                         color: context.colors.textPrimary,
                         fontSize: 15,
@@ -251,7 +264,7 @@ class _BmiViewState extends State<BmiView> {
           ),
           TextButton(
             onPressed: _load,
-            child: Text(tr('retry'),
+            child: Text(tr('btn_retry'),
                 style: TextStyle(color: context.colors.primary1, fontSize: 12)),
           ),
         ],
@@ -278,19 +291,19 @@ class _BmiViewState extends State<BmiView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            tr('bmiTitle'),
+            tr('title_bmi'),
             style: TextStyle(
                 color: context.colors.surface, fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 14),
           if (bmi == null) ...[
             Text(
-              latest == null ? tr('noBmiYet') : tr('bmiNeedBoth'),
+              latest == null ? tr('msg_no_bmi_yet') : tr('error_bmi_need_both'),
               style: TextStyle(color: context.colors.surface, fontSize: 15),
             ),
             const SizedBox(height: 4),
             Text(
-              tr('noBmiHint'),
+              tr('msg_no_bmi_hint'),
               style: TextStyle(
                   color: context.colors.surface.withOpacity(0.75), fontSize: 12),
             ),
@@ -340,16 +353,16 @@ class _BmiViewState extends State<BmiView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            tr('recordMeasurement'),
+            tr('title_record_measurement'),
             style: TextStyle(
                 color: context.colors.textPrimary, fontSize: 14, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _numberField(_heightController, tr('heightCm'))),
+              Expanded(child: _numberField(_heightController, tr('label_height_cm'))),
               const SizedBox(width: 12),
-              Expanded(child: _numberField(_weightController, tr('weightKg'))),
+              Expanded(child: _numberField(_weightController, tr('label_weight_kg'))),
             ],
           ),
           const SizedBox(height: 14),
@@ -367,7 +380,7 @@ class _BmiViewState extends State<BmiView> {
                     child: TextButton(
                       onPressed: _save,
                       child: Text(
-                        tr('save'),
+                        tr('btn_save'),
                         style: TextStyle(
                             color: context.colors.surface,
                             fontSize: 14,
@@ -416,7 +429,7 @@ class _BmiViewState extends State<BmiView> {
         children: [
           Icon(Icons.monitor_weight_outlined, color: context.colors.textSecondary, size: 30),
           const SizedBox(height: 8),
-          Text(tr('noBmiYet'),
+          Text(tr('msg_no_bmi_yet'),
               style: TextStyle(color: context.colors.textSecondary, fontSize: 13)),
         ],
       ),
