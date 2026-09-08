@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
+import '../../common_widget/ai_badge.dart';
 import '../../common_widget/exercise_video.dart';
 import '../../core/media_cache.dart';
 import '../../core/app_strings.dart';
@@ -128,10 +129,19 @@ class _ExerciseDetailViewState extends State<ExerciseDetailView> {
               ),
             ),
           const SizedBox(height: 14),
-          Text(
-            exercise.name ?? "#${exercise.exerciseId}",
-            style: TextStyle(
-                color: context.colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  exercise.name ?? "#${exercise.exerciseId}",
+                  style: TextStyle(
+                      color: context.colors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700),
+                ),
+              ),
+              AiBadge(algorithm: exercise.aiAlgorithm, fontSize: 11),
+            ],
           ),
           const SizedBox(height: 10),
           Wrap(

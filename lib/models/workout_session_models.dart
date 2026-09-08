@@ -27,6 +27,17 @@ class SessionSet {
   final int? targetDurationSeconds;
   final double? targetDistanceM;
 
+  /// Which camera algorithm scored this set, null if it was logged by hand.
+  /// A snapshot: the server will not let a correction rewrite it.
+  final String? aiAlgorithm;
+
+  /// One score per counted rep - 0, 50 or 100 by how deep the rep went.
+  final List<int>? aiRepScores;
+
+  /// The set's score as a percentage of what it could have scored, as the
+  /// server computed it. Null when the set was not judged by the camera.
+  final double? aiScorePercent;
+
   const SessionSet({
     required this.id,
     required this.setOrder,
@@ -40,7 +51,13 @@ class SessionSet {
     this.targetWeightKg,
     this.targetDurationSeconds,
     this.targetDistanceM,
+    this.aiAlgorithm,
+    this.aiRepScores,
+    this.aiScorePercent,
   });
+
+  /// True when the camera recorded this set rather than the user typing it.
+  bool get isAiScored => aiRepScores != null && aiRepScores!.isNotEmpty;
 
   /// True once the user has actually put a number against this set. A set
   /// copied in from the plan and not yet touched has targets but no numbers.
@@ -70,6 +87,11 @@ class SessionSet {
         targetWeightKg: _num(json['target_weight_kg']),
         targetDurationSeconds: json['target_duration_seconds'] as int?,
         targetDistanceM: _num(json['target_distance_m']),
+        aiAlgorithm: json['ai_algorithm'] as String?,
+        aiRepScores: (json['ai_rep_scores'] as List<dynamic>?)
+            ?.map((e) => (e as num).toInt())
+            .toList(),
+        aiScorePercent: _num(json['ai_score_percent']),
       );
 }
 
@@ -85,6 +107,13 @@ class SessionExercise {
   /// form asks for the right thing. Weight is orthogonal and applies to all of
   /// them: a Farmer's Carry is metres *and* 40 kg.
   final TrackingType trackingType;
+
+  /// Which camera algorithm can count and score this movement, null if none
+  /// can. Read live from the catalog, like [trackingType]: it describes the
+  /// exercise, not this performance of it. Decides whether the "AI" tag and
+  /// the camera option appear.
+  final String? aiAlgorithm;
+
   final List<SessionSet> sets;
 
   const SessionExercise({
@@ -95,6 +124,7 @@ class SessionExercise {
     this.name,
     this.thumbnailUrl,
     this.trackingType = TrackingType.reps,
+    this.aiAlgorithm,
   });
 
   int get loggedSetCount => sets.where((s) => s.isLogged).length;
@@ -106,6 +136,7 @@ class SessionExercise {
         name: json['exercise_name'] as String?,
         exerciseOrder: json['exercise_order'] as int,
         thumbnailUrl: json['thumbnail_url'] as String?,
+        aiAlgorithm: json['ai_algorithm'] as String?,
         sets: (json['sets'] as List<dynamic>? ?? const [])
             .map((e) => SessionSet.fromJson(e as Map<String, dynamic>))
             .toList(),

@@ -296,6 +296,27 @@ class AppStrings {
     'label_volume': 'Khối lượng',
     'label_sessions': 'buổi',
     'label_not_logged': 'Chưa ghi',
+
+    // ---- AI camera coach ----
+    'label_ai_tag': 'AI',
+    'btn_train_with_ai': 'Tập bằng AI',
+    'title_ai_camera': 'Tập cùng AI',
+    'label_ai_reps': 'REP',
+    'label_ai_score': 'ĐIỂM',
+    'label_ai_time': 'THỜI GIAN',
+    'label_ai_depth': 'Độ sâu',
+    'btn_ai_finish_set': 'Xong set',
+    'msg_ai_get_in_frame': 'Đặt điện thoại sao cho thấy cả người bạn',
+    'msg_ai_no_reps': 'Chưa ghi nhận rep nào. Thoát mà không lưu?',
+    'msg_cue_go_deeper': 'Xuống sâu hơn nữa',
+    'msg_cue_raise_hips': 'Nâng hông lên, giữ thân thẳng',
+    'msg_cue_lower_hips': 'Hạ hông xuống, đừng chổng mông',
+    'title_camera_permission': 'Cần quyền camera',
+    'msg_camera_permission':
+        'Bodify cần camera để đếm rep và góp ý tư thế. Video không được ghi lại hay gửi đi đâu cả.',
+    'btn_open_settings': 'Mở cài đặt',
+    'error_camera_unavailable': 'Không mở được camera trên máy này.',
+
     'msg_no_exercises_in_session':
         'Buổi tập này chưa có bài nào. Thêm bài vào lịch của ngày rồi bắt đầu lại.',
     'label_workout': 'Buổi tập',
@@ -683,6 +704,27 @@ class AppStrings {
     'label_volume': 'Volume',
     'label_sessions': 'sessions',
     'label_not_logged': 'Not logged',
+
+    // ---- AI camera coach ----
+    'label_ai_tag': 'AI',
+    'btn_train_with_ai': 'Train with AI',
+    'title_ai_camera': 'Train with AI',
+    'label_ai_reps': 'REPS',
+    'label_ai_score': 'SCORE',
+    'label_ai_time': 'TIME',
+    'label_ai_depth': 'Depth',
+    'btn_ai_finish_set': 'Finish set',
+    'msg_ai_get_in_frame': 'Prop the phone so your whole body is in frame',
+    'msg_ai_no_reps': 'No reps counted. Leave without saving?',
+    'msg_cue_go_deeper': 'Go deeper',
+    'msg_cue_raise_hips': 'Raise your hips, keep your body straight',
+    'msg_cue_lower_hips': 'Lower your hips, do not pike',
+    'title_camera_permission': 'Camera access needed',
+    'msg_camera_permission':
+        'Bodify uses the camera to count reps and check your form. Nothing is recorded or uploaded.',
+    'btn_open_settings': 'Open settings',
+    'error_camera_unavailable': 'Could not open the camera on this device.',
+
     'msg_no_exercises_in_session':
         'No exercises in this workout. Add some to the day and start again.',
     'label_workout': 'Workout',

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
+import '../../common_widget/ai_badge.dart';
 import '../../common_widget/exercise_thumbnail.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
@@ -439,14 +440,21 @@ class _PickerRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.name ?? '#${item.exerciseId}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            item.name ?? '#${item.exerciseId}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: colors.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        AiBadge(algorithm: item.aiAlgorithm),
+                      ],
                     ),
                     if (item.experienceLevel != null) ...[
                       const SizedBox(height: 2),

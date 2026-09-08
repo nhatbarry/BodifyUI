@@ -40,6 +40,10 @@ class ExerciseListItem {
   final String? iconUrl;
   final String? thumbnailUrl;
   final String? exerciseType;
+
+  /// Names the camera algorithm that can score this movement, null when none
+  /// can. What the "AI" tag on a list row is drawn from.
+  final String? aiAlgorithm;
   final String? mechanics;
   final String? forceType;
   final String? experienceLevel;
@@ -51,6 +55,7 @@ class ExerciseListItem {
     this.iconUrl,
     this.thumbnailUrl,
     this.exerciseType,
+    this.aiAlgorithm,
     this.mechanics,
     this.forceType,
     this.experienceLevel,
@@ -63,6 +68,7 @@ class ExerciseListItem {
         iconUrl: json['icon_url'] as String?,
         thumbnailUrl: json['thumbnail_url'] as String?,
         exerciseType: json['exercise_type'] as String?,
+        aiAlgorithm: json['ai_algorithm'] as String?,
         mechanics: json['mechanics'] as String?,
         forceType: json['force_type'] as String?,
         experienceLevel: json['experience_level'] as String?,
@@ -113,6 +119,7 @@ class ExerciseDetail {
   final String? instructions;
   final String? tips;
   final String? exerciseType;
+  final String? aiAlgorithm;
   final String? mechanics;
   final String? forceType;
   final String? experienceLevel;
@@ -129,6 +136,7 @@ class ExerciseDetail {
     this.instructions,
     this.tips,
     this.exerciseType,
+    this.aiAlgorithm,
     this.mechanics,
     this.forceType,
     this.experienceLevel,
@@ -148,6 +156,7 @@ class ExerciseDetail {
       instructions: json['instructions'] as String?,
       tips: json['tips'] as String?,
       exerciseType: json['exercise_type'] as String?,
+      aiAlgorithm: json['ai_algorithm'] as String?,
       mechanics: json['mechanics'] as String?,
       forceType: json['force_type'] as String?,
       experienceLevel: json['experience_level'] as String?,
