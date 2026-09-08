@@ -25,10 +25,13 @@ class ActivityProgressCard extends StatefulWidget {
   const ActivityProgressCard({super.key});
 
   @override
-  State<ActivityProgressCard> createState() => _ActivityProgressCardState();
+  ActivityProgressCardState createState() => ActivityProgressCardState();
 }
 
-class _ActivityProgressCardState extends State<ActivityProgressCard> {
+/// Public so a parent can hold a GlobalKey and call reload() after
+/// something that changes the numbers happens somewhere else in the app -
+/// finishing a workout, for one.
+class ActivityProgressCardState extends State<ActivityProgressCard> {
   /// GitHub's square, near enough. Small squares are the whole point: they are
   /// what lets months of history sit in the corner of a screen instead of
   /// filling it, and a grid of five fat tiles is a calendar, not a graph.

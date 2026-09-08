@@ -9,6 +9,11 @@ import '../../models/progress_models.dart';
 import '../../models/workout_session_models.dart';
 import '../../services/workout_session_service.dart';
 
+/// Planned vs actual, told apart by colour instead of a "KH"/"TT" prefix.
+/// Green matches the completed-checkmark colour already used on this screen.
+const _kPlannedColor = Color(0xFFF2994A);
+const _kActualColor = Color(0xFF27AE60);
+
 /// Recording what was actually lifted, one exercise at a time.
 ///
 /// The rows arrive already laid out: starting a session copies the planned
@@ -391,14 +396,14 @@ class _LogRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${tr("label_planned_short")} ${target()}',
-                          style: TextStyle(
-                              color: colors.textSecondary, fontSize: 11)),
+                      Text(target(),
+                          style: const TextStyle(
+                              color: _kPlannedColor, fontSize: 11)),
                       const SizedBox(height: 2),
-                      Text('${tr("label_actual_short")} ${actual()}',
+                      Text(actual(),
                           style: TextStyle(
                               color: logged
-                                  ? colors.textPrimary
+                                  ? _kActualColor
                                   : colors.textSecondary,
                               fontSize: 14,
                               fontWeight: FontWeight.w600)),
@@ -515,9 +520,9 @@ class _LogDialogState extends State<_LogDialog> {
               padding: const EdgeInsets.only(bottom: 10),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('${tr("label_planned_short")} $target',
-                    style: TextStyle(
-                        color: colors.textSecondary, fontSize: 12)),
+                child: Text(target,
+                    style: const TextStyle(
+                        color: _kPlannedColor, fontSize: 12)),
               ),
             ),
           SetInputFields(

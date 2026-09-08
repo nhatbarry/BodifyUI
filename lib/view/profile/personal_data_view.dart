@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../common/app_colors.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
+import '../../core/refresh_flags.dart';
 import '../../models/profile.dart';
 import '../../services/profile_service.dart';
 
@@ -108,6 +109,9 @@ class _PersonalDataViewState extends State<PersonalDataView> {
         clearDateOfBirth: _dateOfBirth == null && _profile?.dateOfBirth != null,
         clearGender: _gender == null && _profile?.gender != null,
       );
+      // Home's greeting caches the name separately and has no path back
+      // through this screen to notice it changed.
+      RefreshFlags.markProfileEdited();
       if (!mounted) return;
       _showMessage(tr('toast_profile_saved'));
       Navigator.pop(context, true);

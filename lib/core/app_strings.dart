@@ -295,8 +295,6 @@ class AppStrings {
     'label_sets': 'Set',
     'label_volume': 'Khối lượng',
     'label_sessions': 'buổi',
-    'label_planned_short': 'KH',
-    'label_actual_short': 'TT',
     'label_not_logged': 'Chưa ghi',
     'msg_no_exercises_in_session':
         'Buổi tập này chưa có bài nào. Thêm bài vào lịch của ngày rồi bắt đầu lại.',
@@ -684,8 +682,6 @@ class AppStrings {
     'label_sets': 'Sets',
     'label_volume': 'Volume',
     'label_sessions': 'sessions',
-    'label_planned_short': 'Plan',
-    'label_actual_short': 'Done',
     'label_not_logged': 'Not logged',
     'msg_no_exercises_in_session':
         'No exercises in this workout. Add some to the day and start again.',
