@@ -9,10 +9,14 @@ import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
 import '../../core/refresh_flags.dart';
 import '../../common_widget/achievement_unlock_dialog.dart';
+import '../../common_widget/ai_badge.dart';
 import '../../common_widget/set_input_fields.dart';
+import '../../models/ai_set_result.dart';
 import '../../models/progress_models.dart';
 import '../../models/workout_session_models.dart';
+import '../../posecoach/exercise_processor_factory.dart';
 import '../../services/workout_session_service.dart';
+import 'live_camera_set_view.dart';
 
 /// Planned vs actual, told apart by colour instead of a "KH"/"TT" prefix.
 /// Green matches the completed-checkmark colour already used on this screen.
@@ -208,7 +212,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
   /// consistent with the rows underneath.
   Future<void> _logSet(SessionExercise exercise, SessionSet target) async {
     final spec = SetFieldSpec.of(exercise.trackingType);
-    final values = await showDialog<SetValues>(
+    final outcome = await showDialog<Object>(
       context: context,
       builder: (_) => _SetDialog(
         title: '${exercise.name ?? ""} · '
@@ -216,9 +220,19 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
         trackingType: exercise.trackingType,
         from: target,
         previous: _previousLogged(exercise, target),
+        aiAlgorithm: exercise.aiAlgorithm,
       ),
     );
-    if (values == null) return;
+    if (outcome == null) return;
+
+    // The dialog offers two ways to fill a set in, and hands back whichever
+    // the user chose: typed numbers, or "let the camera do it".
+    if (outcome == _SetDialog.trainWithAi) {
+      await _logSetWithCamera(exercise);
+      return;
+    }
+
+    final values = outcome as SetValues;
 
     setState(() => _busy = true);
     try {
@@ -244,18 +258,58 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
     }
   }
 
+  /// Hands the exercise to the camera, then records whatever it counted.
+  ///
+  /// The result always lands as a *new* set rather than filling in the planned
+  /// one the user tapped: the AI fields can only be written when a set is
+  /// created (the server treats them as a snapshot and refuses to revise
+  /// them), so writing them into an existing row is not something the API
+  /// allows - by design.
+  Future<void> _logSetWithCamera(SessionExercise exercise) async {
+    final result = await Navigator.push<AiSetResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LiveCameraSetView(exercise: exercise),
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      await WorkoutSessionService.instance.addSet(
+        exercise.id,
+        reps: result.reps,
+        aiAlgorithm: result.algorithm,
+        aiRepScores: result.repScores,
+      );
+      await _reload();
+      if (mounted) setState(() => _busy = false);
+    } catch (e) {
+      if (mounted) setState(() => _busy = false);
+      _showError(e);
+    }
+  }
+
   Future<void> _addSet(SessionExercise exercise) async {
     final last = exercise.sets.isEmpty ? null : exercise.sets.last;
-    final values = await showDialog<SetValues>(
+    final outcome = await showDialog<Object>(
       context: context,
       builder: (_) => _SetDialog(
         title: '${exercise.name ?? ""} · ${tr("btn_add_set")}',
         trackingType: exercise.trackingType,
         from: last,
         showTarget: false,
+        aiAlgorithm: exercise.aiAlgorithm,
       ),
     );
-    if (values == null) return;
+    if (outcome == null) return;
+
+    if (outcome == _SetDialog.trainWithAi) {
+      await _logSetWithCamera(exercise);
+      return;
+    }
+
+    final values = outcome as SetValues;
 
     setState(() => _busy = true);
     try {
@@ -536,14 +590,21 @@ class _ExerciseCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      exercise.name ?? '#${exercise.exerciseId}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            exercise.name ?? '#${exercise.exerciseId}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: colors.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        AiBadge(algorithm: exercise.aiAlgorithm),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -657,12 +718,36 @@ class _SetRow extends StatelessWidget {
                             color: _kPlannedColor, fontSize: 11)),
                   ),
                   Expanded(
-                    child: Text(
-                      actual(),
-                      style: TextStyle(
-                          color: done ? _kActualColor : colors.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            actual(),
+                            style: TextStyle(
+                                color:
+                                    done ? _kActualColor : colors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        // What the camera made of the set, when it was the one
+                        // that counted it. A rep count alone cannot say whether
+                        // those reps were worth having.
+                        if (set.isAiScored && set.aiScorePercent != null)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Text(
+                              '${set.aiScorePercent!.round()}%',
+                              style: TextStyle(
+                                color: set.aiScorePercent! >= 90
+                                    ? _kActualColor
+                                    : _kPlannedColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],
@@ -698,12 +783,23 @@ class _SetDialog extends StatefulWidget {
   /// not be shown as if it were this one's.
   final bool showTarget;
 
+  /// The exercise's camera algorithm, if it has one. Only then is there a
+  /// second way to fill this set in.
+  final String? aiAlgorithm;
+
+  /// What the dialog pops when the user picks the camera instead of typing.
+  /// A sentinel rather than a second dialog result type: the caller has to
+  /// tell "typed these numbers" from "go to the camera", and null already
+  /// means "cancelled".
+  static const String trainWithAi = 'train_with_ai';
+
   const _SetDialog({
     required this.title,
     required this.trackingType,
     this.from,
     this.previous,
     this.showTarget = true,
+    this.aiAlgorithm,
   });
 
   @override
@@ -786,6 +882,28 @@ class _SetDialogState extends State<_SetDialog> {
                         color: _kPlannedColor, fontSize: 12)),
               ),
             ),
+          // Offered above the fields, not instead of them: the camera is the
+          // faster way to fill this set in when it can, and typing stays the
+          // way that always works.
+          if (supportsAiCoach(widget.aiAlgorithm)) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    Navigator.pop(context, _SetDialog.trainWithAi),
+                icon: Icon(Icons.videocam, size: 18, color: colors.primary1),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                      color: colors.primary1.withValues(alpha: 0.6)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                label: Text(tr('btn_train_with_ai'),
+                    style: TextStyle(color: colors.primary1, fontSize: 13)),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           SetInputFields(
             trackingType: widget.trackingType,
             reps: _reps,

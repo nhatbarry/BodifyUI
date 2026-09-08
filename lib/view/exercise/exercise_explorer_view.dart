@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
+import '../../common_widget/ai_badge.dart';
 import '../../common_widget/exercise_thumbnail.dart';
 import '../../core/app_strings.dart';
 import '../../services/workout_plan_service.dart';
@@ -525,14 +526,21 @@ class _ExerciseRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.name ?? "#${item.exerciseId}",
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: context.colors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          item.name ?? "#${item.exerciseId}",
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: context.colors.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      AiBadge(algorithm: item.aiAlgorithm),
+                    ],
                   ),
                   const SizedBox(height: 3),
                   Text(

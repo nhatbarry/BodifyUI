@@ -1,5 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
    <uses-permission android:name="android.permission.INTERNET"/>
+   <!-- The AI coach watches the user perform a set. Nothing is recorded or
+        uploaded: frames go to on-device ML Kit and are discarded. -->
+   <uses-permission android:name="android.permission.CAMERA"/>
+   <!-- A phone without a camera can still use every other screen, so the
+        camera is optional rather than a requirement to install. -->
+   <uses-feature android:name="android.hardware.camera" android:required="false"/>
    <application
         android:label="Bodify"
         android:name="${applicationName}"

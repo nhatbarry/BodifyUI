@@ -217,12 +217,18 @@ class WorkoutSessionService {
   }
 
   /// POST /session-exercises/{id}/sets - an extra set beyond the plan.
+  ///
+  /// [aiAlgorithm] and [aiRepScores] are sent only by the camera screen, and
+  /// only here: they are a snapshot of how the set was judged as it happened,
+  /// which is why the correction endpoint ([recordSet]) does not accept them.
   Future<SessionSet> addSet(
     int sessionExerciseId, {
     int? reps,
     double? weightKg,
     int? durationSeconds,
     double? distanceM,
+    String? aiAlgorithm,
+    List<int>? aiRepScores,
   }) async {
     final response = await _send((token) => _client.post(
           ApiConfig.path('/session-exercises/$sessionExerciseId/sets'),
@@ -232,6 +238,8 @@ class WorkoutSessionService {
             if (weightKg != null) 'weight_kg': weightKg,
             if (durationSeconds != null) 'duration_seconds': durationSeconds,
             if (distanceM != null) 'distance_m': distanceM,
+            if (aiAlgorithm != null) 'ai_algorithm': aiAlgorithm,
+            if (aiRepScores != null) 'ai_rep_scores': aiRepScores,
           }),
         ));
     return SessionSet.fromJson(_decode(response) as Map<String, dynamic>);

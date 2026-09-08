@@ -77,6 +77,9 @@ class PlannedExercise {
   /// What the target editor should ask for: reps, seconds or metres.
   final TrackingType trackingType;
 
+  /// The camera algorithm that can score this movement, null if none can.
+  final String? aiAlgorithm;
+
   final List<TargetSet> sets;
 
   const PlannedExercise({
@@ -90,6 +93,7 @@ class PlannedExercise {
     this.iconUrl,
     this.thumbnailUrl,
     this.trackingType = TrackingType.reps,
+    this.aiAlgorithm,
   });
 
   /// What a row should draw, and the cache identity that goes with it.
@@ -108,6 +112,7 @@ class PlannedExercise {
         iconUrl: json['icon_url'] as String?,
         thumbnailUrl: json['thumbnail_url'] as String?,
         trackingType: TrackingType.parse(json['tracking_type'] as String?),
+        aiAlgorithm: json['ai_algorithm'] as String?,
         sets: (json['sets'] as List<dynamic>? ?? const [])
             .map((e) => TargetSet.fromJson(e as Map<String, dynamic>))
             .toList(),
