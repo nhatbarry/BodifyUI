@@ -7,11 +7,17 @@ import '../../common/app_colors.dart';
 import '../../common_widget/exercise_thumbnail.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
+import '../../core/refresh_flags.dart';
 import '../../common_widget/achievement_unlock_dialog.dart';
 import '../../common_widget/set_input_fields.dart';
 import '../../models/progress_models.dart';
 import '../../models/workout_session_models.dart';
 import '../../services/workout_session_service.dart';
+
+/// Planned vs actual, told apart by colour instead of a "KH"/"TT" prefix.
+/// Green matches the completed-checkmark colour already used on this screen.
+const _kPlannedColor = Color(0xFFF2994A);
+const _kActualColor = Color(0xFF27AE60);
 
 /// The workout you are doing right now.
 ///
@@ -168,6 +174,10 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
       // reload.
       final before = await unlockedAchievementIds();
       await WorkoutSessionService.instance.finishSession(_session.sessionId);
+      // The one moment records, achievements and completion stats actually
+      // change - Home and Profile should pick this up next time either is
+      // opened, not keep showing whatever they last loaded.
+      RefreshFlags.markWorkoutFinished();
       if (!mounted) return;
 
       // Celebrate before leaving: popping first would put the dialog on a
@@ -642,16 +652,15 @@ class _SetRow extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text('${tr("label_planned_short")} ${target()}',
-                        style: TextStyle(
-                            color: colors.textSecondary, fontSize: 11)),
+                    child: Text(target(),
+                        style: const TextStyle(
+                            color: _kPlannedColor, fontSize: 11)),
                   ),
                   Expanded(
                     child: Text(
-                      '${tr("label_actual_short")} ${actual()}',
+                      actual(),
                       style: TextStyle(
-                          color:
-                              done ? colors.textPrimary : colors.textSecondary,
+                          color: done ? _kActualColor : colors.textSecondary,
                           fontSize: 13,
                           fontWeight: FontWeight.w600),
                     ),
@@ -772,9 +781,9 @@ class _SetDialogState extends State<_SetDialog> {
               padding: const EdgeInsets.only(bottom: 10),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('${tr("label_planned_short")} $target',
-                    style:
-                        TextStyle(color: colors.textSecondary, fontSize: 12)),
+                child: Text(target,
+                    style: const TextStyle(
+                        color: _kPlannedColor, fontSize: 12)),
               ),
             ),
           SetInputFields(

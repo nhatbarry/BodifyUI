@@ -904,6 +904,13 @@ class _ExerciseRow extends StatelessWidget {
 /// * **past** - planned against actual, because that is the only question
 ///   worth asking about a workout that is over. A past date with no session
 ///   says so plainly rather than pretending the plan was the outcome.
+/// "KH 10/10" vs "TT 10/9" read as clutter once a reader has seen it twice -
+/// the pair of numbers only needs colour to say which is which. Orange for
+/// planned, green for actual; the green matches the completed-checkmark
+/// colour used throughout the tracker so "done" reads the same everywhere.
+const _kPlannedColor = Color(0xFFF2994A);
+const _kActualColor = Color(0xFF27AE60);
+
 class _SetLine extends StatelessWidget {
   final String planned;
   final SessionExercise? performed;
@@ -997,26 +1004,20 @@ class _SetLine extends StatelessWidget {
           ),
           if (logged > 0) ...[
             const SizedBox(height: 3),
-            label('${tr("label_actual_short")} ${_actualReps(done)}',
-                colors.textSecondary),
+            label(_actualReps(done), _kActualColor),
           ],
         ],
       );
     }
 
-    // Past, with a session: both numbers, planned first. The prefix is
-    // dropped when there is no plan to label - "KH Chưa đặt set mục tiêu"
-    // reads as a mistake.
+    // Past, with a session: both numbers, planned first, told apart by
+    // colour rather than a "KH"/"TT" prefix.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        label(
-          plannedSetCount == 0 ? planned : '${tr("label_planned_short")} $planned',
-          colors.textSecondary,
-        ),
+        label(planned, _kPlannedColor),
         const SizedBox(height: 2),
-        label('${tr("label_actual_short")} ${_actualReps(done)}',
-            const Color(0xFF27AE60), weight: FontWeight.w600),
+        label(_actualReps(done), _kActualColor, weight: FontWeight.w600),
       ],
     );
   }

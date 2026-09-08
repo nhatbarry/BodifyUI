@@ -22,12 +22,25 @@ class HomeView extends StatefulWidget {
   const HomeView({super.key});
 
   @override
-  State<HomeView> createState() => _HomeViewState();
+  HomeViewState createState() => HomeViewState();
 }
 
-class _HomeViewState extends State<HomeView> {
+/// Public so [MainTabView] can hold a key and call [refreshActivity] when the
+/// Home tab is tapped, rather than tearing the whole screen down and rebuilding
+/// it - which was the old, accidental way this screen ever picked up a workout
+/// just finished elsewhere in the app.
+class HomeViewState extends State<HomeView> {
+  final _activityKey = GlobalKey<ActivityProgressCardState>();
+
   BodyMetric? _latestMetric;
   Profile? _profile;
+
+  void refreshActivity() => _activityKey.currentState?.reload();
+
+  /// The greeting reads `_profile?.name`, loaded once in [initState]. Editing
+  /// the name happens on a screen reached through the Profile tab, which has
+  /// no path back through here to say so - see RefreshFlags.homeProfile.
+  void refreshProfile() => _loadProfile();
 
   @override
   void initState() {
@@ -139,11 +152,21 @@ class _HomeViewState extends State<HomeView> {
 
     return Scaffold(
       backgroundColor: context.colors.surface,
-      body: SingleChildScrollView(
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: Column(
+      // SafeArea only pads the *first* layout - it reserves space above the
+      // greeting once, but that reserved space is part of the scrollable
+      // content, so the instant the user scrolls it moves away with
+      // everything else and the next line of text slides in behind the
+      // status bar / camera cutout, which Flutter has no reason to clip
+      // since that area is legitimately part of the screen. Pinning an
+      // opaque strip the height of the top inset above the scroll view masks
+      // whatever scrolls underneath it instead.
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -438,12 +461,21 @@ class _HomeViewState extends State<HomeView> {
                   ],
                 ),
                 SizedBox(height: media.width * 0.05),
-                const ActivityProgressCard(),
-                SizedBox(height: media.width * 0.1),
-              ],
+                ActivityProgressCard(key: _activityKey),
+                    SizedBox(height: media.width * 0.1),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+          // Masks whatever has scrolled up behind the status bar / notch -
+          // see the note on `body` above.
+          Container(
+            height: MediaQuery.of(context).padding.top,
+            width: double.infinity,
+            color: context.colors.surface,
+          ),
+        ],
       ),
     );
   }

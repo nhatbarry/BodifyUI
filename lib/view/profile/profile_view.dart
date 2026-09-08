@@ -18,11 +18,26 @@ class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
 
   @override
-  State<ProfileView> createState() => _ProfileViewState();
+  ProfileViewState createState() => ProfileViewState();
 }
 
-class _ProfileViewState extends State<ProfileView> {
+/// Public so [MainTabView] can call [refresh] when the Profile tab is tapped.
+/// The achievement strip and recent-exercises section both already exposed a
+/// public `reload()` for exactly this, but nothing ever called it - the tab
+/// switch used to tear this whole screen down and rebuild it on every visit,
+/// which reloaded everything by accident. Now that switching tabs keeps this
+/// screen alive, something has to ask these two for fresh numbers instead.
+class ProfileViewState extends State<ProfileView> {
+  final _achievementsKey = GlobalKey<AchievementStripState>();
+  final _recentExercisesKey = GlobalKey<RecentExercisesSectionState>();
+
   Profile? _profile;
+
+  void refresh() {
+    _loadProfile();
+    _achievementsKey.currentState?.reload();
+    _recentExercisesKey.currentState?.reload();
+  }
 
   @override
   void initState() {
@@ -221,9 +236,9 @@ class _ProfileViewState extends State<ProfileView> {
               // The badges and the history both belong to the person, not to
               // the settings: this is the screen about who you are and what
               // you have done.
-              const AchievementStrip(),
+              AchievementStrip(key: _achievementsKey),
               const SizedBox(height: 22),
-              const RecentExercisesSection(),
+              RecentExercisesSection(key: _recentExercisesKey),
               const SizedBox(height: 20),
             ],
           ),

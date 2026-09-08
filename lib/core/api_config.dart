@@ -1,23 +1,25 @@
-import 'package:flutter/foundation.dart';
-
 /// Where the Bodify backend lives.
 ///
-/// Override at build/run time:
-///   flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000
+/// Both halves are hosted now - Postgres on Supabase, the API on Railway - so
+/// that is the default every build gets with zero configuration: a real
+/// device, a fresh `flutter run`, an Android Studio config with no extra
+/// args, a build someone else runs after cloning the repo. Nobody has to
+/// remember a LAN IP or an emulator-only alias just to get the app talking to
+/// something.
+///
+/// Point at a local backend instead when actually developing against one:
+///   flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000       (emulator)
+///   flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000  (real device, same LAN)
 class ApiConfig {
   const ApiConfig._();
 
   static const String _override = String.fromEnvironment('API_BASE_URL');
 
-  /// The Android emulator reaches the host machine at 10.0.2.2, not localhost.
-  /// A real phone needs the host's LAN IP, passed via --dart-define.
-  static String get baseUrl {
-    if (_override.isNotEmpty) return _override;
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000';
-    }
-    return 'http://127.0.0.1:8000';
-  }
+  static const String _productionUrl =
+      'https://bodifybackend-production.up.railway.app';
+
+  static String get baseUrl =>
+      _override.isNotEmpty ? _override : _productionUrl;
 
   static String get apiV1 => '$baseUrl/api/v1';
 
