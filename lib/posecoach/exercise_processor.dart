@@ -34,6 +34,21 @@ class ProcessorResult {
   /// Something to say about the user's form, at most one per frame.
   final FeedbackCue? cue;
 
+  /// The smoothed joint angle this frame was judged on, null when the camera
+  /// could not see the joints. Shown on screen while tuning: the thresholds
+  /// are only guesses until somebody can read what a real rep actually
+  /// measures at the top and the bottom.
+  final double? angle;
+
+  /// Deepest angle reached so far in the rep being performed.
+  final double? deepest;
+
+  /// 'L' or 'R' - which arm or leg the angle came from.
+  final String? side;
+
+  /// How well the camera saw those joints, 0-1.
+  final double? confidence;
+
   const ProcessorResult({
     required this.repCount,
     required this.score,
@@ -41,6 +56,10 @@ class ProcessorResult {
     required this.depth,
     this.repJustScored,
     this.cue,
+    this.angle,
+    this.deepest,
+    this.side,
+    this.confidence,
   });
 
   /// The most this set could have scored, given the reps actually counted.
@@ -98,6 +117,21 @@ abstract class ExerciseProcessor {
   /// the joints well enough to say. A null frame is skipped, not scored.
   double? primaryAngle(Pose pose);
 
+  /// Which side the last [primaryAngle] came from and how well it was seen -
+  /// display only, so the tuning readout can say where the number came from.
+  String? get activeSide => null;
+  double? get activeConfidence => null;
+
+  /// How much of each frame's reading to believe, against the running value.
+  ///
+  /// ML Kit can misplace an elbow by thirty degrees on a single frame, and the
+  /// raw number jitters even when the arm is still. Averaging the last few
+  /// frames costs a little lag - at 0.5 roughly one frame's worth - and buys a
+  /// number that only moves when the arm does. The frame-count debounce below
+  /// handles the rest; smoothing alone would still cross a threshold on a
+  /// sustained bad reading.
+  double get smoothing => 0.5;
+
   /// Anything worth telling the user about their form on this frame.
   FeedbackCue? checkForm(Pose pose, double angle, RepStage stage);
 
@@ -125,10 +159,13 @@ abstract class ExerciseProcessor {
   /// Per-rep scores in order, which is what the set stores.
   final List<int> repScores = [];
 
+  /// The running, smoothed angle - what every decision below is made on.
+  double? _smoothed;
+
   /// Feed one detected pose in and get back what to draw.
   ProcessorResult process(Pose pose) {
-    final angle = primaryAngle(pose);
-    if (angle == null) {
+    final raw = primaryAngle(pose);
+    if (raw == null) {
       // Nothing legible this frame. Hold everything where it was rather than
       // guessing - a dropped frame is not a rep, and it is not a miss either.
       return ProcessorResult(
@@ -138,6 +175,11 @@ abstract class ExerciseProcessor {
         depth: _depth,
       );
     }
+
+    _smoothed = _smoothed == null
+        ? raw
+        : _smoothed! + smoothing * (raw - _smoothed!);
+    final angle = _smoothed!;
 
     _depth = _depthFraction(angle);
     if (angle < _deepestAngle) _deepestAngle = angle;
@@ -181,6 +223,10 @@ abstract class ExerciseProcessor {
           stage: _stage,
           depth: _depth,
           cue: FeedbackCue.goDeeper,
+          angle: angle,
+          deepest: null,
+          side: activeSide,
+          confidence: activeConfidence,
         );
       }
     }
@@ -192,6 +238,10 @@ abstract class ExerciseProcessor {
       depth: _depth,
       repJustScored: justScored,
       cue: justScored == null ? checkForm(pose, angle, _stage) : null,
+      angle: angle,
+      deepest: _deepestAngle == double.infinity ? null : _deepestAngle,
+      side: activeSide,
+      confidence: activeConfidence,
     );
   }
 
@@ -232,6 +282,7 @@ abstract class ExerciseProcessor {
     _depth = 0;
     _deepestAngle = double.infinity;
     _passedFirstMilestone = false;
+    _smoothed = null;
     repScores.clear();
   }
 }

@@ -35,14 +35,18 @@ bool allConfident(Iterable<PoseLandmark?> landmarks) {
   return true;
 }
 
+/// Which side of the body an angle was read from.
+enum BodySideId { left, right }
+
 /// One side of the body: the three landmarks an exercise measures its angle
 /// from, plus how well they were seen.
 class BodySide {
+  final BodySideId id;
   final PoseLandmark first;
   final PoseLandmark vertex;
   final PoseLandmark last;
 
-  const BodySide(this.first, this.vertex, this.last);
+  const BodySide(this.id, this.first, this.vertex, this.last);
 
   double get confidence =>
       math.min(first.likelihood, math.min(vertex.likelihood, last.likelihood));
@@ -50,12 +54,21 @@ class BodySide {
   double get angle => jointAngle(first, vertex, last);
 }
 
-/// Picks whichever side of the body the camera can actually see.
+/// How much better the other side has to look before the reading switches to
+/// it. Without this margin the choice flips back and forth between two arms
+/// whose confidences are within noise of each other - and because a
+/// foreshortened arm measures a different angle from a side-on one, every flip
+/// is a step change in the number the rep counter is watching. That reads as
+/// the counter inventing and dropping reps at random.
+const double kSideSwitchMargin = 0.15;
+
+/// Picks a side of the body to measure, preferring [current] once chosen.
 ///
 /// A phone on the floor beside someone doing push-ups sees one arm clearly and
-/// the other through their torso. Fixing on "the left elbow" therefore drops
-/// half of all reps depending on which way the user happened to lie down; this
-/// re-decides every frame and follows whichever side is currently legible.
+/// the other through their torso, and which arm that is depends on which way
+/// the user lay down - so the side cannot be fixed at compile time. It can,
+/// however, be sticky: [current] is kept until it stops being visible, or the
+/// other side is better by [kSideSwitchMargin].
 ///
 /// Null when neither side clears the confidence bar - the caller skips the
 /// frame rather than trusting a guess.
@@ -67,20 +80,33 @@ BodySide? clearestSide(
   required PoseLandmarkType rightFirst,
   required PoseLandmarkType rightVertex,
   required PoseLandmarkType rightLast,
+  BodySideId? current,
 }) {
-  BodySide? build(PoseLandmarkType a, PoseLandmarkType b, PoseLandmarkType c) {
+  BodySide? build(
+    BodySideId id,
+    PoseLandmarkType a,
+    PoseLandmarkType b,
+    PoseLandmarkType c,
+  ) {
     final first = pose.landmarks[a];
     final vertex = pose.landmarks[b];
     final last = pose.landmarks[c];
     if (!allConfident([first, vertex, last])) return null;
-    return BodySide(first!, vertex!, last!);
+    return BodySide(id, first!, vertex!, last!);
   }
 
-  final left = build(leftFirst, leftVertex, leftLast);
-  final right = build(rightFirst, rightVertex, rightLast);
+  final left = build(BodySideId.left, leftFirst, leftVertex, leftLast);
+  final right = build(BodySideId.right, rightFirst, rightVertex, rightLast);
 
   if (left == null) return right;
   if (right == null) return left;
+
+  final held = current == BodySideId.left ? left : (current == BodySideId.right ? right : null);
+  if (held != null) {
+    final other = held.id == BodySideId.left ? right : left;
+    return other.confidence > held.confidence + kSideSwitchMargin ? other : held;
+  }
+
   return left.confidence >= right.confidence ? left : right;
 }
 
