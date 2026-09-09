@@ -76,6 +76,22 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
   FeedbackCue? _cue;
   Timer? _cueTimer;
 
+  /// Live readout of what the algorithm is actually measuring.
+  ///
+  /// On while the thresholds are still being tuned: they were set by eye, and
+  /// "the counting is erratic" cannot be fixed without knowing what a real rep
+  /// reads at the top and at the bottom. Turned off once the numbers are
+  /// settled - it is a tuning instrument, not a feature.
+  static const bool _showTuningReadout = true;
+  double? _angle;
+  double? _deepest;
+  String? _side;
+  double? _confidence;
+
+  List<CameraDescription> _cameras = const [];
+  CameraLensDirection _facing = CameraLensDirection.back;
+  bool _switching = false;
+
   int _seconds = 0;
   Timer? _clock;
 
@@ -104,8 +120,8 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
     await _coach.init();
 
     try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
+      _cameras = await availableCameras();
+      if (_cameras.isEmpty) {
         setState(() {
           _fatalError = tr('error_camera_unavailable');
           _starting = false;
@@ -113,35 +129,10 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
         return;
       }
 
-      // The back camera by default: the phone is propped on the floor facing
-      // the user, and the back camera has the wider field of view, which is
-      // what gets a whole body into frame from a metre away.
-      final camera = cameras.firstWhere(
-        (c) => c.lensDirection == CameraLensDirection.back,
-        orElse: () => cameras.first,
-      );
+      await _open(_facing);
+      if (!mounted) return;
+      setState(() => _starting = false);
 
-      final controller = CameraController(
-        camera,
-        // Medium rather than high: ML Kit downsamples anyway, and every extra
-        // pixel is copied per frame on the UI isolate.
-        ResolutionPreset.medium,
-        enableAudio: false,
-        imageFormatGroup:
-            Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
-      );
-
-      await controller.initialize();
-      if (!mounted) {
-        await controller.dispose();
-        return;
-      }
-
-      await controller.startImageStream(_onFrame);
-      setState(() {
-        _controller = controller;
-        _starting = false;
-      });
       _clock = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() => _seconds++);
       });
@@ -151,6 +142,85 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
         _fatalError = tr('error_camera_unavailable');
         _starting = false;
       });
+    }
+  }
+
+  /// Opens one lens, replacing whatever was running.
+  ///
+  /// The back camera is the default: the phone is propped on the floor facing
+  /// the user and the back lens has the wider field of view, which is what
+  /// gets a whole body into frame from a metre away. The front lens is there
+  /// because propping the phone that way means you cannot see the screen -
+  /// with the front camera the numbers face you while you work.
+  Future<void> _open(CameraLensDirection facing) async {
+    final camera = _cameras.firstWhere(
+      (c) => c.lensDirection == facing,
+      orElse: () => _cameras.first,
+    );
+
+    final previous = _controller;
+    if (previous != null) {
+      // Stop the stream before tearing the controller down: a frame arriving
+      // afterwards reaches a detector that is no longer listening.
+      try {
+        await previous.stopImageStream();
+      } catch (_) {}
+      await previous.dispose();
+      if (mounted) setState(() => _controller = null);
+    }
+
+    final controller = CameraController(
+      camera,
+      // Medium rather than high: ML Kit downsamples anyway, and every extra
+      // pixel is copied per frame on the UI isolate.
+      ResolutionPreset.medium,
+      enableAudio: false,
+      imageFormatGroup:
+          Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+    );
+
+    await controller.initialize();
+    if (!mounted) {
+      await controller.dispose();
+      return;
+    }
+
+    await controller.startImageStream(_onFrame);
+    setState(() {
+      _controller = controller;
+      _facing = camera.lensDirection;
+    });
+  }
+
+  /// Flips between the front and back lens mid-set.
+  ///
+  /// Reps counted so far are kept: the user changed where the phone is
+  /// looking from, not what they are doing. Throwing the count away would
+  /// punish them for fixing the framing.
+  Future<void> _flipCamera() async {
+    if (_switching || _cameras.length < 2) return;
+    setState(() => _switching = true);
+
+    final wanted = _facing == CameraLensDirection.back
+        ? CameraLensDirection.front
+        : CameraLensDirection.back;
+    try {
+      await _open(wanted);
+    } catch (_) {
+      // Falling back to the lens that was working beats leaving a dead
+      // preview on screen.
+      try {
+        await _open(_facing);
+      } catch (_) {}
+    } finally {
+      if (mounted) {
+        setState(() {
+          _switching = false;
+          // The skeleton belongs to the old lens; it will be replaced by the
+          // first frame from the new one.
+          _poses = const [];
+        });
+      }
     }
   }
 
@@ -199,6 +269,10 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
         _reps = result.repCount;
         _score = result.score;
         _depth = result.depth;
+        _angle = result.angle;
+        _deepest = result.deepest;
+        _side = result.side;
+        _confidence = result.confidence;
       });
     } catch (_) {
       // A frame that cannot be read is not worth reporting - the next one
@@ -449,7 +523,15 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
                           fontWeight: FontWeight.w600),
                     ),
                   ),
-                  const SizedBox(width: 40),
+                  IconButton(
+                    onPressed:
+                        _cameras.length < 2 || _switching ? null : _flipCamera,
+                    icon: Icon(
+                      Icons.flip_camera_ios,
+                      color: _cameras.length < 2 ? Colors.white24 : Colors.white,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ],
               ),
               Row(
@@ -471,6 +553,7 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
               ),
               const SizedBox(height: 10),
               _buildDepthBar(),
+              if (_showTuningReadout) _buildTuningReadout(),
             ],
           ),
         ),
@@ -537,6 +620,35 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
           ),
         ),
       ],
+    );
+  }
+
+  /// The numbers the algorithm is actually working from.
+  ///
+  /// Reads e.g. `R 138° · sâu 96° · tin 0.91 · mốc 155/120/95`. Everything
+  /// needed to say why a rep did or did not count: which arm was measured, how
+  /// straight it is right now, the deepest point of the rep in progress, how
+  /// sure ML Kit is, and the thresholds those are being judged against.
+  Widget _buildTuningReadout() {
+    final processor = _processor;
+    String number(double? v, {int digits = 0}) =>
+        v == null ? '—' : v.toStringAsFixed(digits);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        '${_side ?? "—"} ${number(_angle)}°'
+        ' · sâu ${number(_deepest)}°'
+        ' · tin ${number(_confidence, digits: 2)}'
+        ' · mốc ${processor == null ? "—" : "${processor.restAngle.round()}"
+            "/${processor.milestone1Angle.round()}"
+            "/${processor.milestone2Angle.round()}"}',
+        style: const TextStyle(
+          color: Colors.white54,
+          fontSize: 10,
+          fontFeatures: [FontFeature.tabularFigures()],
+        ),
+      ),
     );
   }
 

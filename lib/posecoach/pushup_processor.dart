@@ -56,6 +56,21 @@ class PushUpProcessor extends ExerciseProcessor {
   int _sagFrames = 0;
   int _pikeFrames = 0;
 
+  /// The arm currently being measured. Kept between frames so the reading does
+  /// not hop from one elbow to the other mid-rep - see kSideSwitchMargin.
+  BodySideId? _side;
+  double? _confidence;
+
+  @override
+  String? get activeSide => switch (_side) {
+        BodySideId.left => 'L',
+        BodySideId.right => 'R',
+        null => null,
+      };
+
+  @override
+  double? get activeConfidence => _confidence;
+
   @override
   double? primaryAngle(Pose pose) {
     final side = clearestSide(
@@ -66,7 +81,10 @@ class PushUpProcessor extends ExerciseProcessor {
       rightFirst: PoseLandmarkType.rightShoulder,
       rightVertex: PoseLandmarkType.rightElbow,
       rightLast: PoseLandmarkType.rightWrist,
+      current: _side,
     );
+    _side = side?.id;
+    _confidence = side?.confidence;
     return side?.angle;
   }
 
@@ -80,6 +98,9 @@ class PushUpProcessor extends ExerciseProcessor {
       rightFirst: PoseLandmarkType.rightShoulder,
       rightVertex: PoseLandmarkType.rightHip,
       rightLast: PoseLandmarkType.rightAnkle,
+      // The same side the elbow is being read from: measuring the near arm
+      // against the far hip would report a sag that is really just parallax.
+      current: _side,
     );
     if (body == null) {
       _sagFrames = 0;
@@ -116,5 +137,7 @@ class PushUpProcessor extends ExerciseProcessor {
     super.reset();
     _sagFrames = 0;
     _pikeFrames = 0;
+    _side = null;
+    _confidence = null;
   }
 }
