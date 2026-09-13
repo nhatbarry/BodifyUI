@@ -175,6 +175,28 @@ class AppStrings {
     'nav_meal_planner': 'Dinh dưỡng',
     'nav_ai_coach': 'AI Coach',
     'subtitle_ai_coach': 'Huấn luyện viên AI cá nhân',
+
+    // ---- AI coach chat ----
+    'title_ai_greeting': 'Chào bạn 👋',
+    'msg_ai_greeting':
+        'Hỏi tôi bất cứ điều gì về tập luyện, tư thế hay dinh dưỡng.',
+    'prompt_ai_plan': 'Lên giáo án 3 buổi/tuần cho người mới',
+    'prompt_ai_form': 'Chống đẩy sai tư thế thường gặp lỗi gì?',
+    'prompt_ai_nutrition': 'Ăn gì sau buổi tập để tăng cơ?',
+    'hint_ask_ai_coach': 'Hỏi AI Coach...',
+    'btn_new_chat': 'Trò chuyện mới',
+    'title_chat_history': 'Lịch sử trò chuyện',
+    'msg_no_chat_history': 'Chưa có cuộc trò chuyện nào.',
+    'label_untitled_chat': 'Cuộc trò chuyện',
+    'label_message_count': '{n} tin nhắn',
+    'label_just_now': 'Vừa xong',
+    'label_minutes_ago': '{n} phút trước',
+    'label_hours_ago': '{n} giờ trước',
+    'label_days_ago': '{n} ngày trước',
+    'error_ai_coach_failed': 'Không nhận được phản hồi. Thử lại nhé.',
+    'msg_ai_coach_placeholder_reply':
+        'Giao diện chat đã xong, nhưng phần trả lời thật chưa được nối.\n\n'
+        'Khi backend AI Coach hoàn thành, tôi sẽ đọc được **lịch sử tập, chỉ số cơ thể và giáo án** của bạn để trả lời dựa trên dữ liệu thật.',
     'title_workout_tracker': 'Lịch tập',
 
     // ---- Exercise explorer ----
@@ -583,6 +605,30 @@ class AppStrings {
     'nav_meal_planner': 'Meal Planner',
     'nav_ai_coach': 'AI Coach',
     'subtitle_ai_coach': 'Your personal AI trainer',
+
+    // ---- AI coach chat ----
+    'title_ai_greeting': 'Hi there 👋',
+    'msg_ai_greeting':
+        'Ask me anything about training, form or nutrition.',
+    'prompt_ai_plan': 'Build me a 3-day beginner plan',
+    'prompt_ai_form': 'What do people get wrong in a push-up?',
+    'prompt_ai_nutrition': 'What should I eat after training?',
+    'hint_ask_ai_coach': 'Ask the AI Coach...',
+    'btn_new_chat': 'New chat',
+    'title_chat_history': 'Chat history',
+    'msg_no_chat_history': 'No conversations yet.',
+    'label_untitled_chat': 'Conversation',
+    'label_message_count': '{n} messages',
+    'label_just_now': 'Just now',
+    'label_minutes_ago': '{n} min ago',
+    'label_hours_ago': '{n} h ago',
+    'label_days_ago': '{n} d ago',
+    'error_ai_coach_failed': 'No reply came back. Try again.',
+    'msg_ai_coach_placeholder_reply':
+        'The chat screen is built, but real answers are not wired up yet.\n\n'
+        'Once the AI Coach backend is done, I will be able to read your '
+        '**training history, body metrics and plans** and answer from your '
+        'real data.',
     'title_workout_tracker': 'Workout',
 
     // ---- Exercise explorer ----
