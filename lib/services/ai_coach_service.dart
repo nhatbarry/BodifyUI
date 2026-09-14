@@ -1,91 +1,181 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:convert';
 
-import '../core/app_strings.dart';
+import 'package:http/http.dart' as http;
+
+import '../core/api_config.dart';
+import '../core/api_exception.dart';
 import '../models/chat_models.dart';
+import 'auth_service.dart';
 
 /// The AI coach conversation, as the screen sees it.
 ///
-/// An interface rather than a concrete client, because the thing behind it is
-/// not built yet: Phase 6 puts the model call on the backend, where the user's
-/// training data lives and the API key is not shipped inside the app. Until
-/// then [LocalAiCoachService] stands in, and swapping it is one line in
-/// [AiCoachService.instance].
+/// An interface with one real implementation, kept because the screen should
+/// not care whether an answer came from a server or a stub - and because a
+/// test or a demo may want to swap [instance] for something that never leaves
+/// the device.
 abstract class AiCoachService {
-  /// Swapped for the HTTP-backed implementation when Phase 6 lands.
-  static AiCoachService instance = LocalAiCoachService();
+  static AiCoachService instance = ApiAiCoachService();
 
-  /// Sends one message in [sessionId] and resolves with the coach's reply.
-  Future<ChatMessage> send({
-    required String sessionId,
-    required String message,
-    required List<ChatMessage> history,
-  });
+  /// Sends one message and resolves with both halves of the exchange.
+  ///
+  /// `sessionId` null starts a new conversation - the server creates it and
+  /// says which one it was, so opening the screen and typing is one round
+  /// trip rather than two.
+  Future<ChatExchange> send({int? sessionId, required String message});
 
   /// Past conversations, most recently used first.
   Future<List<ChatSession>> sessions();
 
   /// One conversation with its messages.
-  Future<ChatSession?> session(String sessionId);
+  Future<ChatSession> session(int sessionId);
 
-  /// Records what a conversation now contains, creating it if it is new.
-  Future<void> save(ChatSession session);
-
-  Future<void> delete(String sessionId);
+  Future<void> delete(int sessionId);
 }
 
-/// A stand-in that answers on-device so the screen is usable before the
-/// backend exists.
+/// What a send produced: where it landed, and both messages as the server
+/// stored them.
+class ChatExchange {
+  final int sessionId;
+  final String title;
+  final ChatMessage question;
+  final ChatMessage answer;
+
+  const ChatExchange({
+    required this.sessionId,
+    required this.title,
+    required this.question,
+    required this.answer,
+  });
+
+  factory ChatExchange.fromJson(Map<String, dynamic> json) => ChatExchange(
+        sessionId: json['chat_session_id'] as int,
+        title: json['title'] as String? ?? '',
+        question:
+            ChatMessage.fromJson(json['user_message'] as Map<String, dynamic>),
+        answer: ChatMessage.fromJson(
+            json['assistant_message'] as Map<String, dynamic>),
+      );
+}
+
+/// The real one: `/ai-coach/*` on the Bodify API.
 ///
-/// It is deliberately obvious about what it is: the replies say so. A
-/// placeholder that imitates a real coach would let a half-built feature look
-/// finished, and the first person fooled by it would be us.
-///
-/// Sessions live in memory only. They survive moving between tabs, which is
-/// what the history sheet needs to be worth showing, and not an app restart -
-/// storing them locally would build a second home for data the backend is
-/// about to own.
-class LocalAiCoachService implements AiCoachService {
-  final Map<String, ChatSession> _sessions = {};
-  final Random _random = Random();
+/// The model is called on the server, so nothing here knows about Gemini and
+/// no key ships in the app. The conversation history is not sent either - the
+/// server reads it from the database, which is what stops a client putting
+/// words in the coach's mouth.
+class ApiAiCoachService implements AiCoachService {
+  final http.Client _client = http.Client();
+
+  /// Same retry-once-on-401 shape as the other services. Longer timeout than
+  /// theirs: a model takes seconds to answer, where a database query does not.
+  Future<http.Response> _send(
+    Future<http.Response> Function(String token) request, {
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    final token = await AuthService.instance.validAccessToken();
+    if (token == null) {
+      throw const ApiException('Not signed in', statusCode: 401);
+    }
+
+    http.Response response;
+    try {
+      response = await request(token).timeout(timeout);
+    } on TimeoutException {
+      throw const ApiException('The coach took too long to answer.');
+    } catch (_) {
+      throw const ApiException('Cannot reach the server.');
+    }
+
+    if (response.statusCode == 401) {
+      final session = await AuthService.instance.refreshSession();
+      if (session == null) {
+        throw const ApiException('Session expired', statusCode: 401);
+      }
+      try {
+        response = await request(session.accessToken).timeout(timeout);
+      } catch (_) {
+        throw const ApiException('Cannot reach the server.');
+      }
+    }
+    return response;
+  }
+
+  dynamic _decode(http.Response response) {
+    // utf8.decode, not `response.body`: the default latin-1 reading turns
+    // every Vietnamese answer into mojibake.
+    final text = response.bodyBytes.isEmpty
+        ? ''
+        : utf8.decode(response.bodyBytes);
+    final decoded = text.isEmpty ? null : jsonDecode(text);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) return decoded;
+    throw ApiException(
+      parseErrorMessage(decoded,
+          fallback: 'Request failed (${response.statusCode})'),
+      statusCode: response.statusCode,
+    );
+  }
+
+  Map<String, String> _authJson(String token) => {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json; charset=utf-8',
+      };
 
   @override
-  Future<ChatMessage> send({
-    required String sessionId,
-    required String message,
-    required List<ChatMessage> history,
-  }) async {
-    // A pause in roughly the range a real model call takes, so the typing
-    // indicator and the scroll behaviour are exercised rather than skipped.
-    await Future<void>.delayed(
-      Duration(milliseconds: 700 + _random.nextInt(700)),
-    );
+  Future<ChatExchange> send({int? sessionId, required String message}) async {
+    final body = jsonEncode({'content': message});
 
-    return ChatMessage(
-      content: tr('msg_ai_coach_placeholder_reply'),
-      isUser: false,
-      sentAt: DateTime.now(),
-    );
+    final response = await _send((token) => sessionId == null
+        ? _client.post(
+            ApiConfig.path('/ai-coach/sessions'),
+            headers: _authJson(token),
+            body: body,
+          )
+        : _client.post(
+            ApiConfig.path('/ai-coach/sessions/$sessionId/messages'),
+            headers: _authJson(token),
+            body: body,
+          ));
+
+    return ChatExchange.fromJson(_decode(response) as Map<String, dynamic>);
   }
 
   @override
   Future<List<ChatSession>> sessions() async {
-    final all = _sessions.values.toList()
-      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    return all;
+    final response = await _send(
+      (token) => _client.get(
+        ApiConfig.path('/ai-coach/sessions'),
+        headers: {'Authorization': 'Bearer $token'},
+      ),
+      timeout: const Duration(seconds: 20),
+    );
+    return (_decode(response) as List<dynamic>)
+        .map((e) => ChatSession.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   @override
-  Future<ChatSession?> session(String sessionId) async => _sessions[sessionId];
-
-  @override
-  Future<void> save(ChatSession session) async {
-    if (session.messages.isEmpty) return;
-    _sessions[session.id] = session;
+  Future<ChatSession> session(int sessionId) async {
+    final response = await _send(
+      (token) => _client.get(
+        ApiConfig.path('/ai-coach/sessions/$sessionId'),
+        headers: {'Authorization': 'Bearer $token'},
+      ),
+      timeout: const Duration(seconds: 20),
+    );
+    return ChatSession.fromJson(_decode(response) as Map<String, dynamic>);
   }
 
   @override
-  Future<void> delete(String sessionId) async {
-    _sessions.remove(sessionId);
+  Future<void> delete(int sessionId) async {
+    final response = await _send(
+      (token) => _client.delete(
+        ApiConfig.path('/ai-coach/sessions/$sessionId'),
+        headers: {'Authorization': 'Bearer $token'},
+      ),
+      timeout: const Duration(seconds: 20),
+    );
+    _decode(response);
   }
 }

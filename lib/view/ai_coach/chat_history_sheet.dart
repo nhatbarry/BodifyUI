@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
+import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
 import '../../models/chat_models.dart';
 import '../../services/ai_coach_service.dart';
@@ -14,7 +15,7 @@ import '../../services/ai_coach_service.dart';
 /// Resolves with the conversation to open, or null if the user just closed it.
 Future<ChatSession?> showChatHistorySheet(
   BuildContext context, {
-  required String currentSessionId,
+  required int? currentSessionId,
   required VoidCallback onNewChat,
 }) {
   return showModalBottomSheet<ChatSession>(
@@ -29,7 +30,7 @@ Future<ChatSession?> showChatHistorySheet(
 }
 
 class _ChatHistorySheet extends StatefulWidget {
-  final String currentSessionId;
+  final int? currentSessionId;
   final VoidCallback onNewChat;
 
   const _ChatHistorySheet({
@@ -43,6 +44,7 @@ class _ChatHistorySheet extends StatefulWidget {
 
 class _ChatHistorySheetState extends State<_ChatHistorySheet> {
   List<ChatSession>? _sessions;
+  String? _error;
 
   @override
   void initState() {
@@ -51,15 +53,36 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
   }
 
   Future<void> _load() async {
-    final sessions = await AiCoachService.instance.sessions();
-    if (mounted) setState(() => _sessions = sessions);
+    try {
+      final sessions = await AiCoachService.instance.sessions();
+      if (mounted) setState(() => _sessions = sessions);
+    } catch (e) {
+      // Shown in the sheet rather than thrown: a history that cannot load is
+      // a thing to retry, not a crash over the conversation underneath.
+      if (mounted) {
+        setState(() {
+          _sessions = [];
+          _error = e is ApiException ? e.message : '$e';
+        });
+      }
+    }
   }
 
   Future<void> _delete(ChatSession session) async {
-    await AiCoachService.instance.delete(session.id);
-    if (!mounted) return;
-    setState(() => _sessions =
-        _sessions?.where((s) => s.id != session.id).toList() ?? []);
+    // Removed from the list first: the row is gone the moment it is tapped,
+    // and put back if the server disagrees.
+    final previous = _sessions;
+    setState(() =>
+        _sessions = _sessions?.where((s) => s.id != session.id).toList() ?? []);
+    try {
+      await AiCoachService.instance.delete(session.id);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _sessions = previous);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e is ApiException ? e.message : '$e')),
+      );
+    }
   }
 
   @override
@@ -157,13 +180,31 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.forum_outlined, size: 34, color: colors.textSecondary),
+          Icon(
+            _error == null ? Icons.forum_outlined : Icons.cloud_off,
+            size: 34,
+            color: colors.textSecondary,
+          ),
           const SizedBox(height: 12),
           Text(
-            tr('msg_no_chat_history'),
+            _error ?? tr('msg_no_chat_history'),
             textAlign: TextAlign.center,
             style: TextStyle(color: colors.textSecondary, fontSize: 13),
           ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _error = null;
+                  _sessions = null;
+                });
+                _load();
+              },
+              child: Text(tr('btn_retry'),
+                  style: TextStyle(color: colors.primary1)),
+            ),
+          ],
         ],
       ),
     );
@@ -253,7 +294,10 @@ class _SessionRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${_when()} · ${tr('label_message_count').replaceFirst('{n}', '${session.messages.length}')}',
+                      // The server's count: the list response carries no
+                      // messages, so counting the (empty) list here would
+                      // show every conversation as having none.
+                      '${_when()} · ${tr('label_message_count').replaceFirst('{n}', '${session.messageCount}')}',
                       style: TextStyle(
                           color: colors.textSecondary, fontSize: 11),
                     ),

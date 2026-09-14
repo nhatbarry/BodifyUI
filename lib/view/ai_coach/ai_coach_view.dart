@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../common/app_colors.dart';
+import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
 import '../../models/chat_models.dart';
 import '../../services/ai_coach_service.dart';
@@ -36,12 +37,11 @@ class _AiCoachViewState extends State<AiCoachView> {
   /// or the history has to store.
   List<ChatMessage> _messages = [];
 
-  String _sessionId = _newSessionId();
-  DateTime _startedAt = DateTime.now();
+  /// Null until the server has created the conversation - which it does on the
+  /// first message, so a user who opens the tab and leaves does not litter
+  /// their history with an empty thread.
+  int? _sessionId;
   bool _sending = false;
-
-  static String _newSessionId() =>
-      'local-${DateTime.now().microsecondsSinceEpoch}';
 
   @override
   void initState() {
@@ -81,15 +81,24 @@ class _AiCoachViewState extends State<AiCoachView> {
     _scrollToEnd();
 
     try {
-      final reply = await AiCoachService.instance.send(
+      // The history is not sent: the server reads it from the database, which
+      // is what stops a client putting words in the coach's mouth.
+      final exchange = await AiCoachService.instance.send(
         sessionId: _sessionId,
         message: text,
-        // The whole conversation, because an answer that ignores what was
-        // asked two turns ago is not a conversation.
-        history: _messages,
       );
       if (!mounted) return;
-      setState(() => _messages = [..._messages, reply]);
+      setState(() {
+        _sessionId = exchange.sessionId;
+        // The optimistic copy of the question is replaced by the server's, so
+        // the list holds one version of each sentence with a real id and the
+        // server's clock.
+        _messages = [
+          ..._messages.sublist(0, _messages.length - 1),
+          exchange.question,
+          exchange.answer,
+        ];
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -107,36 +116,8 @@ class _AiCoachViewState extends State<AiCoachView> {
       if (mounted) {
         setState(() => _sending = false);
         _scrollToEnd();
-        await _persist();
       }
     }
-  }
-
-  /// Writes the conversation back, titled by the first thing the user asked.
-  ///
-  /// Runs after every exchange rather than on leaving the screen: a tab switch
-  /// is not a save point the user would think to make, and losing a question
-  /// because they looked at their calendar would be indefensible.
-  Future<void> _persist() async {
-    if (_messages.isEmpty) return;
-
-    final firstAsked = _messages.firstWhere(
-      (m) => m.isUser,
-      orElse: () => _messages.first,
-    );
-    final title = firstAsked.content.length > 48
-        ? '${firstAsked.content.substring(0, 48).trimRight()}…'
-        : firstAsked.content;
-
-    await AiCoachService.instance.save(
-      ChatSession(
-        id: _sessionId,
-        title: title,
-        createdAt: _startedAt,
-        updatedAt: DateTime.now(),
-        messages: _messages,
-      ),
-    );
   }
 
   void _scrollToEnd() {
@@ -155,8 +136,9 @@ class _AiCoachViewState extends State<AiCoachView> {
   void _startNewChat() {
     if (_messages.isEmpty) return; // already on a blank conversation
     setState(() {
-      _sessionId = _newSessionId();
-      _startedAt = DateTime.now();
+      // Nothing is created server-side until the first message: an empty
+      // thread in the history is clutter nobody asked for.
+      _sessionId = null;
       _messages = [];
       _sending = false;
     });
@@ -171,13 +153,31 @@ class _AiCoachViewState extends State<AiCoachView> {
     );
     if (chosen == null || !mounted) return;
 
+    // The list rows carry no messages - the thread is fetched when one is
+    // actually opened, so the history screen costs one small response.
     setState(() {
       _sessionId = chosen.id;
-      _startedAt = chosen.createdAt;
-      _messages = chosen.messages;
-      _sending = false;
+      _messages = [];
+      _sending = true;
     });
-    _scrollToEnd();
+
+    try {
+      final full = await AiCoachService.instance.session(chosen.id);
+      if (!mounted) return;
+      setState(() => _messages = full.messages);
+    } catch (e) {
+      _showError(e);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+      _scrollToEnd();
+    }
+  }
+
+  void _showError(Object e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e is ApiException ? e.message : '$e')),
+    );
   }
 
   @override
