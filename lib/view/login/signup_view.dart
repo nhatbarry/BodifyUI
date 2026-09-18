@@ -1,11 +1,13 @@
 import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:bodify/common_widget/round_textfield.dart';
+import 'package:bodify/common_widget/social_sign_in_row.dart';
 import 'package:bodify/core/api_exception.dart';
 import 'package:bodify/core/app_strings.dart';
 import 'package:bodify/services/auth_service.dart';
 import 'package:bodify/view/login/complete_profile_view.dart';
 import 'package:bodify/view/login/login_view.dart';
+import 'package:bodify/view/main_tab/main_tab_view.dart';
 import 'package:flutter/material.dart';
 
 class SignUpView extends StatefulWidget {
@@ -36,7 +38,8 @@ class _SignUpViewState extends State<SignUpView> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// The backend stores one `name`; the form collects it in two fields.
@@ -109,7 +112,8 @@ class _SignUpViewState extends State<SignUpView> {
               children: [
                 Text(
                   tr('label_hey_there'),
-                  style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
+                  style: TextStyle(
+                      color: context.colors.textSecondary, fontSize: 16),
                 ),
                 Text(
                   tr('title_create_account'),
@@ -188,11 +192,11 @@ class _SignUpViewState extends State<SignUpView> {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child:  Text(
-                          tr('label_accept_terms'),
-                          style: TextStyle(color: context.colors.textSecondary, fontSize: 10),
-                        ),
-
+                      child: Text(
+                        tr('label_accept_terms'),
+                        style: TextStyle(
+                            color: context.colors.textSecondary, fontSize: 10),
+                      ),
                     )
                   ],
                 ),
@@ -206,90 +210,26 @@ class _SignUpViewState extends State<SignUpView> {
                         child: CircularProgressIndicator(
                             color: context.colors.primary1),
                       )
-                    : RoundButton(title: tr('btn_register'), onPressed: _register),
+                    : RoundButton(
+                        title: tr('btn_register'), onPressed: _register),
                 SizedBox(
                   height: media.width * 0.04,
                 ),
-                Row(
-                  // crossAxisAlignment: CrossAxisAlignment.,
-                  children: [
-                    Expanded(
-                        child: Container(
-                      height: 1,
-                      color: context.colors.textSecondary.withOpacity(0.5),
-                    )),
-                    Text(
-                      "  ${tr('label_or')}  ",
-                      style: TextStyle(color: context.colors.textPrimary, fontSize: 12),
-                    ),
-                    Expanded(
-                        child: Container(
-                      height: 1,
-                      color: context.colors.textSecondary.withOpacity(0.5),
-                    )),
-                  ],
-                ),
-                SizedBox(
-                  height: media.width * 0.04,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: context.colors.surface,
-                          border: Border.all(
-                            width: 1,
-                            color: context.colors.textSecondary.withOpacity(0.4),
-                          ),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Image.asset(
-                          "assets/img/google.png",
-                          width: 20,
-                          height: 20,
-                        ),
-                      ),
-                    ),
-
-                     SizedBox(
-                      width: media.width * 0.04,
-                    ),
-
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: context.colors.surface,
-                          border: Border.all(
-                            width: 1,
-                            color: context.colors.textSecondary.withOpacity(0.4),
-                          ),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Image.asset(
-                          "assets/img/facebook.png",
-                          width: 20,
-                          height: 20,
-                        ),
-                      ),
-                    )
-                  ],
+                SocialSignInRow(
+                  onSignedIn: (_) => Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const MainTabView()),
+                    (route) => false,
+                  ),
+                  onBusyChanged: (busy) => setState(() => _isLoading = busy),
                 ),
                 SizedBox(
                   height: media.width * 0.04,
                 ),
                 TextButton(
                   onPressed: () {
-                     Navigator.push(
+                    Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (context) => const LoginView()));
