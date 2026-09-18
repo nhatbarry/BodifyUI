@@ -22,7 +22,8 @@ class AuthService {
   final http.Client _client = http.Client();
 
   /// Who is signed in right now; null when signed out. Widgets can listen.
-  final ValueNotifier<CurrentUser?> currentUser = ValueNotifier<CurrentUser?>(null);
+  final ValueNotifier<CurrentUser?> currentUser =
+      ValueNotifier<CurrentUser?>(null);
 
   bool get isSignedIn => currentUser.value != null;
 
@@ -32,14 +33,16 @@ class AuthService {
   ///
   /// Deliberately avoids dart:io (SocketException) so the app still builds for
   /// web; package:http reports connection failures as ClientException there.
-  Future<Map<String, dynamic>> _send(Future<http.Response> Function() request) async {
+  Future<Map<String, dynamic>> _send(
+      Future<http.Response> Function() request) async {
     late http.Response response;
     try {
       response = await request().timeout(const Duration(seconds: 20));
     } on TimeoutException {
       throw const ApiException('The server took too long to respond.');
     } catch (_) {
-      throw const ApiException('Cannot reach the server. Is the backend running?');
+      throw const ApiException(
+          'Cannot reach the server. Is the backend running?');
     }
 
     return _decode(response);
@@ -60,7 +63,8 @@ class AuthService {
         ));
   }
 
-  Future<Map<String, dynamic>> _get(String path, {required String bearerToken}) {
+  Future<Map<String, dynamic>> _get(String path,
+      {required String bearerToken}) {
     return _send(() => _client.get(
           ApiConfig.path(path),
           headers: {'Authorization': 'Bearer $bearerToken'},
@@ -88,7 +92,8 @@ class AuthService {
     }
 
     throw ApiException(
-      parseErrorMessage(decoded, fallback: 'Request failed (${response.statusCode})'),
+      parseErrorMessage(decoded,
+          fallback: 'Request failed (${response.statusCode})'),
       statusCode: response.statusCode,
     );
   }
@@ -124,7 +129,8 @@ class AuthService {
   }
 
   /// POST /auth/login
-  Future<CurrentUser> login({required String email, required String password}) async {
+  Future<CurrentUser> login(
+      {required String email, required String password}) async {
     final json = await _post('/auth/login', {
       'email': email.trim(),
       'password': password,
@@ -138,13 +144,27 @@ class AuthService {
     return user;
   }
 
+  /// Takes over a session obtained elsewhere - a Google or Facebook sign-in.
+  ///
+  /// Those flows end with Supabase tokens rather than with a /auth/login
+  /// response, but everything downstream (stored tokens, currentUser, the
+  /// screens listening to it) has to end up in exactly the same state as an
+  /// email login, so they hand the session here instead of duplicating it.
+  Future<CurrentUser> adoptSession(AuthSession session) async {
+    await _storage.save(session);
+    final user = await _fetchMe(session.accessToken);
+    currentUser.value = user;
+    return user;
+  }
+
   /// POST /auth/refresh - swaps the refresh token for a fresh session.
   Future<AuthSession?> refreshSession() async {
     final refreshToken = await _storage.readRefreshToken();
     if (refreshToken == null) return null;
 
     try {
-      final json = await _post('/auth/refresh', {'refresh_token': refreshToken});
+      final json =
+          await _post('/auth/refresh', {'refresh_token': refreshToken});
       final session = AuthSession.fromJson(json);
       await _storage.save(session);
       return session;
@@ -219,12 +239,10 @@ class AuthService {
 
     if (token != null) {
       try {
-        await _client
-            .post(
-              ApiConfig.path('/auth/logout'),
-              headers: {'Authorization': 'Bearer $token'},
-            )
-            .timeout(const Duration(seconds: 8));
+        await _client.post(
+          ApiConfig.path('/auth/logout'),
+          headers: {'Authorization': 'Bearer $token'},
+        ).timeout(const Duration(seconds: 8));
       } catch (_) {
         // Offline, or the session was already dead. Either way the local
         // clear below is what the user asked for.
@@ -274,10 +292,13 @@ class AuthService {
     if (token == null) {
       throw const ApiException('Not signed in', statusCode: 401);
     }
-    await _put('/auth/password', {
-      'current_password': currentPassword,
-      'new_password': newPassword,
-    }, token);
+    await _put(
+        '/auth/password',
+        {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        },
+        token);
     // The backend has already revoked the sessions; clearing locally keeps
     // the app from holding a token it knows is dead.
     await _storage.clear();
@@ -296,10 +317,13 @@ class AuthService {
     if (token == null) {
       throw const ApiException('Not signed in', statusCode: 401);
     }
-    await _put('/auth/email', {
-      'current_password': currentPassword,
-      'new_email': newEmail,
-    }, token);
+    await _put(
+        '/auth/email',
+        {
+          'current_password': currentPassword,
+          'new_email': newEmail,
+        },
+        token);
   }
 
   /// Access token for calling other protected endpoints, refreshed if needed.

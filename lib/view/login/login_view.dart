@@ -1,6 +1,7 @@
 import 'package:bodify/common/app_colors.dart';
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:bodify/common_widget/round_textfield.dart';
+import 'package:bodify/common_widget/social_sign_in_row.dart';
 import 'package:bodify/core/api_exception.dart';
 import 'package:bodify/core/app_strings.dart';
 import 'package:bodify/services/auth_service.dart';
@@ -31,7 +32,8 @@ class _LoginViewState extends State<LoginView> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _login() async {
@@ -81,7 +83,8 @@ class _LoginViewState extends State<LoginView> {
     // on Send, so it was the dispose, not the request.
     final email = await showDialog<String>(
       context: context,
-      builder: (_) => _ResetPasswordDialog(initialEmail: _emailController.text.trim()),
+      builder: (_) =>
+          _ResetPasswordDialog(initialEmail: _emailController.text.trim()),
     );
 
     if (email == null || email.isEmpty) return;
@@ -116,7 +119,8 @@ class _LoginViewState extends State<LoginView> {
               children: [
                 Text(
                   tr('label_hey_there'),
-                  style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
+                  style: TextStyle(
+                      color: context.colors.textSecondary, fontSize: 16),
                 ),
                 Text(
                   tr('title_welcome_back'),
@@ -184,7 +188,7 @@ class _LoginViewState extends State<LoginView> {
                     ),
                   ],
                 ),
-               const Spacer(),
+                const Spacer(),
                 _isLoading
                     ? Container(
                         height: 50,
@@ -196,77 +200,14 @@ class _LoginViewState extends State<LoginView> {
                 SizedBox(
                   height: media.width * 0.04,
                 ),
-                Row(
-                  // crossAxisAlignment: CrossAxisAlignment.,
-                  children: [
-                    Expanded(
-                        child: Container(
-                      height: 1,
-                      color: context.colors.textSecondary.withOpacity(0.5),
-                    )),
-                    Text(
-                      "  ${tr('label_or')}  ",
-                      style: TextStyle(color: context.colors.textPrimary, fontSize: 12),
-                    ),
-                    Expanded(
-                        child: Container(
-                      height: 1,
-                      color: context.colors.textSecondary.withOpacity(0.5),
-                    )),
-                  ],
-                ),
-                SizedBox(
-                  height: media.width * 0.04,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: context.colors.surface,
-                          border: Border.all(
-                            width: 1,
-                            color: context.colors.textSecondary.withOpacity(0.4),
-                          ),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Image.asset(
-                          "assets/img/google.png",
-                          width: 20,
-                          height: 20,
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      width: media.width * 0.04,
-                    ),
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: context.colors.surface,
-                          border: Border.all(
-                            width: 1,
-                            color: context.colors.textSecondary.withOpacity(0.4),
-                          ),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Image.asset(
-                          "assets/img/facebook.png",
-                          width: 20,
-                          height: 20,
-                        ),
-                      ),
-                    )
-                  ],
+                SocialSignInRow(
+                  onSignedIn: (_) => Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const MainTabView()),
+                    (route) => false,
+                  ),
+                  onBusyChanged: (busy) => setState(() => _isLoading = busy),
                 ),
                 SizedBox(
                   height: media.width * 0.04,
@@ -354,8 +295,7 @@ class _ResetPasswordDialogState extends State<_ResetPasswordDialog> {
             style: TextStyle(color: colors.textPrimary),
             decoration: InputDecoration(
               labelText: tr('label_email'),
-              labelStyle:
-                  TextStyle(color: colors.textSecondary, fontSize: 13),
+              labelStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
               isDense: true,
               filled: true,
               fillColor: colors.surfaceVariant,

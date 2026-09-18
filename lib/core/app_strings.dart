@@ -100,6 +100,14 @@ class AppStrings {
     'error_invalid_email': 'Vui lòng nhập email hợp lệ',
     'error_enter_password': 'Vui lòng nhập mật khẩu',
     'error_login_failed': 'Đăng nhập thất bại. Vui lòng thử lại.',
+    'error_social_unavailable':
+        'Cách đăng nhập này chưa được thiết lập trên máy chủ.',
+    'error_google_sign_in_failed':
+        'Đăng nhập Google thất bại. Vui lòng thử lại.',
+    'error_google_no_token':
+        'Google không cấp được mã đăng nhập cho ứng dụng. Ứng dụng có thể chưa được đăng ký đúng trên Google Cloud.',
+    'error_facebook_sign_in_failed':
+        'Đăng nhập Facebook thất bại. Vui lòng thử lại.',
 
     // ---- Forgot password ----
     'label_forgot_password': 'Quên mật khẩu?',
@@ -112,8 +120,7 @@ class AppStrings {
 
     // ---- Complete profile ----
     'title_complete_profile': 'Hoàn tất hồ sơ của bạn',
-    'subtitle_complete_profile':
-        'Thông tin này giúp chúng tôi hiểu bạn hơn!',
+    'subtitle_complete_profile': 'Thông tin này giúp chúng tôi hiểu bạn hơn!',
     'label_choose_gender': 'Chọn giới tính',
     'label_your_weight': 'Cân nặng của bạn',
     'label_your_height': 'Chiều cao của bạn',
@@ -130,8 +137,7 @@ class AppStrings {
     'subtitle_what_goal':
         'Chúng tôi sẽ chọn chương trình\nphù hợp nhất cho bạn',
     'goal_improve_shape': 'Cải thiện vóc dáng',
-    'goal_improve_shape_desc':
-        'Tôi ít mỡ thừa và muốn\ntăng thêm cơ bắp',
+    'goal_improve_shape_desc': 'Tôi ít mỡ thừa và muốn\ntăng thêm cơ bắp',
     'goal_lean_tone': 'Săn chắc',
     'goal_lean_tone_desc':
         'Tôi "gầy nhưng nhiều mỡ", trông mảnh\nnhưng không có dáng. Tôi muốn tăng cơ\nđúng cách',
@@ -196,7 +202,7 @@ class AppStrings {
     'error_ai_coach_failed': 'Không nhận được phản hồi. Thử lại nhé.',
     'msg_ai_coach_placeholder_reply':
         'Giao diện chat đã xong, nhưng phần trả lời thật chưa được nối.\n\n'
-        'Khi backend AI Coach hoàn thành, tôi sẽ đọc được **lịch sử tập, chỉ số cơ thể và giáo án** của bạn để trả lời dựa trên dữ liệu thật.',
+            'Khi backend AI Coach hoàn thành, tôi sẽ đọc được **lịch sử tập, chỉ số cơ thể và giáo án** của bạn để trả lời dựa trên dữ liệu thật.',
     'title_workout_tracker': 'Lịch tập',
 
     // ---- Exercise explorer ----
@@ -243,13 +249,15 @@ class AppStrings {
     'btn_add_exercises': 'Thêm bài tập',
     'btn_add_to_today': 'Thêm vào hôm nay',
     'title_no_plan_yet': 'Chưa có lịch tập',
-    'msg_create_plan_first': 'Bạn cần có lịch tập trước khi thêm bài vào hôm nay. Mở phần lịch tập để tạo?',
+    'msg_create_plan_first':
+        'Bạn cần có lịch tập trước khi thêm bài vào hôm nay. Mở phần lịch tập để tạo?',
     'btn_create_plan': 'Tạo lịch tập',
     'btn_go_to_schedules': 'Tới lịch tập',
     'title_add_to_today': 'Thêm vào hôm nay?',
     'msg_add_to_today': 'Thêm "{name}" vào lịch hôm nay của "{plan}"?',
     'title_pick_plan': 'Thêm vào lịch nào?',
-    'msg_pick_plan_activates': 'Lịch bạn chọn sẽ được đặt thành lịch đang áp dụng.',
+    'msg_pick_plan_activates':
+        'Lịch bạn chọn sẽ được đặt thành lịch đang áp dụng.',
     'title_already_added': 'Đã có rồi',
     'msg_already_in_today_long': '"{name}" đã có trong lịch hôm nay.',
     'title_rest_day': 'Hôm nay là ngày nghỉ',
@@ -422,7 +430,8 @@ class AppStrings {
     'btn_change_password': 'Đổi mật khẩu',
     'error_enter_current_password': 'Vui lòng nhập mật khẩu hiện tại',
     'error_password_mismatch': 'Mật khẩu nhập lại không khớp',
-    'msg_password_change_signs_out': 'Đổi mật khẩu sẽ đăng xuất khỏi mọi thiết bị.',
+    'msg_password_change_signs_out':
+        'Đổi mật khẩu sẽ đăng xuất khỏi mọi thiết bị.',
     'toast_email_changed': 'Đã đổi email. Kiểm tra hộp thư nếu cần xác nhận.',
     'toast_password_changed': 'Đã đổi mật khẩu. Vui lòng đăng nhập lại.',
     'msg_logout_confirm': 'Bạn có chắc muốn đăng xuất?',
@@ -435,7 +444,8 @@ class AppStrings {
     'label_per_week': 'buổi/tuần',
     'label_total_volume': 'Tổng khối lượng',
     'msg_no_progress_yet': 'Chưa đủ dữ liệu để thống kê',
-    'msg_no_progress_hint': 'Hoàn thành một buổi tập để bắt đầu theo dõi tiến độ',
+    'msg_no_progress_hint':
+        'Hoàn thành một buổi tập để bắt đầu theo dõi tiến độ',
     'hint_completion': 'Số set đã tập trên số set có trong kế hoạch',
     'hint_performance': 'So với mục tiêu đã đặt',
 
@@ -534,11 +544,19 @@ class AppStrings {
     'error_invalid_email': 'Please enter a valid email',
     'error_enter_password': 'Please enter your password',
     'error_login_failed': 'Login failed. Please try again.',
+    'error_social_unavailable':
+        'That sign-in method is not set up on the server.',
+    'error_google_sign_in_failed': 'Google sign-in failed. Please try again.',
+    'error_google_no_token':
+        'Google would not issue a sign-in token for this app. It may not be registered correctly in Google Cloud.',
+    'error_facebook_sign_in_failed':
+        'Facebook sign-in failed. Please try again.',
 
     // ---- Forgot password ----
     'label_forgot_password': 'Forgot your password?',
     'title_reset_password': 'Reset password',
-    'hint_reset_password': 'Enter your email and we will send you a reset link.',
+    'hint_reset_password':
+        'Enter your email and we will send you a reset link.',
     'btn_send_reset_link': 'Send link',
     'toast_reset_link_sent':
         'If that email is registered, a reset link has been sent.',
@@ -609,8 +627,7 @@ class AppStrings {
 
     // ---- AI coach chat ----
     'title_ai_greeting': 'Hi there 👋',
-    'msg_ai_greeting':
-        'Ask me anything about training, form or nutrition.',
+    'msg_ai_greeting': 'Ask me anything about training, form or nutrition.',
     'prompt_ai_plan': 'Build me a 3-day beginner plan',
     'prompt_ai_form': 'What do people get wrong in a push-up?',
     'prompt_ai_nutrition': 'What should I eat after training?',
@@ -627,9 +644,9 @@ class AppStrings {
     'error_ai_coach_failed': 'No reply came back. Try again.',
     'msg_ai_coach_placeholder_reply':
         'The chat screen is built, but real answers are not wired up yet.\n\n'
-        'Once the AI Coach backend is done, I will be able to read your '
-        '**training history, body metrics and plans** and answer from your '
-        'real data.',
+            'Once the AI Coach backend is done, I will be able to read your '
+            '**training history, body metrics and plans** and answer from your '
+            'real data.',
     'title_workout_tracker': 'Workout',
 
     // ---- Exercise explorer ----
@@ -654,7 +671,8 @@ class AppStrings {
     // ---- Exercise picker ----
     'title_pick_exercises': 'Pick exercises',
     'label_selected_count': '{n} selected',
-    'msg_empty_selection_clears_day': 'Saving with nothing ticked clears this date',
+    'msg_empty_selection_clears_day':
+        'Saving with nothing ticked clears this date',
 
     // ---- Schedules ----
     'msg_no_schedules': 'No schedules yet',
@@ -677,13 +695,15 @@ class AppStrings {
     'btn_add_exercises': 'Add exercises',
     'btn_add_to_today': 'Add to today',
     'title_no_plan_yet': 'No schedule yet',
-    'msg_create_plan_first': 'You need a schedule before adding an exercise to today. Open the schedules tab to make one?',
+    'msg_create_plan_first':
+        'You need a schedule before adding an exercise to today. Open the schedules tab to make one?',
     'btn_create_plan': 'Create a schedule',
     'btn_go_to_schedules': 'Go to schedules',
     'title_add_to_today': 'Add to today?',
     'msg_add_to_today': 'Add "{name}" to today on "{plan}"?',
     'title_pick_plan': 'Add to which schedule?',
-    'msg_pick_plan_activates': 'The one you pick becomes the schedule you are following.',
+    'msg_pick_plan_activates':
+        'The one you pick becomes the schedule you are following.',
     'title_already_added': 'Already there',
     'msg_already_in_today_long': '"{name}" is already on today.',
     'title_rest_day': 'Today is a rest day',
@@ -729,7 +749,8 @@ class AppStrings {
     'label_target_weight_kg': 'Weight (kg)',
     'label_rest': 'Rest',
     'label_rest_seconds': 'Rest (seconds)',
-    'msg_empty_field_means_unset': 'Leaving a field empty means no target for it.',
+    'msg_empty_field_means_unset':
+        'Leaving a field empty means no target for it.',
 
     // ---- Workout session ----
     'btn_start_workout': 'Start workout',
@@ -740,7 +761,8 @@ class AppStrings {
     'btn_finish_workout': 'Finish',
     'msg_finish_confirm':
         'Finish this workout? You can reopen it later to keep training.',
-    'msg_finish_with_unlogged': 'Only {done}/{total} sets logged. Finish anyway?',
+    'msg_finish_with_unlogged':
+        'Only {done}/{total} sets logged. Finish anyway?',
     'title_reopen_session': 'Train again?',
     'msg_reopen_session':
         'This workout was finished. Reopen it to log more sets? The break between the two is not counted as training.',
@@ -855,8 +877,10 @@ class AppStrings {
     'btn_change_password': 'Change password',
     'error_enter_current_password': 'Please enter your current password',
     'error_password_mismatch': 'The passwords do not match',
-    'msg_password_change_signs_out': 'Changing your password signs you out everywhere.',
-    'toast_email_changed': 'Email changed. Check your inbox if confirmation is required.',
+    'msg_password_change_signs_out':
+        'Changing your password signs you out everywhere.',
+    'toast_email_changed':
+        'Email changed. Check your inbox if confirmation is required.',
     'toast_password_changed': 'Password changed. Please sign in again.',
     'msg_logout_confirm': 'Are you sure you want to log out?',
 
