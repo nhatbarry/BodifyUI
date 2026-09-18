@@ -7,7 +7,7 @@ enum RepStage {
   /// At the top: standing, or arms locked out. Where a rep starts and ends.
   up,
 
-  /// Past the first depth milestone, on the way down or back up.
+  /// Has held a real bottom on this rep, on the way down or back up.
   down,
 }
 
@@ -40,7 +40,8 @@ class ProcessorResult {
   /// measures at the top and the bottom.
   final double? angle;
 
-  /// Deepest angle reached so far in the rep being performed.
+  /// The depth the rep in progress will be scored on - the deepest angle
+  /// *held*, not the deepest touched. See [ExerciseProcessor.dwellFrames].
   final double? deepest;
 
   /// 'L' or 'R' - which arm or leg the angle came from.
@@ -71,7 +72,7 @@ class ProcessorResult {
 
 /// One exercise's rules for counting and scoring reps from a pose.
 ///
-/// A rep is a round trip: from the top position, down past a depth milestone,
+/// A rep is a round trip: from the top position, down to a depth milestone,
 /// and back to the top. Every exercise gets its own subclass because the joint
 /// that measures the movement differs - an elbow for a push-up, a knee for a
 /// squat - and so do the angles that count as deep.
@@ -81,20 +82,29 @@ class ProcessorResult {
 /// Depth is the thing being judged, so it is the thing scored. Each rep is
 /// worth:
 ///
-///   * **100** if it passed [milestone2Angle] - full depth.
-///   * **50**  if it passed [milestone1Angle] but not [milestone2Angle].
-///   * **nothing at all** if it never reached [milestone1Angle] - it is not
+///   * **100** if it held [milestone2Angle] - full depth.
+///   * **50**  if it held [milestone1Angle] but not [milestone2Angle].
+///   * **nothing at all** if it never held [milestone1Angle] - it is not
 ///     counted as a rep either, only cued. Counting a dip of five degrees as a
 ///     zero-scoring rep would let someone twitch their way to twenty reps, and
 ///     the number of reps is what the set records.
 ///
-/// ## Why consecutive frames rather than a smoothed angle
+/// ## What stops a rep that did not happen
 ///
-/// A single frame where ML Kit misplaces an elbow can swing the angle by
-/// thirty degrees. Averaging over a window would hide that, but it also lags -
-/// and lag on a fast set means missed reps. Requiring the same reading on
-/// [debounceFrames] frames in a row rejects the spike without delaying anyone
-/// who is actually moving.
+/// Every rule below closes a way the first version counted reps nobody did:
+///
+///   * **A rep starts at the top.** Nothing is counted until the user has been
+///     seen at [restAngle]. Getting into position - kneeling with bent arms,
+///     then pushing up into a plank - is half a rep, and used to score as one.
+///   * **A bottom has to be held, not touched.** Depth is the deepest angle
+///     the arm stayed at for [dwellFrames] frames in a row. One frame of a
+///     misplaced elbow cannot lower that, so it can neither turn a 50 into a
+///     100 nor make a dip count.
+///   * **Too fast is not a rep.** Top to top in under [minRepDuration] is a
+///     glitch or a bounce, and the user is told so.
+///   * **Stopping at the bottom ends the attempt.** Down for longer than
+///     [maxBottomDuration] is someone resting on the floor, and pushing back
+///     up afterwards is getting up, not finishing a rep.
 abstract class ExerciseProcessor {
   /// Identifies this algorithm to the backend, e.g. 'pushup_v1'. Stored with
   /// every set it scores, so a later change of thresholds cannot rewrite how
@@ -104,14 +114,40 @@ abstract class ExerciseProcessor {
   /// Angle at the top of the movement. Above it, the user is at rest.
   double get restAngle;
 
-  /// First depth milestone - a rep that gets here is worth 50.
+  /// First depth milestone - a rep that holds this is worth 50.
   double get milestone1Angle;
 
-  /// Full depth - a rep that gets here is worth 100.
+  /// Full depth - a rep that holds this is worth 100.
   double get milestone2Angle;
 
-  /// How many frames in a row must agree before a stage change is believed.
+  /// How many frames in a row must read "at the top" before a rep is closed.
   int get debounceFrames => 2;
+
+  /// How many frames in a row an angle must be held to count as reached.
+  ///
+  /// Two, not more, because the angle is already smoothed (see [smoothing]):
+  /// the average carries the previous frame in it, so a one-frame spike is
+  /// halved before this even sees it and holding two frames removes most of
+  /// what is left. Asking for more starts costing honest reps instead - on a
+  /// phone detecting at 10-15 frames a second, the bottom of a brisk push-up
+  /// only lasts two or three frames.
+  int get dwellFrames => 2;
+
+  /// The fastest a real repetition can be, top to top.
+  ///
+  /// Below this it is noise, a camera glitch, or somebody bouncing their
+  /// elbows without moving their chest.
+  Duration get minRepDuration => const Duration(milliseconds: 400);
+
+  /// The longest the user can stay down before the attempt is abandoned.
+  ///
+  /// Measured from the bottom, not from the top: hovering half-bent at the
+  /// top while getting set is not a slow rep and must not use this up.
+  Duration get maxBottomDuration => const Duration(seconds: 6);
+
+  /// A dip shallower than this below [restAngle] is not worth a "go deeper" -
+  /// arms flex a little at the top without anyone attempting a rep.
+  double get noticeableDip => 15;
 
   /// The angle this exercise counts from, or null when the camera cannot see
   /// the joints well enough to say. A null frame is skipped, not scored.
@@ -125,11 +161,9 @@ abstract class ExerciseProcessor {
   /// How much of each frame's reading to believe, against the running value.
   ///
   /// ML Kit can misplace an elbow by thirty degrees on a single frame, and the
-  /// raw number jitters even when the arm is still. Averaging the last few
-  /// frames costs a little lag - at 0.5 roughly one frame's worth - and buys a
-  /// number that only moves when the arm does. The frame-count debounce below
-  /// handles the rest; smoothing alone would still cross a threshold on a
-  /// sustained bad reading.
+  /// raw number jitters even when the arm is still. Averaging costs a little
+  /// lag - at 0.5 roughly one frame's worth - and buys a number that only
+  /// moves when the arm does.
   double get smoothing => 0.5;
 
   /// Anything worth telling the user about their form on this frame.
@@ -140,17 +174,32 @@ abstract class ExerciseProcessor {
   RepStage _stage = RepStage.up;
   int _reps = 0;
   int _score = 0;
-  int _framesAgreeing = 0;
-  RepStage? _pendingStage;
   double _depth = 0;
 
-  /// Deepest point reached since leaving the top, as an angle. Reset at the
-  /// top of every rep; this is what the rep is scored on, not the angle at the
-  /// moment the user happens to come back up.
-  double _deepestAngle = double.infinity;
+  /// The running, smoothed angle - what every decision below is made on.
+  double? _smoothed;
 
-  /// True once the user has gone deep enough on this rep for it to count.
-  bool _passedFirstMilestone = false;
+  /// Consecutive frames at or above [restAngle].
+  int _framesUp = 0;
+
+  /// Whether the user has been seen at the top yet. Nothing counts until then.
+  bool _hasBeenAtTop = false;
+
+  /// When the current attempt left the top. Null while resting at the top.
+  DateTime? _repStartedAt;
+
+  /// When the current attempt first held [milestone1Angle].
+  DateTime? _bottomReachedAt;
+
+  /// The last [dwellFrames] angles of this attempt, oldest first.
+  final List<double> _recent = [];
+
+  /// Deepest angle held for [dwellFrames] frames on this attempt.
+  double _heldDeepest = double.infinity;
+
+  /// Deepest single reading on this attempt - only used to tell a real dip
+  /// from standing still, never to score.
+  double _touchedDeepest = double.infinity;
 
   int get repCount => _reps;
   int get score => _score;
@@ -159,11 +208,11 @@ abstract class ExerciseProcessor {
   /// Per-rep scores in order, which is what the set stores.
   final List<int> repScores = [];
 
-  /// The running, smoothed angle - what every decision below is made on.
-  double? _smoothed;
-
   /// Feed one detected pose in and get back what to draw.
-  ProcessorResult process(Pose pose) {
+  ///
+  /// [at] is the moment the frame was captured, and exists for tests; the
+  /// camera leaves it out.
+  ProcessorResult process(Pose pose, {DateTime? at}) {
     final raw = primaryAngle(pose);
     if (raw == null) {
       // Nothing legible this frame. Hold everything where it was rather than
@@ -173,62 +222,31 @@ abstract class ExerciseProcessor {
         score: _score,
         stage: _stage,
         depth: _depth,
+        deepest: _heldOrNull,
       );
     }
 
-    _smoothed = _smoothed == null
-        ? raw
-        : _smoothed! + smoothing * (raw - _smoothed!);
+    final now = at ?? DateTime.now();
+    _smoothed =
+        _smoothed == null ? raw : _smoothed! + smoothing * (raw - _smoothed!);
     final angle = _smoothed!;
-
     _depth = _depthFraction(angle);
-    if (angle < _deepestAngle) _deepestAngle = angle;
+
+    _framesUp = angle >= restAngle ? _framesUp + 1 : 0;
+    if (_framesUp >= debounceFrames) _hasBeenAtTop = true;
+
+    // Leaving the top starts an attempt.
+    if (_hasBeenAtTop && _repStartedAt == null && angle < restAngle) {
+      _repStartedAt = now;
+    }
+
+    if (_repStartedAt != null) _track(angle, now);
 
     int? justScored;
+    FeedbackCue? cue;
 
-    final observed = angle <= milestone1Angle
-        ? RepStage.down
-        : (angle >= restAngle ? RepStage.up : _stage);
-
-    if (observed != _stage) {
-      // Same reading as last frame, or start counting again from one.
-      _framesAgreeing = observed == _pendingStage ? _framesAgreeing + 1 : 1;
-      _pendingStage = observed;
-
-      if (_framesAgreeing >= debounceFrames) {
-        if (observed == RepStage.down) {
-          _passedFirstMilestone = true;
-        } else {
-          justScored = _completeRep();
-        }
-        _stage = observed;
-        _framesAgreeing = 0;
-        _pendingStage = null;
-      }
-    } else {
-      _framesAgreeing = 0;
-      _pendingStage = null;
-
-      // Back at the top without ever having gone deep: the user dipped and
-      // came back. Not a rep, but worth saying something about.
-      if (_stage == RepStage.up &&
-          angle >= restAngle &&
-          !_passedFirstMilestone &&
-          _deepestAngle < restAngle - 15 &&
-          _deepestAngle != double.infinity) {
-        _deepestAngle = double.infinity;
-        return ProcessorResult(
-          repCount: _reps,
-          score: _score,
-          stage: _stage,
-          depth: _depth,
-          cue: FeedbackCue.goDeeper,
-          angle: angle,
-          deepest: null,
-          side: activeSide,
-          confidence: activeConfidence,
-        );
-      }
+    if (_repStartedAt != null && _framesUp >= debounceFrames) {
+      (justScored, cue) = _closeAttempt(now);
     }
 
     return ProcessorResult(
@@ -237,25 +255,73 @@ abstract class ExerciseProcessor {
       stage: _stage,
       depth: _depth,
       repJustScored: justScored,
-      cue: justScored == null ? checkForm(pose, angle, _stage) : null,
+      cue: cue ?? (justScored == null ? checkForm(pose, angle, _stage) : null),
       angle: angle,
-      deepest: _deepestAngle == double.infinity ? null : _deepestAngle,
+      deepest: _heldOrNull,
       side: activeSide,
       confidence: activeConfidence,
     );
   }
 
-  /// Scores the rep that just ended and resets for the next one.
-  int _completeRep() {
-    final earned = _deepestAngle <= milestone2Angle ? 100 : 50;
+  /// Folds one frame into the attempt in progress.
+  void _track(double angle, DateTime now) {
+    if (angle < _touchedDeepest) _touchedDeepest = angle;
+
+    _recent.add(angle);
+    if (_recent.length > dwellFrames) _recent.removeAt(0);
+    if (_recent.length < dwellFrames) return;
+
+    // The shallowest of the last few frames is the depth all of them held.
+    var held = _recent.first;
+    for (final a in _recent) {
+      if (a > held) held = a;
+    }
+    if (held < _heldDeepest) _heldDeepest = held;
+
+    if (_stage == RepStage.up && _heldDeepest <= milestone1Angle) {
+      _stage = RepStage.down;
+      _bottomReachedAt = now;
+    }
+  }
+
+  /// Back at the top: decides whether what just happened was a rep, and
+  /// resets for the next attempt either way.
+  (int?, FeedbackCue?) _closeAttempt(DateTime now) {
+    final held = _heldDeepest;
+    final dipped = _touchedDeepest <= restAngle - noticeableDip;
+    final duration = now.difference(_repStartedAt!);
+    final bottomAt = _bottomReachedAt;
+
+    _repStartedAt = null;
+    _bottomReachedAt = null;
+    _recent.clear();
+    _heldDeepest = double.infinity;
+    _touchedDeepest = double.infinity;
+    _stage = RepStage.up;
+
+    if (held > milestone1Angle) {
+      // Came back up without ever holding a real bottom. Not a rep, but a dip
+      // the user clearly meant is worth a word.
+      return (null, dipped ? FeedbackCue.goDeeper : null);
+    }
+    if (duration < minRepDuration) {
+      return (null, FeedbackCue.slowDown);
+    }
+    if (bottomAt != null && now.difference(bottomAt) > maxBottomDuration) {
+      // They stopped on the floor and got up. Saying nothing is right: there
+      // is no form fault to correct in resting.
+      return (null, null);
+    }
+
+    final earned = held <= milestone2Angle ? 100 : 50;
     _reps += 1;
     _score += earned;
     repScores.add(earned);
-
-    _deepestAngle = double.infinity;
-    _passedFirstMilestone = false;
-    return earned;
+    return (earned, null);
   }
+
+  double? get _heldOrNull =>
+      _heldDeepest == double.infinity ? null : _heldDeepest;
 
   /// Current angle mapped onto 0..1 between the top position and full depth,
   /// so the bar fills as the user descends and the two milestones sit at fixed
@@ -277,12 +343,15 @@ abstract class ExerciseProcessor {
     _stage = RepStage.up;
     _reps = 0;
     _score = 0;
-    _framesAgreeing = 0;
-    _pendingStage = null;
     _depth = 0;
-    _deepestAngle = double.infinity;
-    _passedFirstMilestone = false;
     _smoothed = null;
+    _framesUp = 0;
+    _hasBeenAtTop = false;
+    _repStartedAt = null;
+    _bottomReachedAt = null;
+    _recent.clear();
+    _heldDeepest = double.infinity;
+    _touchedDeepest = double.infinity;
     repScores.clear();
   }
 }

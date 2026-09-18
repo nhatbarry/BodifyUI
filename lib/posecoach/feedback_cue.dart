@@ -14,7 +14,12 @@ enum FeedbackCue {
   raiseHips('msg_cue_raise_hips'),
 
   /// Hips riding above the line - piking, which shortens the movement.
-  lowerHips('msg_cue_lower_hips');
+  lowerHips('msg_cue_lower_hips'),
+
+  /// Went down and up too fast to be a real rep, so it was not counted.
+  /// Said out loud because otherwise the user sees the counter ignore them
+  /// with no idea why.
+  slowDown('msg_cue_slow_down');
 
   const FeedbackCue(this.stringKey);
 
