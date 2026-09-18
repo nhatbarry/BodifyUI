@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -14,6 +16,7 @@ import '../../posecoach/exercise_processor.dart';
 import '../../posecoach/exercise_processor_factory.dart';
 import '../../posecoach/feedback_cue.dart';
 import '../../posecoach/pose_overlay_painter.dart';
+import '../../posecoach/skeleton_animator.dart';
 import '../../posecoach/tts_coach.dart';
 
 /// The two depth milestones, as colours. Orange is "counted, half marks",
@@ -53,7 +56,7 @@ class LiveCameraSetView extends StatefulWidget {
 }
 
 class _LiveCameraSetViewState extends State<LiveCameraSetView>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   CameraController? _controller;
   late final ExerciseProcessor? _processor =
       processorFor(widget.exercise.aiAlgorithm);
@@ -62,8 +65,17 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
   );
   final TtsCoach _coach = TtsCoach();
 
-  List<Pose> _poses = const [];
-  Size _frameSize = Size.zero;
+  /// Where the skeleton is drawn - eased towards each detection at the
+  /// screen's refresh rate rather than jumping to it. See [SkeletonAnimator].
+  final SkeletonAnimator _skeleton = SkeletonAnimator();
+
+  /// Drives [_skeleton] and the depth bar once per screen frame.
+  late final Ticker _ticker = createTicker(_onTick);
+  Duration _lastTick = Duration.zero;
+
+  /// Whether the last detection found anybody. Only its *changes* rebuild the
+  /// screen - it decides whether to show "get in frame".
+  bool _hasPose = false;
 
   /// One frame at a time. ML Kit takes tens of milliseconds per frame and the
   /// camera delivers thirty a second; without this the queue grows until the
@@ -72,8 +84,17 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
 
   int _reps = 0;
   int _score = 0;
-  double _depth = 0;
   FeedbackCue? _cue;
+
+  /// What the depth bar shows, eased towards [_targetDepth] every screen
+  /// frame. A notifier rather than state, so the bar repaints on its own
+  /// without rebuilding the HUD around it.
+  final ValueNotifier<double> _shownDepth = ValueNotifier(0);
+  double _targetDepth = 0;
+
+  /// The latest reading, for the tuning readout - the one part of the HUD
+  /// that genuinely changes on every detection.
+  final ValueNotifier<ProcessorResult?> _live = ValueNotifier(null);
   Timer? _cueTimer;
 
   /// Live readout of what the algorithm is actually measuring.
@@ -83,10 +104,6 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
   /// reads at the top and at the bottom. Turned off once the numbers are
   /// settled - it is a tuning instrument, not a feature.
   static const bool _showTuningReadout = true;
-  double? _angle;
-  double? _deepest;
-  String? _side;
-  double? _confidence;
 
   List<CameraDescription> _cameras = const [];
   CameraLensDirection _facing = CameraLensDirection.back;
@@ -103,7 +120,25 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _ticker.start();
     _start();
+  }
+
+  /// Once per screen frame: ease the skeleton and the depth bar towards the
+  /// latest detection.
+  void _onTick(Duration elapsed) {
+    final dt = elapsed - _lastTick;
+    _lastTick = elapsed;
+    _skeleton.advance(dt);
+
+    final gap = _targetDepth - _shownDepth.value;
+    if (gap.abs() > 0.002) {
+      final seconds = math.min(dt.inMicroseconds / 1e6, 0.1);
+      // ~60ms to close most of the gap: quick enough that the bar still
+      // tracks the rep, slow enough that it stops stepping between
+      // detections.
+      _shownDepth.value += gap * (1 - math.exp(-seconds / 0.06));
+    }
   }
 
   Future<void> _start() async {
@@ -175,8 +210,9 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
       // pixel is copied per frame on the UI isolate.
       ResolutionPreset.medium,
       enableAudio: false,
-      imageFormatGroup:
-          Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
     );
 
     await controller.initialize();
@@ -216,10 +252,11 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
       if (mounted) {
         setState(() {
           _switching = false;
-          // The skeleton belongs to the old lens; it will be replaced by the
-          // first frame from the new one.
-          _poses = const [];
+          _hasPose = false;
         });
+        // The skeleton belongs to the old lens; it will be replaced by the
+        // first frame from the new one.
+        _skeleton.clear();
       }
     }
   }
@@ -246,34 +283,37 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
       final poses = await _detector.processImage(input);
       if (!mounted) return;
 
-      final upright = input.metadata!.rotation == InputImageRotation.rotation90deg ||
-              input.metadata!.rotation == InputImageRotation.rotation270deg
-          ? Size(image.height.toDouble(), image.width.toDouble())
-          : Size(image.width.toDouble(), image.height.toDouble());
+      final upright =
+          input.metadata!.rotation == InputImageRotation.rotation90deg ||
+                  input.metadata!.rotation == InputImageRotation.rotation270deg
+              ? Size(image.height.toDouble(), image.width.toDouble())
+              : Size(image.width.toDouble(), image.height.toDouble());
 
       if (poses.isEmpty) {
-        setState(() {
-          _poses = const [];
-          _frameSize = upright;
-        });
+        _skeleton.update(null, upright);
+        if (_hasPose) setState(() => _hasPose = false);
         return;
       }
 
+      // Counting reads the raw detection; only the drawing is eased.
       final result = processor.process(poses.first);
+      _skeleton.update(poses.first, upright);
+      _targetDepth = result.depth;
+      _live.value = result;
+
       if (result.repJustScored != null) HapticFeedback.mediumImpact();
       if (result.cue != null) _showCue(result.cue!);
 
-      setState(() {
-        _poses = poses;
-        _frameSize = upright;
-        _reps = result.repCount;
-        _score = result.score;
-        _depth = result.depth;
-        _angle = result.angle;
-        _deepest = result.deepest;
-        _side = result.side;
-        _confidence = result.confidence;
-      });
+      // Rebuild only for what the HUD's widgets actually show. Doing it on
+      // every detection rebuilt the preview and the whole HUD ten to twenty
+      // times a second, which is where much of the stutter came from.
+      if (result.repCount != _reps || result.score != _score || !_hasPose) {
+        setState(() {
+          _reps = result.repCount;
+          _score = result.score;
+          _hasPose = true;
+        });
+      }
     } catch (_) {
       // A frame that cannot be read is not worth reporting - the next one
       // arrives in 30ms.
@@ -372,6 +412,10 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _ticker.dispose();
+    _skeleton.dispose();
+    _shownDepth.dispose();
+    _live.dispose();
     _clock?.cancel();
     _cueTimer?.cancel();
     // Stop the stream before the detector goes: a frame arriving after the
@@ -435,12 +479,15 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
     );
   }
 
-  Widget _buildSkeleton() => CustomPaint(
-        painter: PoseOverlayPainter(
-          poses: _poses,
-          imageSize: _frameSize,
-          mirror: _controller?.description.lensDirection ==
-              CameraLensDirection.front,
+  /// Its own layer: the skeleton repaints every screen frame while the user
+  /// moves, and nothing else on screen should be dragged along with it.
+  Widget _buildSkeleton() => RepaintBoundary(
+        child: CustomPaint(
+          painter: PoseOverlayPainter(
+            skeleton: _skeleton,
+            mirror: _controller?.description.lensDirection ==
+                CameraLensDirection.front,
+          ),
         ),
       );
 
@@ -499,8 +546,8 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.45),
-            borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(18)),
+            borderRadius:
+                const BorderRadius.vertical(bottom: Radius.circular(18)),
           ),
           child: Column(
             children: [
@@ -528,7 +575,8 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
                         _cameras.length < 2 || _switching ? null : _flipCamera,
                     icon: Icon(
                       Icons.flip_camera_ios,
-                      color: _cameras.length < 2 ? Colors.white24 : Colors.white,
+                      color:
+                          _cameras.length < 2 ? Colors.white24 : Colors.white,
                     ),
                     visualDensity: VisualDensity.compact,
                   ),
@@ -560,8 +608,7 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
         if (_cue != null)
           Container(
             margin: const EdgeInsets.only(top: 12),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: _kMilestone1Color.withValues(alpha: 0.92),
               borderRadius: BorderRadius.circular(24),
@@ -573,7 +620,7 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
                     fontWeight: FontWeight.w700)),
           ),
         const Spacer(),
-        if (_reps == 0 && _poses.isEmpty)
+        if (_reps == 0 && !_hasPose)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(tr('msg_ai_get_in_frame'),
@@ -636,17 +683,20 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
 
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: Text(
-        '${_side ?? "—"} ${number(_angle)}°'
-        ' · sâu ${number(_deepest)}°'
-        ' · tin ${number(_confidence, digits: 2)}'
-        ' · mốc ${processor == null ? "—" : "${processor.restAngle.round()}"
-            "/${processor.milestone1Angle.round()}"
-            "/${processor.milestone2Angle.round()}"}',
-        style: const TextStyle(
-          color: Colors.white54,
-          fontSize: 10,
-          fontFeatures: [FontFeature.tabularFigures()],
+      child: ValueListenableBuilder<ProcessorResult?>(
+        valueListenable: _live,
+        builder: (context, live, _) => Text(
+          '${live?.side ?? "—"} ${number(live?.angle)}°'
+          ' · sâu ${number(live?.deepest)}°'
+          ' · tin ${number(live?.confidence, digits: 2)}'
+          ' · mốc ${processor == null ? "—" : "${processor.restAngle.round()}"
+              "/${processor.milestone1Angle.round()}"
+              "/${processor.milestone2Angle.round()}"}',
+          style: const TextStyle(
+            color: Colors.white54,
+            fontSize: 10,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
         ),
       ),
     );
@@ -668,40 +718,45 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
         LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            return SizedBox(
-              height: 12,
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  FractionallySizedBox(
-                    widthFactor: _depth.clamp(0.0, 1.0),
-                    child: Container(
+            return ValueListenableBuilder<double>(
+              valueListenable: _shownDepth,
+              builder: (context, depth, _) => SizedBox(
+                height: 12,
+                child: Stack(
+                  children: [
+                    Container(
                       decoration: BoxDecoration(
-                        color: _depth >= 1.0
-                            ? _kMilestone2Color
-                            : (_depth >= milestone1
-                                ? _kMilestone1Color
-                                : Colors.white38),
+                        color: Colors.white24,
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: width * milestone1 - 1,
-                    child: Container(width: 2, height: 12,
-                        color: _kMilestone1Color),
-                  ),
-                  Positioned(
-                    right: 0,
-                    child:
-                        Container(width: 2, height: 12, color: _kMilestone2Color),
-                  ),
-                ],
+                    FractionallySizedBox(
+                      widthFactor: depth.clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          // Not >= 1.0: the eased value approaches the target
+                          // without ever quite landing on it.
+                          color: depth >= 0.99
+                              ? _kMilestone2Color
+                              : (depth >= milestone1
+                                  ? _kMilestone1Color
+                                  : Colors.white38),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: width * milestone1 - 1,
+                      child: Container(
+                          width: 2, height: 12, color: _kMilestone1Color),
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: Container(
+                          width: 2, height: 12, color: _kMilestone2Color),
+                    ),
+                  ],
+                ),
               ),
             );
           },

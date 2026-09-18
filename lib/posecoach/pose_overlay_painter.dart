@@ -1,8 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
-/// Below this a joint is a guess, and drawing it makes the skeleton twitch.
-const double _kDrawConfidence = 0.5;
+import 'skeleton_animator.dart';
 
 /// Which landmarks to join up. Face landmarks are left out on purpose: ML Kit
 /// returns eleven of them and they add nothing to judging a push-up, but they
@@ -22,7 +23,18 @@ const List<List<PoseLandmarkType>> _bones = [
   [PoseLandmarkType.rightKnee, PoseLandmarkType.rightAnkle],
 ];
 
-/// Draws the detected skeleton over the camera preview.
+/// Every landmark some bone touches, once each.
+final List<PoseLandmarkType> _joints = {
+  for (final bone in _bones) ...bone,
+}.toList();
+
+/// Draws the skeleton over the camera preview.
+///
+/// Positions come from a [SkeletonAnimator], not straight from ML Kit, and
+/// the painter repaints when the animator says so rather than when the screen
+/// rebuilds. That second part matters as much as the first: the camera screen
+/// used to call setState for every detection, rebuilding the whole HUD just to
+/// move a few lines.
 ///
 /// ## Why the coordinate maths is not just a scale factor
 ///
@@ -37,67 +49,109 @@ const List<List<PoseLandmarkType>> _bones = [
 /// landmarks have to be mirrored too or the skeleton reaches out with the
 /// wrong arm.
 class PoseOverlayPainter extends CustomPainter {
-  final List<Pose> poses;
-  final Size imageSize;
+  final SkeletonAnimator skeleton;
   final bool mirror;
   final Color color;
 
-  const PoseOverlayPainter({
-    required this.poses,
-    required this.imageSize,
+  PoseOverlayPainter({
+    required this.skeleton,
     required this.mirror,
     this.color = const Color(0xFF9B8CFF),
-  });
+  }) : super(repaint: skeleton);
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (poses.isEmpty || imageSize.width == 0 || imageSize.height == 0) return;
+    final imageSize = skeleton.imageSize;
+    if (imageSize.width == 0 || imageSize.height == 0) return;
 
-    final scale = (size.width / imageSize.width)
-        .clamp(size.height / imageSize.height, double.infinity);
+    final scale = math.max(
+      size.width / imageSize.width,
+      size.height / imageSize.height,
+    );
     final dx = (size.width - imageSize.width * scale) / 2;
     final dy = (size.height - imageSize.height * scale) / 2;
 
-    Offset project(PoseLandmark landmark) {
-      final x = mirror ? imageSize.width - landmark.x : landmark.x;
-      return Offset(x * scale + dx, landmark.y * scale + dy);
+    Offset project(Offset point) {
+      final x = mirror ? imageSize.width - point.dx : point.dx;
+      return Offset(x * scale + dx, point.dy * scale + dy);
     }
 
     final bonePaint = Paint()
-      ..color = color
       ..strokeWidth = 6
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
-    final jointPaint = Paint()..color = Colors.white.withValues(alpha: 0.9);
+    final jointPaint = Paint();
 
-    for (final pose in poses) {
-      for (final bone in _bones) {
-        final from = pose.landmarks[bone[0]];
-        final to = pose.landmarks[bone[1]];
-        if (from == null || to == null) continue;
-        if (from.likelihood < _kDrawConfidence ||
-            to.likelihood < _kDrawConfidence) {
-          continue;
-        }
-        canvas.drawLine(project(from), project(to), bonePaint);
-      }
+    for (final bone in _bones) {
+      final from = skeleton.position(bone[0]);
+      final to = skeleton.position(bone[1]);
+      if (from == null || to == null) continue;
 
-      for (final bone in _bones) {
-        for (final type in bone) {
-          final landmark = pose.landmarks[type];
-          if (landmark == null || landmark.likelihood < _kDrawConfidence) {
-            continue;
-          }
-          canvas.drawCircle(project(landmark), 5, jointPaint);
-        }
+      // A bone is as visible as its fainter end, so it fades out with the
+      // joint rather than hanging on to a point that is no longer there.
+      final opacity = math.min(
+        skeleton.opacity(bone[0]),
+        skeleton.opacity(bone[1]),
+      );
+      if (opacity < 0.02) continue;
+
+      // A bone is only as sure as its less sure end. Drawn dashed rather than
+      // hidden: the joint is still roughly there, and a dashed line says so
+      // instead of either lying with full confidence or vanishing outright.
+      final solid = skeleton.isSolid(bone[0]) && skeleton.isSolid(bone[1]);
+
+      bonePaint.color = color.withValues(alpha: color.a * opacity);
+      final start = project(from);
+      final end = project(to);
+      if (solid) {
+        canvas.drawLine(start, end, bonePaint);
+      } else {
+        _drawDashedLine(canvas, start, end, bonePaint);
       }
+    }
+
+    for (final type in _joints) {
+      final point = skeleton.position(type);
+      final opacity = skeleton.opacity(type);
+      if (point == null || opacity < 0.02) continue;
+
+      jointPaint.color = Colors.white.withValues(alpha: 0.9 * opacity);
+      canvas.drawCircle(project(point), 5, jointPaint);
+    }
+  }
+
+  /// Draws [from]-[to] as alternating dashes, for a bone whose ends are seen
+  /// but not confidently. Manual, because Canvas has no dashed stroke - only
+  /// `dart:ui`'s solid [Canvas.drawLine].
+  static void _drawDashedLine(
+    Canvas canvas,
+    Offset from,
+    Offset to,
+    Paint paint, {
+    double dashLength = 10,
+    double gapLength = 7,
+  }) {
+    final total = (to - from).distance;
+    if (total < 1) return;
+
+    final direction = (to - from) / total;
+    var drawn = 0.0;
+    var dash = true;
+    while (drawn < total) {
+      final step = math.min(dash ? dashLength : gapLength, total - drawn);
+      if (dash) {
+        canvas.drawLine(
+          from + direction * drawn,
+          from + direction * (drawn + step),
+          paint,
+        );
+      }
+      drawn += step;
+      dash = !dash;
     }
   }
 
   @override
   bool shouldRepaint(PoseOverlayPainter old) =>
-      old.poses != poses ||
-      old.imageSize != imageSize ||
-      old.mirror != mirror ||
-      old.color != color;
+      old.skeleton != skeleton || old.mirror != mirror || old.color != color;
 }
