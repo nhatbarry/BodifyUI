@@ -14,7 +14,18 @@ class WhatYourGoalView extends StatefulWidget {
 }
 
 class _WhatYourGoalViewState extends State<WhatYourGoalView> {
-  CarouselSliderController buttonCarouselController = CarouselSliderController();
+  CarouselSliderController buttonCarouselController =
+      CarouselSliderController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Decoded up front so a card does not slide in with an empty space where
+    // its picture pops in a moment later.
+    for (var i = 1; i <= 3; i++) {
+      precacheImage(AssetImage('assets/img/goal_$i.png'), context);
+    }
+  }
 
   // A getter, not a field: `tr` reads the live language, and a list built once
   // at construction would keep whichever language was active then.
@@ -48,7 +59,12 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
             child: CarouselSlider(
               items: goalArr
                   .map(
-                    (gObj) => Container(
+                    // Its own layer: the carousel scales the side cards on
+                    // every frame of a swipe, and scaling a cached layer is
+                    // cheap where repainting a gradient, a picture and text
+                    // under a changing transform is not.
+                    (gObj) => RepaintBoundary(
+                        child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                             colors: context.colors.primaryGradient,
@@ -88,13 +104,13 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
                             Text(
                               gObj["subtitle"].toString(),
                               textAlign: TextAlign.center,
-                              style:
-                                  TextStyle(color: context.colors.surface, fontSize: 12),
+                              style: TextStyle(
+                                  color: context.colors.surface, fontSize: 12),
                             ),
                           ],
                         ),
                       ),
-                    ),
+                    )),
                   )
                   .toList(),
               carouselController: buttonCarouselController,
@@ -125,7 +141,8 @@ class _WhatYourGoalViewState extends State<WhatYourGoalView> {
                 Text(
                   tr('subtitle_what_goal'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                      color: context.colors.textSecondary, fontSize: 12),
                 ),
                 const Spacer(),
                 SizedBox(
