@@ -15,14 +15,26 @@ const double kMinLandmarkConfidence = 0.6;
 /// 180 is a straight limb, 90 a right angle. Computed in image space: the
 /// landmarks carry a z, but ML Kit's depth is a rough estimate and folding it
 /// in made the reading noisier, not truer.
+///
+/// Dot product and acos rather than the difference of two atan2 calls. Both
+/// give the same angle for sane input, but this one cannot produce a reflex
+/// reading that has to be folded back, and the clamp means floating-point
+/// drift just past ±1 returns 0 or 180 instead of NaN. A degenerate frame -
+/// two landmarks on top of each other, which happens when ML Kit loses a limb
+/// - returns 180 (a straight limb), the reading that counts no rep, rather
+/// than a number that could.
 double jointAngle(PoseLandmark first, PoseLandmark vertex, PoseLandmark last) {
-  final radians = math.atan2(last.y - vertex.y, last.x - vertex.x) -
-      math.atan2(first.y - vertex.y, first.x - vertex.x);
-  var degrees = radians * 180 / math.pi;
-  degrees = degrees.abs();
-  // atan2 spans a full turn, so the reflex reading has to be folded back:
-  // an elbow at 350 degrees is the same bend as one at 10.
-  return degrees > 180 ? 360 - degrees : degrees;
+  final ax = first.x - vertex.x;
+  final ay = first.y - vertex.y;
+  final bx = last.x - vertex.x;
+  final by = last.y - vertex.y;
+
+  final dot = ax * bx + ay * by;
+  final magnitude = math.sqrt(ax * ax + ay * ay) * math.sqrt(bx * bx + by * by);
+  if (magnitude <= 0) return 180;
+
+  final cosine = (dot / magnitude).clamp(-1.0, 1.0);
+  return math.acos(cosine) * 180 / math.pi;
 }
 
 /// True when every landmark given is one ML Kit actually saw.
@@ -101,10 +113,14 @@ BodySide? clearestSide(
   if (left == null) return right;
   if (right == null) return left;
 
-  final held = current == BodySideId.left ? left : (current == BodySideId.right ? right : null);
+  final held = current == BodySideId.left
+      ? left
+      : (current == BodySideId.right ? right : null);
   if (held != null) {
     final other = held.id == BodySideId.left ? right : left;
-    return other.confidence > held.confidence + kSideSwitchMargin ? other : held;
+    return other.confidence > held.confidence + kSideSwitchMargin
+        ? other
+        : held;
   }
 
   return left.confidence >= right.confidence ? left : right;

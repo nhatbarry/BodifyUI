@@ -333,6 +333,7 @@ class AppStrings {
     'msg_cue_go_deeper': 'Xuống sâu hơn nữa',
     'msg_cue_raise_hips': 'Nâng hông lên, giữ thân thẳng',
     'msg_cue_lower_hips': 'Hạ hông xuống, đừng chổng mông',
+    'msg_cue_slow_down': 'Chậm lại, rep quá nhanh không được tính',
     'title_camera_permission': 'Cần quyền camera',
     'msg_camera_permission':
         'Bodify cần camera để đếm rep và góp ý tư thế. Video không được ghi lại hay gửi đi đâu cả.',
@@ -765,6 +766,7 @@ class AppStrings {
     'msg_cue_go_deeper': 'Go deeper',
     'msg_cue_raise_hips': 'Raise your hips, keep your body straight',
     'msg_cue_lower_hips': 'Lower your hips, do not pike',
+    'msg_cue_slow_down': 'Slow down, that rep was too fast to count',
     'title_camera_permission': 'Camera access needed',
     'msg_camera_permission':
         'Bodify uses the camera to count reps and check your form. Nothing is recorded or uploaded.',
