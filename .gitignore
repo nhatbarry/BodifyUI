@@ -47,4 +47,3 @@ app.*.map.json
 **/build/
 .gradle/
 **/.cxx/
-CLAUDE.md

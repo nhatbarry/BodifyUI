@@ -9,7 +9,7 @@ class RefreshFlags {
   RefreshFlags._();
 
   /// `POST /workout-sessions/{id}/finish` is the only place records,
-  /// achievements and completion stats are computed - see CLAUDE.md.
+  /// achievements and completion stats are computed on the backend.
   /// Reopening and finishing again is a second real finish and lands here
   /// too; abandoning a session correctly does not, since it sets no records.
   static bool homeActivity = false;
