@@ -33,12 +33,19 @@ class ExerciseThumbnail extends StatelessWidget {
   final double size;
   final double radius;
 
+  /// What to draw when there is no picture. Defaults to a dumbbell, which is
+  /// right for the exercise catalog and wrong everywhere else - the food
+  /// catalog passes a plate, because 851 of its rows have no image at all and
+  /// a wall of dumbbells beside a list of dishes reads as a bug.
+  final IconData placeholderIcon;
+
   const ExerciseThumbnail({
     super.key,
     required this.url,
     required this.cacheKey,
     this.size = 46,
     this.radius = 12,
+    this.placeholderIcon = Icons.fitness_center,
   });
 
   @override
@@ -55,7 +62,7 @@ class ExerciseThumbnail extends StatelessWidget {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: colors.primary1),
                 )
-              : Icon(Icons.fitness_center,
+              : Icon(placeholderIcon,
                   color: colors.primary1, size: size * 0.42),
         );
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../common/app_colors.dart';
 import '../../core/app_strings.dart';
 import 'schedule_list_view.dart';
+import '../meal_planner/meal_diary_view.dart';
 
 /// Second bottom-tab: one screen holding Workout Tracker and Meal Planner,
 /// switched by the segmented control at the top.
@@ -95,40 +96,5 @@ class _MealPlannerTab extends StatelessWidget {
   const _MealPlannerTab();
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: context.colors.surfaceVariant,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.restaurant_menu, color: context.colors.textSecondary, size: 34),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              tr('nav_meal_planner'),
-              style: TextStyle(
-                  color: context.colors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              tr('msg_feature_in_progress'),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: context.colors.textSecondary, fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const MealDiaryView();
 }
