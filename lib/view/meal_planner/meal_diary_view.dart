@@ -8,16 +8,18 @@ import '../../models/meal_models.dart';
 import '../../services/meal_service.dart';
 import 'food_detail_view.dart';
 import 'food_picker_sheet.dart';
+import 'meal_calendar_sheet.dart';
 import 'nutrition_history_view.dart';
 import 'nutrition_target_sheet.dart';
 
-/// One day of eating: the four sittings, what they add up to, and the target.
+/// One day of eating: the user's own meals, what they add up to, and the target.
 ///
-/// The four sittings are always drawn, even when empty, because this screen is
-/// as much a prompt as a record - a "Bữa tối" heading with an add button under
-/// it is what gets dinner logged. That is the opposite of the API, which
-/// returns only sittings that exist; the empty ones are a rendering decision,
-/// not data.
+/// A day has as many meals as the user made. A meal with no name is drawn as
+/// "Bữa 1", "Bữa 2" by its place in the day - the placeholder is this screen's
+/// to draw, nothing is stored for it. Any date can be opened, the future
+/// included: that is where a plan is made. Each food is either planned or
+/// eaten; ticking a planned food marks it eaten, and only eaten food counts
+/// toward the total and the target.
 class MealDiaryView extends StatefulWidget {
   const MealDiaryView({super.key});
 
@@ -66,26 +68,107 @@ class MealDiaryViewState extends State<MealDiaryView> {
     _load();
   }
 
-  bool get _isToday {
-    final now = DateTime.now();
-    return _date.year == now.year &&
-        _date.month == now.month &&
-        _date.day == now.day;
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  bool get _isToday => _dateOnly(_date) == _dateOnly(DateTime.now());
+
+  bool get _isTomorrow =>
+      _dateOnly(_date) ==
+      _dateOnly(DateTime.now().add(const Duration(days: 1)));
+
+  /// Nothing can have been eaten on a day that has not happened, so foods added
+  /// there start as planned and cannot be ticked.
+  bool get _isFuture => _dateOnly(_date).isAfter(_dateOnly(DateTime.now()));
+
+  String _placeholderName(int index) =>
+      AppStrings.of('label_meal_placeholder').replaceFirst('{n}', '${index + 1}');
+
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _addTo(MealType type) async {
+  Future<void> _addMeal() async {
+    final nextIndex = _diary?.meals.length ?? 0;
+    final choice = await showModalBottomSheet<_NameChoice>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _MealNameSheet(
+        title: AppStrings.of('title_new_meal'),
+        confirmLabel: AppStrings.of('btn_create'),
+        placeholder: _placeholderName(nextIndex),
+      ),
+    );
+    if (choice == null) return;
+
+    try {
+      await MealService.instance.createMeal(date: _date, name: choice.name);
+      await _load();
+    } on ApiException catch (e) {
+      _toast(e.message);
+    }
+  }
+
+  Future<void> _renameMeal(Meal meal, int index) async {
+    final choice = await showModalBottomSheet<_NameChoice>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _MealNameSheet(
+        title: AppStrings.of('title_rename_meal'),
+        confirmLabel: AppStrings.of('btn_save'),
+        placeholder: _placeholderName(index),
+        initial: meal.name,
+      ),
+    );
+    if (choice == null) return;
+
+    try {
+      await MealService.instance.updateMeal(
+        mealId: meal.mealId,
+        name: choice.name,
+        // A blank name goes back to the placeholder rather than to "".
+        clearName: choice.name == null,
+      );
+      await _load();
+    } on ApiException catch (e) {
+      _toast(e.message);
+    }
+  }
+
+  Future<void> _addFood(Meal meal) async {
     final added = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => FoodPickerSheet(date: _date, mealType: type),
+      builder: (_) => FoodPickerSheet(
+        mealId: meal.mealId,
+        defaultStatus: _isFuture ? ItemStatus.planned : ItemStatus.eaten,
+      ),
     );
     if (added == true) {
       await _load();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppStrings.of('toast_food_logged'))),
+      _toast(AppStrings.of('toast_food_logged'));
+    }
+  }
+
+  /// Tick a planned food as eaten, or put an eaten one back on the plan.
+  Future<void> _toggleItem(MealItem item) async {
+    if (item.isPlanned && _isFuture) {
+      _toast(AppStrings.of('msg_cannot_tick_future'));
+      return;
+    }
+    try {
+      await MealService.instance.setItemStatus(
+        mealItemId: item.mealItemId,
+        status: item.isPlanned ? ItemStatus.eaten : ItemStatus.planned,
       );
+      await _load();
+      _toast(AppStrings.of(
+          item.isPlanned ? 'toast_marked_eaten' : 'toast_back_to_plan'));
+    } on ApiException catch (e) {
+      _toast(e.message);
     }
   }
 
@@ -198,6 +281,18 @@ class MealDiaryViewState extends State<MealDiaryView> {
     }
   }
 
+  Future<void> _pickDate() async {
+    final picked = await showModalBottomSheet<DateTime>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => MealCalendarSheet(selected: _date),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _date = picked);
+    _load();
+  }
+
   void _openHistory() {
     Navigator.push(
       context,
@@ -224,33 +319,58 @@ class MealDiaryViewState extends State<MealDiaryView> {
           _DayBar(
             date: _date,
             isToday: _isToday,
+            isTomorrow: _isTomorrow,
             onPrevious: () => _shiftDay(-1),
-            // Tomorrow is not loggable yet - a diary is a record of what
-            // happened, and an empty future day is only ever confusing.
-            onNext: _isToday ? null : () => _shiftDay(1),
+            // The future is open: that is where a plan is made.
+            onNext: () => _shiftDay(1),
             onHistory: _openHistory,
+            onPickDate: _pickDate,
           ),
           const SizedBox(height: 16),
           _SummaryCard(
             totals: diary?.totals ?? const NutritionTotals(),
+            plannedKcal: diary?.plannedKcal ?? 0,
             target: diary?.target,
             remainingKcal: diary?.remainingKcal,
             onEditTarget: _editTarget,
           ),
           const SizedBox(height: 18),
-          for (final type in MealType.values) ...[
+          if (diary == null || diary.meals.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+              child: Text(
+                AppStrings.of('msg_no_meals_yet'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 13),
+              ),
+            ),
+          for (final entry in (diary?.meals ?? const <Meal>[]).indexed) ...[
             _MealSection(
-              type: type,
-              meal: diary?.mealOf(type),
-              onAdd: () => _addTo(type),
+              name: entry.$2.name ?? _placeholderName(entry.$1),
+              meal: entry.$2,
+              onAdd: () => _addFood(entry.$2),
               onRemoveItem: _removeItem,
               onEditItem: _editItem,
               onViewItem: _viewFood,
+              onToggleItem: _toggleItem,
+              onRename: () => _renameMeal(entry.$2, entry.$1),
               onEditNote: _editNote,
               onDeleteMeal: _deleteMeal,
             ),
             const SizedBox(height: 14),
           ],
+          OutlinedButton.icon(
+            onPressed: _addMeal,
+            icon: const Icon(Icons.add),
+            label: Text(AppStrings.of('btn_add_meal')),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -262,16 +382,20 @@ class MealDiaryViewState extends State<MealDiaryView> {
 class _DayBar extends StatelessWidget {
   final DateTime date;
   final bool isToday;
+  final bool isTomorrow;
   final VoidCallback onPrevious;
-  final VoidCallback? onNext;
+  final VoidCallback onNext;
   final VoidCallback onHistory;
+  final VoidCallback onPickDate;
 
   const _DayBar({
     required this.date,
     required this.isToday,
+    required this.isTomorrow,
     required this.onPrevious,
+    required this.onNext,
     required this.onHistory,
-    this.onNext,
+    required this.onPickDate,
   });
 
   @override
@@ -279,8 +403,10 @@ class _DayBar extends StatelessWidget {
     final colors = context.colors;
     final label = isToday
         ? AppStrings.of('title_today')
-        : '${date.day.toString().padLeft(2, '0')}/'
-            '${date.month.toString().padLeft(2, '0')}/${date.year}';
+        : isTomorrow
+            ? AppStrings.of('title_tomorrow')
+            : '${date.day.toString().padLeft(2, '0')}/'
+                '${date.month.toString().padLeft(2, '0')}/${date.year}';
 
     return Row(
       children: [
@@ -292,27 +418,39 @@ class _DayBar extends StatelessWidget {
           onPressed: onPrevious,
           icon: Icon(Icons.chevron_left, color: colors.textPrimary),
         ),
+        // The date itself opens the month: stepping day by day is fine for
+        // yesterday and tedious for last Tuesday.
         Expanded(
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+          child: InkWell(
+            onTap: onPickDate,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.calendar_month,
+                      size: 18, color: colors.textSecondary),
+                ],
+              ),
             ),
           ),
         ),
         IconButton(
           onPressed: onNext,
-          icon: Icon(
-            Icons.chevron_right,
-            // Greyed rather than hidden: a control that moves is harder to
-            // aim at than one that is simply unavailable.
-            color: onNext == null
-                ? colors.textSecondary.withValues(alpha: 0.3)
-                : colors.textPrimary,
-          ),
+          icon: Icon(Icons.chevron_right, color: colors.textPrimary),
         ),
         // Balances the history icon on the left so the date stays centered.
         const SizedBox(width: 48),
@@ -323,12 +461,14 @@ class _DayBar extends StatelessWidget {
 
 class _SummaryCard extends StatelessWidget {
   final NutritionTotals totals;
+  final double plannedKcal;
   final NutritionTarget? target;
   final double? remainingKcal;
   final VoidCallback onEditTarget;
 
   const _SummaryCard({
     required this.totals,
+    required this.plannedKcal,
     required this.target,
     required this.remainingKcal,
     required this.onEditTarget,
@@ -421,6 +561,14 @@ class _SummaryCard extends StatelessWidget {
                     '${remainingKcal!.round()} ${AppStrings.of('unit_kcal')}',
             style: const TextStyle(color: Colors.white, fontSize: 12.5),
           ),
+          if (plannedKcal > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              AppStrings.of('label_planned_kcal')
+                  .replaceFirst('{n}', '${plannedKcal.round()}'),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ],
           const SizedBox(height: 14),
           Row(
             children: [
@@ -465,22 +613,26 @@ class _Macro extends StatelessWidget {
 }
 
 class _MealSection extends StatelessWidget {
-  final MealType type;
-  final Meal? meal;
+  final String name;
+  final Meal meal;
   final VoidCallback onAdd;
   final Future<void> Function(MealItem) onRemoveItem;
   final void Function(MealItem) onEditItem;
   final void Function(MealItem) onViewItem;
+  final Future<void> Function(MealItem) onToggleItem;
+  final VoidCallback onRename;
   final Future<void> Function(Meal) onEditNote;
   final Future<void> Function(Meal) onDeleteMeal;
 
   const _MealSection({
-    required this.type,
+    required this.name,
     required this.meal,
     required this.onAdd,
     required this.onRemoveItem,
     required this.onEditItem,
     required this.onViewItem,
+    required this.onToggleItem,
+    required this.onRename,
     required this.onEditNote,
     required this.onDeleteMeal,
   });
@@ -488,8 +640,13 @@ class _MealSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final items = meal?.items ?? const <MealItem>[];
-    final meal_ = meal;
+    final items = meal.items;
+    final kcal = AppStrings.of('unit_kcal');
+
+    // Eaten so far, out of what was planned, once there is a plan to speak of.
+    final total = meal.plannedKcal > 0
+        ? '${meal.totals.energyKcal.round()} / ${meal.plannedKcal.round()} $kcal'
+        : '${meal.totals.energyKcal.round()} $kcal';
 
     return Container(
       decoration: BoxDecoration(
@@ -504,9 +661,15 @@ class _MealSection extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  AppStrings.of('meal_${type.name}'),
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: colors.textPrimary,
+                    // A placeholder is dimmer than a name the user typed, so
+                    // it reads as a hint rather than as their own writing.
+                    color: meal.name == null
+                        ? colors.textSecondary
+                        : colors.textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -514,7 +677,7 @@ class _MealSection extends StatelessWidget {
               ),
               if (items.isNotEmpty)
                 Text(
-                  '${meal!.totals.energyKcal.round()} ${AppStrings.of('unit_kcal')}',
+                  total,
                   style: TextStyle(
                     color: colors.textSecondary,
                     fontSize: 12.5,
@@ -528,40 +691,44 @@ class _MealSection extends StatelessWidget {
                 icon: Icon(Icons.add_circle_outline,
                     color: colors.primary1, size: 22),
               ),
-              if (meal_ != null)
-                PopupMenuButton<void>(
-                  icon: Icon(Icons.more_vert, color: colors.textSecondary, size: 20),
-                  padding: EdgeInsets.zero,
-                  color: colors.surface,
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      onTap: () => onEditNote(meal_),
-                      child: Text(AppStrings.of('title_meal_note'),
-                          style: TextStyle(color: colors.textPrimary, fontSize: 13)),
-                    ),
-                    PopupMenuItem(
-                      onTap: () => onDeleteMeal(meal_),
-                      child: Text(AppStrings.of('title_delete_meal'),
-                          style: const TextStyle(color: Color(0xFFE74C3C), fontSize: 13)),
-                    ),
-                  ],
-                ),
+              PopupMenuButton<void>(
+                icon: Icon(Icons.more_vert, color: colors.textSecondary, size: 20),
+                padding: EdgeInsets.zero,
+                color: colors.surface,
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    onTap: onRename,
+                    child: Text(AppStrings.of('title_rename_meal'),
+                        style: TextStyle(color: colors.textPrimary, fontSize: 13)),
+                  ),
+                  PopupMenuItem(
+                    onTap: () => onEditNote(meal),
+                    child: Text(AppStrings.of('title_meal_note'),
+                        style: TextStyle(color: colors.textPrimary, fontSize: 13)),
+                  ),
+                  PopupMenuItem(
+                    onTap: () => onDeleteMeal(meal),
+                    child: Text(AppStrings.of('title_delete_meal'),
+                        style: const TextStyle(color: Color(0xFFE74C3C), fontSize: 13)),
+                  ),
+                ],
+              ),
             ],
           ),
-          if (meal_?.note != null && meal_!.note!.isNotEmpty) ...[
+          if (meal.note != null && meal.note!.isNotEmpty) ...[
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Text(
-                meal_.note!,
+                meal.note!,
                 style: TextStyle(
                     color: colors.textSecondary, fontSize: 12, fontStyle: FontStyle.italic),
               ),
             ),
           ],
-          if (meal?.photoKey != null || items.isNotEmpty) ...[
+          if (meal.photoKey != null || items.isNotEmpty) ...[
             const SizedBox(height: 6),
-            _PhotoPlaceholder(photoKey: meal?.photoKey),
+            _PhotoPlaceholder(photoKey: meal.photoKey),
           ],
           if (items.isEmpty)
             Padding(
@@ -578,6 +745,11 @@ class _MealSection extends StatelessWidget {
                 onRemove: () => onRemoveItem(item),
                 onEdit: () => onEditItem(item),
                 onTap: item.foodId == null ? null : () => onViewItem(item),
+                // An eaten food that was never planned has nothing to go back
+                // to, so its check is a mark rather than a button.
+                onToggle: item.isPlanned || item.hasPlan
+                    ? () => onToggleItem(item)
+                    : null,
               ),
         ],
       ),
@@ -649,27 +821,60 @@ class _ItemRow extends StatelessWidget {
   final VoidCallback onRemove;
   final VoidCallback onEdit;
   final VoidCallback? onTap;
+  final VoidCallback? onToggle;
 
   const _ItemRow({
     required this.item,
     required this.onRemove,
     required this.onEdit,
     this.onTap,
+    this.onToggle,
   });
+
+  static String _format(double value) => value == value.roundToDouble()
+      ? value.round().toString()
+      : value.toStringAsFixed(1);
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final planned = item.isPlanned;
 
-    final quantity = item.quantity == item.quantity.roundToDouble()
-        ? item.quantity.round().toString()
-        : item.quantity.toStringAsFixed(1);
     final unit = AppStrings.of('unit_${item.unit.name}');
+    var detail = '${_format(item.quantity)} $unit'
+        // The weight is genuinely unknown for some dishes, so it is simply
+        // absent rather than shown as a guess.
+        '${item.grams != null ? ' · ${item.grams!.round()}${AppStrings.of('unit_gram')}' : ''}';
+
+    if (item.isCustom) detail += ' · ${AppStrings.of('label_custom_tag')}';
+
+    // Eaten in a different amount from the plan: say what was planned, so the
+    // gap between the two is visible without opening anything.
+    if (item.differsFromPlan) {
+      final plannedUnit = AppStrings.of('unit_${item.plannedUnit!.name}');
+      detail += ' · ${AppStrings.of('label_planned_amount').replaceFirst('{qty}', '${_format(item.plannedQuantity!)} $plannedUnit')}';
+    }
+
+    // A planned food is drawn quieter than one that happened.
+    final textColor = planned ? colors.textSecondary : colors.textPrimary;
 
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
         children: [
+          IconButton(
+            onPressed: onToggle,
+            visualDensity: VisualDensity.compact,
+            icon: Icon(
+              planned ? Icons.radio_button_unchecked : Icons.check_circle,
+              size: 22,
+              color: planned
+                  ? colors.textSecondary
+                  : onToggle == null
+                      ? colors.textSecondary.withValues(alpha: 0.45)
+                      : colors.primary1,
+            ),
+          ),
           Expanded(
             child: InkWell(
               onTap: onTap,
@@ -680,14 +885,11 @@ class _ItemRow extends StatelessWidget {
                     item.foodName,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: colors.textPrimary, fontSize: 13.5),
+                    style: TextStyle(color: textColor, fontSize: 13.5),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$quantity $unit'
-                    // The weight is genuinely unknown for some dishes, so it is
-                    // simply absent rather than shown as a guess.
-                    '${item.grams != null ? ' · ${item.grams!.round()}${AppStrings.of('unit_gram')}' : ''}',
+                    detail,
                     style: TextStyle(color: colors.textSecondary, fontSize: 11.5),
                   ),
                 ],
@@ -697,9 +899,10 @@ class _ItemRow extends StatelessWidget {
           Text(
             '${item.energyKcal.round()}',
             style: TextStyle(
-              color: colors.textPrimary,
+              color: textColor,
               fontSize: 13,
               fontWeight: FontWeight.w600,
+              fontStyle: planned ? FontStyle.italic : FontStyle.normal,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -1019,6 +1222,112 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             OutlinedButton(onPressed: onRetry, child: const Text('Thử lại')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the user chose in the name sheet. Wrapped so that "cancelled" (a null
+/// result from the sheet) stays distinguishable from "left it blank", which
+/// means "no name, show the placeholder".
+class _NameChoice {
+  const _NameChoice(this.name);
+
+  final String? name;
+}
+
+/// Names a meal, when it is created or renamed. The placeholder the meal will
+/// be drawn with ("Bữa 3") is the hint, so leaving the field empty visibly
+/// means "keep that".
+class _MealNameSheet extends StatefulWidget {
+  final String title;
+  final String confirmLabel;
+  final String placeholder;
+  final String? initial;
+
+  const _MealNameSheet({
+    required this.title,
+    required this.confirmLabel,
+    required this.placeholder,
+    this.initial,
+  });
+
+  @override
+  State<_MealNameSheet> createState() => _MealNameSheetState();
+}
+
+class _MealNameSheetState extends State<_MealNameSheet> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial ?? '');
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final text = _controller.text.trim();
+    Navigator.pop(context, _NameChoice(text.isEmpty ? null : text));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.title,
+              style: TextStyle(
+                  color: colors.textPrimary, fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              maxLength: 60,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+              style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                labelText: AppStrings.of('label_meal_name'),
+                labelStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
+                hintText: widget.placeholder,
+                hintStyle: TextStyle(color: colors.textSecondary),
+                filled: true,
+                fillColor: colors.surfaceVariant,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _submit,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: Text(widget.confirmLabel),
+              ),
+            ),
           ],
         ),
       ),

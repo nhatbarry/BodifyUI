@@ -1,10 +1,11 @@
 import 'package:bodify/common/app_colors.dart';
+import 'package:bodify/common_widget/fade_indexed_stack.dart';
 import 'package:bodify/common_widget/tab_button.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/refresh_flags.dart';
 import '../ai_coach/ai_coach_view.dart';
-import '../exercise/exercise_explorer_view.dart';
+import '../exercise/catalog_explorer_view.dart';
 import '../home/home_view.dart';
 import '../profile/profile_view.dart';
 import '../tracker/tracker_view.dart';
@@ -40,8 +41,8 @@ class _MainTabViewState extends State<MainTabView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.surface,
-      body: IndexedStack(index: selectTab, children: _tabs),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      body: FadeIndexedStack(index: selectTab, children: _tabs),
+      floatingActionButtonLocation: const _PinnedCenterDocked(),
       floatingActionButton: SizedBox(
         width: 70,
         height: 70,
@@ -56,7 +57,7 @@ class _MainTabViewState extends State<MainTabView> {
             final tab = await Navigator.push<int>(
               context,
               MaterialPageRoute(
-                  builder: (context) => const ExerciseExplorerView()),
+                  builder: (context) => const CatalogExplorerView()),
             );
             if (tab == null || !context.mounted) return;
             setState(() => selectTab = tab);
@@ -150,6 +151,31 @@ class _MainTabViewState extends State<MainTabView> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The search button, docked on the bottom bar and never anywhere else.
+///
+/// Flutter's `centerDocked` places the button on the top edge of the page
+/// content, and that edge moves: a SnackBar ("Meal deleted") lifts it, and so
+/// does the keyboard on the AI Coach tab, so the button jumped up and back
+/// down under the user's thumb. This measures from the bottom of the screen
+/// instead - the bar is a fixed [kToolbarHeight] above the device's own inset
+/// (`minViewPadding`, which the keyboard does not change) - so nothing that
+/// happens above the bar can move it.
+class _PinnedCenterDocked extends FloatingActionButtonLocation {
+  const _PinnedCenterDocked();
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry geometry) {
+    final fab = geometry.floatingActionButtonSize;
+    final barTop = geometry.scaffoldSize.height -
+        geometry.minViewPadding.bottom -
+        kToolbarHeight;
+    return Offset(
+      (geometry.scaffoldSize.width - fab.width) / 2,
+      barTop - fab.height / 2,
     );
   }
 }

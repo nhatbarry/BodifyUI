@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
+import '../../common_widget/fade_indexed_stack.dart';
+import '../../common_widget/pill_switcher.dart';
 import '../../core/app_strings.dart';
 import 'schedule_list_view.dart';
 import '../meal_planner/meal_diary_view.dart';
 
 /// Second bottom-tab: one screen holding Workout Tracker and Meal Planner,
 /// switched by the segmented control at the top.
+///
+/// Both halves stay mounted. Swapping one widget for the other used to
+/// destroy the diary on every switch, so it reloaded each time the user came
+/// back to it.
 class TrackerView extends StatefulWidget {
   const TrackerView({super.key});
 
@@ -35,66 +41,27 @@ class _TrackerViewState extends State<TrackerView> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTabSwitcher(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: PillSwitcher(
+                labels: [tr('title_workout_tracker'), tr('nav_meal_planner')],
+                selected: _selectedTab,
+                onChanged: (i) => setState(() => _selectedTab = i),
+              ),
+            ),
             const SizedBox(height: 14),
             Expanded(
-              child: _selectedTab == 0
-                  ? const ScheduleListView()
-                  : const _MealPlannerTab(),
+              child: FadeIndexedStack(
+                index: _selectedTab,
+                children: const [
+                  ScheduleListView(),
+                  MealDiaryView(),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildTabSwitcher() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceVariant,
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Row(
-        children: [
-          _tab(tr('title_workout_tracker'), 0),
-          _tab(tr('nav_meal_planner'), 1),
-        ],
-      ),
-    );
-  }
-
-  Widget _tab(String label, int index) {
-    final isSelected = _selectedTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _selectedTab = index),
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: isSelected ? LinearGradient(colors: context.colors.primaryGradient) : null,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? context.colors.surface : context.colors.textSecondary,
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MealPlannerTab extends StatelessWidget {
-  const _MealPlannerTab();
-
-  @override
-  Widget build(BuildContext context) => const MealDiaryView();
 }

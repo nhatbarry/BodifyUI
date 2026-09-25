@@ -14,7 +14,11 @@ import '../../services/exercise_service.dart';
 import 'exercise_detail_view.dart';
 
 class ExerciseExplorerView extends StatefulWidget {
-  const ExerciseExplorerView({super.key});
+  /// Inside the catalog explorer, which draws its own app bar with the
+  /// exercises / foods switch.
+  final bool embedded;
+
+  const ExerciseExplorerView({super.key, this.embedded = false});
 
   @override
   State<ExerciseExplorerView> createState() => _ExerciseExplorerViewState();
@@ -307,17 +311,21 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.surface,
-      appBar: AppBar(
-        backgroundColor: context.colors.surface,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: context.colors.textPrimary),
-        title: Text(
-          tr('title_exercises'),
-          style: TextStyle(
-              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-      ),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              backgroundColor: context.colors.surface,
+              elevation: 0,
+              centerTitle: true,
+              iconTheme: IconThemeData(color: context.colors.textPrimary),
+              title: Text(
+                tr('title_exercises'),
+                style: TextStyle(
+                    color: context.colors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700),
+              ),
+            ),
       body: Column(
         children: [
           Padding(

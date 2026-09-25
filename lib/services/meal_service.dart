@@ -109,6 +109,24 @@ class MealService {
   // The diary
   // ----------------------------------------------------------------------
 
+  /// GET /meals/calendar?from=&to= - what each date adds up to, eaten and
+  /// planned, for the month calendar. Keyed by date (time stripped).
+  Future<Map<DateTime, CalendarDay>> calendar({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final response = await _send((token) => _client.get(
+          ApiConfig.path('/meals/calendar').replace(queryParameters: {
+            'from': _day(from),
+            'to': _day(to),
+          }),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    final days = (_decode(response) as List<dynamic>)
+        .map((e) => CalendarDay.fromJson(e as Map<String, dynamic>));
+    return {for (final d in days) d.date: d};
+  }
+
   /// GET /meals?date= - one day, with totals and the target to compare against.
   Future<DayDiary> day(DateTime date) async {
     final response = await _send((token) => _client.get(
@@ -119,13 +137,27 @@ class MealService {
     return DayDiary.fromJson(_decode(response) as Map<String, dynamic>);
   }
 
-  /// POST /meal-items - log a food, creating the sitting if it is the first.
+  /// POST /meals - add a meal to a day. A null [name] leaves it unnamed, so
+  /// the screen shows the "Bữa N" placeholder.
+  Future<Meal> createMeal({required DateTime date, String? name}) async {
+    final response = await _send((token) => _client.post(
+          ApiConfig.path('/meals'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'logged_date': _day(date), 'name': name}),
+        ));
+    return Meal.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
+  /// POST /meal-items - log or plan a food into a meal.
   Future<MealItem> logItem({
-    required DateTime date,
-    required MealType mealType,
+    required int mealId,
     required int foodId,
     required double quantity,
     required MealUnit unit,
+    ItemStatus status = ItemStatus.eaten,
   }) async {
     final response = await _send((token) => _client.post(
           ApiConfig.path('/meal-items'),
@@ -134,11 +166,79 @@ class MealService {
             'Content-Type': 'application/json',
           },
           body: jsonEncode({
-            'logged_date': _day(date),
-            'meal_type': mealType.api,
+            'meal_id': mealId,
             'food_id': foodId,
             'quantity': quantity,
             'unit': unit.api,
+            'status': status.api,
+          }),
+        ));
+    return MealItem.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
+  /// POST /meal-items/custom - a food the catalog does not have, typed in by
+  /// hand. The figures are per serving; [quantity] is how many servings.
+  Future<MealItem> logCustomItem({
+    required int mealId,
+    required String name,
+    required double energyKcal,
+    double? proteinG,
+    double? fatG,
+    double? carbG,
+    double quantity = 1,
+    ItemStatus status = ItemStatus.eaten,
+  }) async {
+    final response = await _send((token) => _client.post(
+          ApiConfig.path('/meal-items/custom'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'meal_id': mealId,
+            'name': name,
+            'energy_kcal': energyKcal,
+            if (proteinG != null) 'protein_g': proteinG,
+            if (fatG != null) 'fat_g': fatG,
+            if (carbG != null) 'carb_g': carbG,
+            'quantity': quantity,
+            'status': status.api,
+          }),
+        ));
+    return MealItem.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
+  /// GET /meal-items/recent - what the user logged lately, newest first,
+  /// each food once. The picker shows these before anything is typed.
+  Future<List<RecentFood>> recentFoods({int limit = 15}) async {
+    final response = await _send((token) => _client.get(
+          ApiConfig.path('/meal-items/recent')
+              .replace(queryParameters: {'limit': '$limit'}),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    return (_decode(response) as List<dynamic>)
+        .map((e) => RecentFood.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// PUT /meal-items/{id}/status - tick a planned food as eaten (optionally in
+  /// a different amount), or put it back on the plan.
+  Future<MealItem> setItemStatus({
+    required int mealItemId,
+    required ItemStatus status,
+    double? quantity,
+    MealUnit? unit,
+  }) async {
+    final response = await _send((token) => _client.put(
+          ApiConfig.path('/meal-items/$mealItemId/status'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'status': status.api,
+            if (quantity != null) 'quantity': quantity,
+            if (unit != null) 'unit': unit.api,
           }),
         ));
     return MealItem.fromJson(_decode(response) as Map<String, dynamic>);
@@ -171,9 +271,14 @@ class MealService {
     if (response.statusCode != 204) _decode(response);
   }
 
-  /// PUT /meals/{id} - the note and photo belong to the sitting.
+  /// PUT /meals/{id} - the name, note and photo belong to the meal.
+  ///
+  /// Omitting a field keeps it. A cleared name is `clearName: true`, because
+  /// null on its own means "leave it" here and "clear it" on the wire.
   Future<void> updateMeal({
     required int mealId,
+    String? name,
+    bool clearName = false,
     String? note,
     String? photoKey,
   }) async {
@@ -184,6 +289,7 @@ class MealService {
             'Content-Type': 'application/json',
           },
           body: jsonEncode({
+            if (clearName) 'name': null else if (name != null) 'name': name,
             if (note != null) 'note': note,
             if (photoKey != null) 'photo_key': photoKey,
           }),

@@ -7,17 +7,17 @@
 /// intake, so the widgets read `basis` rather than guessing from the name.
 library;
 
-/// Which of the four sittings an entry belongs to.
-enum MealType {
-  breakfast,
-  lunch,
-  dinner,
-  snack;
+/// Whether a food has been eaten yet.
+///
+/// A planned food is ticked when it is eaten. Only eaten food counts toward
+/// the day's total and the target; the plan is kept beside the actual so the
+/// two can be compared.
+enum ItemStatus {
+  planned,
+  eaten;
 
-  static MealType fromApi(String value) => MealType.values.firstWhere(
-        (t) => t.name == value,
-        orElse: () => MealType.snack,
-      );
+  static ItemStatus fromApi(String value) =>
+      value == 'planned' ? ItemStatus.planned : ItemStatus.eaten;
 
   String get api => name;
 }
@@ -125,6 +125,60 @@ class FoodSummary {
       );
 }
 
+/// A hand-typed food as it was last entered, per serving.
+class CustomFood {
+  const CustomFood({
+    required this.name,
+    required this.energyKcal,
+    this.proteinG,
+    this.fatG,
+    this.carbG,
+  });
+
+  final String name;
+  final double energyKcal;
+  final double? proteinG;
+  final double? fatG;
+  final double? carbG;
+
+  factory CustomFood.fromJson(Map<String, dynamic> json) => CustomFood(
+        name: json['name'] as String? ?? '',
+        energyKcal: _toDoubleOr0(json['energy_kcal']),
+        proteinG: _toDouble(json['protein_g']),
+        fatG: _toDouble(json['fat_g']),
+        carbG: _toDouble(json['carb_g']),
+      );
+}
+
+/// Something eaten before, for logging it again in one tap. Exactly one of
+/// [food] and [custom] is set.
+class RecentFood {
+  const RecentFood({
+    required this.lastQuantity,
+    required this.lastUnit,
+    this.food,
+    this.custom,
+  });
+
+  final FoodSummary? food;
+  final CustomFood? custom;
+
+  /// How much was had last time - the likeliest amount now.
+  final double lastQuantity;
+  final MealUnit lastUnit;
+
+  factory RecentFood.fromJson(Map<String, dynamic> json) => RecentFood(
+        food: json['food'] == null
+            ? null
+            : FoodSummary.fromJson(json['food'] as Map<String, dynamic>),
+        custom: json['custom'] == null
+            ? null
+            : CustomFood.fromJson(json['custom'] as Map<String, dynamic>),
+        lastQuantity: _toDoubleOr0(json['last_quantity']),
+        lastUnit: MealUnit.fromApi(json['last_unit'] as String? ?? 'serving'),
+      );
+}
+
 class FoodComponent {
   const FoodComponent({required this.nameVi, this.grams});
 
@@ -158,6 +212,11 @@ class MealItem {
     required this.quantity,
     required this.unit,
     required this.energyKcal,
+    this.status = ItemStatus.eaten,
+    this.isCustom = false,
+    this.plannedQuantity,
+    this.plannedUnit,
+    this.plannedEnergyKcal,
     this.foodId,
     this.grams,
     this.proteinG,
@@ -186,6 +245,28 @@ class MealItem {
   final double? carbG;
   final double? fiberG;
 
+  final ItemStatus status;
+
+  /// Typed in by hand rather than picked from the catalog. [foodId] is null
+  /// then, and the amount can still be edited - it scales from the entry's
+  /// own per-serving figures.
+  final bool isCustom;
+
+  /// What was planned, kept after the item is eaten so the two can be
+  /// compared. All null for something that was never planned.
+  final double? plannedQuantity;
+  final MealUnit? plannedUnit;
+  final double? plannedEnergyKcal;
+
+  bool get isPlanned => status == ItemStatus.planned;
+  bool get hasPlan => plannedQuantity != null;
+
+  /// Eaten in a different amount from what was planned.
+  bool get differsFromPlan =>
+      !isPlanned &&
+      hasPlan &&
+      (plannedQuantity != quantity || plannedUnit != unit);
+
   factory MealItem.fromJson(Map<String, dynamic> json) => MealItem(
         mealItemId: json['meal_item_id'] as int,
         foodId: json['food_id'] as int?,
@@ -198,6 +279,13 @@ class MealItem {
         fatG: _toDouble(json['fat_g']),
         carbG: _toDouble(json['carb_g']),
         fiberG: _toDouble(json['fiber_g']),
+        status: ItemStatus.fromApi(json['status'] as String? ?? 'eaten'),
+        isCustom: json['is_custom'] as bool? ?? false,
+        plannedQuantity: _toDouble(json['planned_quantity']),
+        plannedUnit: json['planned_unit'] == null
+            ? null
+            : MealUnit.fromApi(json['planned_unit'] as String),
+        plannedEnergyKcal: _toDouble(json['planned_energy_kcal']),
       );
 }
 
@@ -232,16 +320,22 @@ class Meal {
   const Meal({
     required this.mealId,
     required this.loggedDate,
-    required this.mealType,
+    required this.position,
     required this.items,
     required this.totals,
+    this.name,
     this.note,
     this.photoKey,
+    this.plannedKcal = 0,
   });
 
   final int mealId;
   final DateTime loggedDate;
-  final MealType mealType;
+
+  /// Null until the user names it - the screen draws "Bữa 1", "Bữa 2" by
+  /// position as a placeholder, so nothing is stored the user did not write.
+  final String? name;
+  final int position;
   final String? note;
 
   /// A storage key, not a URL. Nothing uploads one yet - the diary shows a
@@ -249,12 +343,18 @@ class Meal {
   final String? photoKey;
 
   final List<MealItem> items;
+
+  /// What was eaten. Planned items are not in it.
   final NutritionTotals totals;
+
+  /// What the plan said this meal would come to, eaten yet or not.
+  final double plannedKcal;
 
   factory Meal.fromJson(Map<String, dynamic> json) => Meal(
         mealId: json['meal_id'] as int,
         loggedDate: DateTime.parse(json['logged_date'] as String),
-        mealType: MealType.fromApi(json['meal_type'] as String? ?? 'snack'),
+        name: json['name'] as String?,
+        position: json['position'] as int? ?? 0,
         note: json['note'] as String?,
         photoKey: json['photo_key'] as String?,
         items: (json['items'] as List<dynamic>? ?? [])
@@ -262,6 +362,7 @@ class Meal {
             .toList(),
         totals: NutritionTotals.fromJson(
             json['totals'] as Map<String, dynamic>?),
+        plannedKcal: _toDoubleOr0(json['planned_kcal']),
       );
 }
 
@@ -325,13 +426,22 @@ class DayDiary {
     required this.loggedDate,
     required this.meals,
     required this.totals,
+    this.plannedKcal = 0,
     this.target,
     this.remainingKcal,
   });
 
   final DateTime loggedDate;
+
+  /// In display order.
   final List<Meal> meals;
+
+  /// What was eaten.
   final NutritionTotals totals;
+
+  /// What the plan said the day would come to. A future day has nothing eaten
+  /// yet, so this is the number it has to show against the target.
+  final double plannedKcal;
 
   /// Null when the user has never set one.
   final NutritionTarget? target;
@@ -340,13 +450,6 @@ class DayDiary {
   /// said what you were aiming for" are different answers.
   final double? remainingKcal;
 
-  Meal? mealOf(MealType type) {
-    for (final meal in meals) {
-      if (meal.mealType == type) return meal;
-    }
-    return null;
-  }
-
   factory DayDiary.fromJson(Map<String, dynamic> json) => DayDiary(
         loggedDate: DateTime.parse(json['logged_date'] as String),
         meals: (json['meals'] as List<dynamic>? ?? [])
@@ -354,9 +457,39 @@ class DayDiary {
             .toList(),
         totals: NutritionTotals.fromJson(
             json['totals'] as Map<String, dynamic>?),
+        plannedKcal: _toDoubleOr0(json['planned_kcal']),
         target: json['target'] == null
             ? null
             : NutritionTarget.fromJson(json['target'] as Map<String, dynamic>),
         remainingKcal: _toDouble(json['remaining_kcal']),
       );
+}
+
+/// One date on the diary's month calendar. Only dates with at least one food
+/// come back from the API, so a missing date means nothing was logged.
+class CalendarDay {
+  const CalendarDay({
+    required this.date,
+    required this.eatenKcal,
+    required this.plannedKcal,
+    required this.eatenCount,
+    required this.plannedCount,
+  });
+
+  final DateTime date;
+  final double eatenKcal;
+  final double plannedKcal;
+  final int eatenCount;
+  final int plannedCount;
+
+  factory CalendarDay.fromJson(Map<String, dynamic> json) {
+    final d = DateTime.parse(json['logged_date'] as String);
+    return CalendarDay(
+      date: DateTime(d.year, d.month, d.day),
+      eatenKcal: _toDoubleOr0(json['eaten_kcal']),
+      plannedKcal: _toDoubleOr0(json['planned_kcal']),
+      eatenCount: json['eaten_count'] as int? ?? 0,
+      plannedCount: json['planned_count'] as int? ?? 0,
+    );
+  }
 }
