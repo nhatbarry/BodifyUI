@@ -49,7 +49,21 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
         title: tr('btn_add_set'), from: previous);
     if (values == null) return;
 
-    setState(() => _busy = true);
+    // Drawn under a negative id until the server answers with the real row;
+    // editing or deleting it before then is ignored.
+    final draft = TargetSet(
+      id: -DateTime.now().microsecondsSinceEpoch,
+      setOrder: previous == null ? 1 : previous.setOrder + 1,
+      targetReps: values.reps,
+      targetWeightKg: values.weight,
+      targetDurationSeconds: values.duration,
+      targetDistanceM: values.distance,
+      restSeconds: values.rest,
+    );
+    setState(() {
+      _sets.add(draft);
+      _changed = true;
+    });
     try {
       final created = await WorkoutPlanService.instance.addSet(
         widget.exercise.workoutExerciseId,
@@ -59,16 +73,18 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
         targetDistanceM: values.distance,
         restSeconds: values.rest,
       );
-      if (!mounted) return;
-      setState(() {
-        _sets.add(created);
-        _busy = false;
-        _changed = true;
-      });
+      _replace(draft.id, created);
     } catch (e) {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _sets.removeWhere((s) => s.id == draft.id));
       _showError(e);
     }
+  }
+
+  /// Swaps the row with [id] for [next], wherever it has moved to since.
+  void _replace(int id, TargetSet next) {
+    if (!mounted) return;
+    final at = _sets.indexWhere((s) => s.id == id);
+    if (at >= 0) setState(() => _sets[at] = next);
   }
 
   Future<void> _edit(int index) async {
@@ -77,9 +93,28 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
       title: tr('title_set_number').replaceFirst('{n}', '${index + 1}'),
       from: target,
     );
-    if (values == null) return;
+    if (values == null || target.id < 0) return;
 
-    setState(() => _busy = true);
+    final spec = SetFieldSpec.of(widget.exercise.trackingType);
+    final clearDuration = values.duration == null && spec.duration;
+    final clearDistance = values.distance == null && spec.distance;
+    // What the server will store, drawn now: reps are never cleared here,
+    // so an empty field keeps the old target.
+    setState(() {
+      _sets[index] = TargetSet(
+        id: target.id,
+        setOrder: target.setOrder,
+        targetReps: values.reps ?? target.targetReps,
+        targetWeightKg: values.weight,
+        targetDurationSeconds:
+            values.duration ?? (clearDuration ? null : target.targetDurationSeconds),
+        targetDistanceM:
+            values.distance ?? (clearDistance ? null : target.targetDistanceM),
+        restSeconds: values.rest,
+        notes: target.notes,
+      );
+      _changed = true;
+    });
     try {
       final updated = await WorkoutPlanService.instance.updateSet(
         target.id,
@@ -92,37 +127,30 @@ class _WorkoutSetsViewState extends State<WorkoutSetsView> {
         // instruction, and only an explicit null says it. Only the axes this
         // exercise uses are cleared - a Plank has no reps to unset.
         clearWeight: values.weight == null,
-        clearDuration: values.duration == null &&
-            SetFieldSpec.of(widget.exercise.trackingType).duration,
-        clearDistance: values.distance == null &&
-            SetFieldSpec.of(widget.exercise.trackingType).distance,
+        clearDuration: clearDuration,
+        clearDistance: clearDistance,
         clearRest: values.rest == null,
       );
-      if (!mounted) return;
-      setState(() {
-        _sets[index] = updated;
-        _busy = false;
-        _changed = true;
-      });
+      _replace(target.id, updated);
     } catch (e) {
-      if (mounted) setState(() => _busy = false);
+      _replace(target.id, target);
       _showError(e);
     }
   }
 
   Future<void> _delete(int index) async {
     final target = _sets[index];
-    setState(() => _busy = true);
+    if (target.id < 0) return;
+    setState(() {
+      _sets.removeAt(index);
+      _changed = true;
+    });
     try {
       await WorkoutPlanService.instance.deleteSet(target.id);
-      if (!mounted) return;
-      setState(() {
-        _sets.removeAt(index);
-        _busy = false;
-        _changed = true;
-      });
     } catch (e) {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _sets.insert(index.clamp(0, _sets.length), target));
+      }
       _showError(e);
     }
   }

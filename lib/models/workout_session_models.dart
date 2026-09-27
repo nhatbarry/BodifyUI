@@ -73,6 +73,37 @@ class SessionSet {
   static double? _num(dynamic v) =>
       v == null ? null : double.tryParse('$v');
 
+  /// This set with the performed values replaced - what the workout screen
+  /// draws while the write is in flight. Every value is given explicitly
+  /// (null clears it), matching what the screen sends; targets and the AI
+  /// snapshot are never touched, the server does not let a correction
+  /// rewrite them either.
+  SessionSet performed({
+    int? id,
+    required int? reps,
+    required double? weightKg,
+    required int? durationSeconds,
+    required double? distanceM,
+    bool completed = true,
+  }) =>
+      SessionSet(
+        id: id ?? this.id,
+        setOrder: setOrder,
+        completed: completed,
+        reps: reps,
+        weightKg: weightKg,
+        durationSeconds: durationSeconds,
+        distanceM: distanceM,
+        restSeconds: restSeconds,
+        targetReps: targetReps,
+        targetWeightKg: targetWeightKg,
+        targetDurationSeconds: targetDurationSeconds,
+        targetDistanceM: targetDistanceM,
+        aiAlgorithm: aiAlgorithm,
+        aiRepScores: aiRepScores,
+        aiScorePercent: aiScorePercent,
+      );
+
   factory SessionSet.fromJson(Map<String, dynamic> json) => SessionSet(
         id: json['session_set_id'] as int,
         setOrder: json['set_order'] as int,
@@ -129,6 +160,17 @@ class SessionExercise {
 
   int get loggedSetCount => sets.where((s) => s.isLogged).length;
 
+  SessionExercise withSets(List<SessionSet> next) => SessionExercise(
+        id: id,
+        exerciseId: exerciseId,
+        exerciseOrder: exerciseOrder,
+        sets: next,
+        name: name,
+        thumbnailUrl: thumbnailUrl,
+        trackingType: trackingType,
+        aiAlgorithm: aiAlgorithm,
+      );
+
   factory SessionExercise.fromJson(Map<String, dynamic> json) => SessionExercise(
         id: json['session_exercise_id'] as int,
         trackingType: TrackingType.parse(json['tracking_type'] as String?),
@@ -157,6 +199,31 @@ class SessionSummary {
     required this.totalReps,
     required this.totalVolumeKg,
   });
+
+  /// The server's `summaries()`, repeated so the header can move with the
+  /// rows before the server answers: every set counts toward the set total,
+  /// and volume is sum(reps x weight) over sets that have both.
+  factory SessionSummary.of(List<SessionExercise> exercises) {
+    var sets = 0, done = 0, reps = 0;
+    var volume = 0.0;
+    for (final e in exercises) {
+      for (final s in e.sets) {
+        sets++;
+        if (s.completed) done++;
+        reps += s.reps ?? 0;
+        if (s.reps != null && s.weightKg != null) {
+          volume += s.reps! * s.weightKg!;
+        }
+      }
+    }
+    return SessionSummary(
+      exerciseCount: exercises.length,
+      setCount: sets,
+      completedSetCount: done,
+      totalReps: reps,
+      totalVolumeKg: volume,
+    );
+  }
 
   factory SessionSummary.fromJson(Map<String, dynamic> json) => SessionSummary(
         exerciseCount: json['exercise_count'] as int,
@@ -222,6 +289,24 @@ class WorkoutSession {
     }
     return null;
   }
+
+  /// The same session with other exercises; the summary is recomputed from
+  /// them rather than carried, so the header never disagrees with the rows.
+  WorkoutSession withExercises(List<SessionExercise> next) => WorkoutSession(
+        sessionId: sessionId,
+        workoutDayId: workoutDayId,
+        planName: planName,
+        dayName: dayName,
+        scheduledDate: scheduledDate,
+        startedAt: startedAt,
+        completedAt: completedAt,
+        status: status,
+        durationSeconds: durationSeconds,
+        pausedSeconds: pausedSeconds,
+        notes: notes,
+        summary: SessionSummary.of(next),
+        exercises: next,
+      );
 
   factory WorkoutSession.fromJson(Map<String, dynamic> json) => WorkoutSession(
         sessionId: json['session_id'] as int,

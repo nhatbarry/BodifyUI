@@ -114,6 +114,50 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
     }
   }
 
+  /// Writes sent and not yet answered - see [_mutate].
+  int _inFlight = 0;
+
+  /// Draws [next] at once and sends [write] in the background: a set logged
+  /// with a bar in hand should tick the moment it is tapped, not a round trip
+  /// later. On success the session is re-read quietly so server figures
+  /// replace the prediction; a re-read that lands while another write is still
+  /// out is dropped, the last one to finish reads again. On failure the screen
+  /// goes back to what it was and says why.
+  Future<void> _mutate(
+    WorkoutSession next,
+    Future<void> Function() write,
+  ) async {
+    final before = _session;
+    setState(() => _session = next);
+    _inFlight++;
+    try {
+      await write();
+    } catch (e) {
+      if (mounted) setState(() => _session = before);
+      _showError(e);
+    } finally {
+      _inFlight--;
+      if (_inFlight == 0 && mounted) {
+        try {
+          final fresh = await WorkoutSessionService.instance
+              .getSession(_session.sessionId);
+          if (mounted && _inFlight == 0) _apply(fresh);
+        } catch (_) {
+          // Keep the prediction; the next write or visit reads again.
+        }
+      }
+    }
+  }
+
+  WorkoutSession _withSets(
+    int exerciseId,
+    List<SessionSet> Function(List<SessionSet>) change,
+  ) =>
+      _session.withExercises([
+        for (final e in _session.exercises)
+          e.id == exerciseId ? e.withSets(change(e.sets)) : e,
+      ]);
+
   Future<void> _run(Future<WorkoutSession> Function() action) async {
     setState(() => _busy = true);
     try {
@@ -211,6 +255,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
   /// Records one set, then re-reads the session so the totals at the top stay
   /// consistent with the rows underneath.
   Future<void> _logSet(SessionExercise exercise, SessionSet target) async {
+    if (target.id < 0) return;
     final spec = SetFieldSpec.of(exercise.trackingType);
     final outcome = await showDialog<Object>(
       context: context,
@@ -234,28 +279,40 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
 
     final values = outcome as SetValues;
 
-    setState(() => _busy = true);
-    try {
-      await WorkoutSessionService.instance.recordSet(
+    // Only the axes this exercise uses can be cleared. Sending null for a
+    // Plank's reps would be a correction the user never made - and drawing
+    // it would show one.
+    final clearReps = values.reps == null && spec.reps;
+    final clearDuration = values.durationSeconds == null && spec.duration;
+    final clearDistance = values.distanceM == null && spec.distance;
+
+    await _mutate(
+      _withSets(exercise.id, (sets) => [
+            for (final s in sets)
+              s.id != target.id
+                  ? s
+                  : s.performed(
+                      reps: values.reps ?? (clearReps ? null : s.reps),
+                      weightKg: values.weightKg,
+                      durationSeconds: values.durationSeconds ??
+                          (clearDuration ? null : s.durationSeconds),
+                      distanceM: values.distanceM ??
+                          (clearDistance ? null : s.distanceM),
+                    ),
+          ]),
+      () => WorkoutSessionService.instance.recordSet(
         target.id,
         reps: values.reps,
         weightKg: values.weightKg,
         durationSeconds: values.durationSeconds,
         distanceM: values.distanceM,
         completed: true,
-        // Only the axes this exercise uses can be cleared. Sending null for a
-        // Plank's reps would be a correction the user never made.
-        clearReps: values.reps == null && spec.reps,
+        clearReps: clearReps,
         clearWeight: values.weightKg == null,
-        clearDuration: values.durationSeconds == null && spec.duration,
-        clearDistance: values.distanceM == null && spec.distance,
-      );
-      await _reload();
-      if (mounted) setState(() => _busy = false);
-    } catch (e) {
-      if (mounted) setState(() => _busy = false);
-      _showError(e);
-    }
+        clearDuration: clearDuration,
+        clearDistance: clearDistance,
+      ),
+    );
   }
 
   /// Hands the exercise to the camera, then records whatever it counted.
@@ -311,33 +368,39 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
 
     final values = outcome as SetValues;
 
-    setState(() => _busy = true);
-    try {
-      await WorkoutSessionService.instance.addSet(
+    // Drawn under a negative id until the server hands out the real one; a
+    // tap on it before then is ignored (see _logSet/_deleteSet).
+    final draft = SessionSet(
+      id: -DateTime.now().microsecondsSinceEpoch,
+      setOrder: last == null ? 1 : last.setOrder + 1,
+      // A set added mid-workout is one the user just did.
+      completed: true,
+      reps: values.reps,
+      weightKg: values.weightKg,
+      durationSeconds: values.durationSeconds,
+      distanceM: values.distanceM,
+    );
+    await _mutate(
+      _withSets(exercise.id, (sets) => [...sets, draft]),
+      () => WorkoutSessionService.instance.addSet(
         exercise.id,
         reps: values.reps,
         weightKg: values.weightKg,
         durationSeconds: values.durationSeconds,
         distanceM: values.distanceM,
-      );
-      await _reload();
-      if (mounted) setState(() => _busy = false);
-    } catch (e) {
-      if (mounted) setState(() => _busy = false);
-      _showError(e);
-    }
+      ),
+    );
   }
 
   Future<void> _deleteSet(SessionSet set) async {
-    setState(() => _busy = true);
-    try {
-      await WorkoutSessionService.instance.deleteSet(set.id);
-      await _reload();
-      if (mounted) setState(() => _busy = false);
-    } catch (e) {
-      if (mounted) setState(() => _busy = false);
-      _showError(e);
-    }
+    if (set.id < 0) return;
+    await _mutate(
+      _session.withExercises([
+        for (final e in _session.exercises)
+          e.withSets([for (final s in e.sets) if (s.id != set.id) s]),
+      ]),
+      () => WorkoutSessionService.instance.deleteSet(set.id),
+    );
   }
 
   static String _clock(int seconds) {

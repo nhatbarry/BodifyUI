@@ -87,9 +87,17 @@ class ExerciseService {
   ///
   /// Returns muscle/equipment labels already translated, so the app never has
   /// to keep its own copy of those names.
+  ///
+  /// Kept per language for the life of the app: the catalog's muscles and
+  /// equipment change with a migration, not between two openings of the
+  /// exercise picker, which used to fetch them every time it opened.
   Future<ExerciseFilters> getFilters({String? language}) async {
-    final json = await _get(
-        '/exercises/filters', {'language': language ?? currentLanguage});
-    return ExerciseFilters.fromJson(json);
+    final lang = language ?? currentLanguage;
+    final cached = _filters[lang];
+    if (cached != null) return cached;
+    final json = await _get('/exercises/filters', {'language': lang});
+    return _filters[lang] = ExerciseFilters.fromJson(json);
   }
+
+  final Map<String, ExerciseFilters> _filters = {};
 }
