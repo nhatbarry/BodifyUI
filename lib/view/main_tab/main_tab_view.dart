@@ -116,6 +116,9 @@ class _MainTabViewState extends State<MainTabView> {
                     RefreshFlags.homeProfile = false;
                     _homeKey.currentState?.refreshProfile();
                   }
+                  // No flag: steps move on by themselves, and the read is
+                  // from the phone's own store, not the network.
+                  _homeKey.currentState?.refreshHealth();
                   setState(() => selectTab = 0);
                 }),
             TabButton(

@@ -5,4 +5,10 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Debug builds only: lib/dev/seed_health.dart writes sample data into
+         Health Connect so Phase 8 can be tried on an emulator. A release
+         build merges the main manifest alone and can only read. -->
+    <uses-permission android:name="android.permission.health.WRITE_STEPS"/>
+    <uses-permission android:name="android.permission.health.WRITE_DISTANCE"/>
+    <uses-permission android:name="android.permission.health.WRITE_HEART_RATE"/>
 </manifest>

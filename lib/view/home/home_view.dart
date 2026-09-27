@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:dotted_dashed_line/dotted_dashed_line.dart';
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -10,8 +13,10 @@ import '../../common/app_colors.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
 import '../../models/body_metric.dart';
+import '../../models/health_models.dart';
 import '../../models/profile.dart';
 import '../../services/body_metric_service.dart';
+import '../../services/health_sync_service.dart';
 import '../../services/profile_service.dart';
 import '../body_metrics/bmi_view.dart';
 import 'activity_tracker_view.dart';
@@ -47,6 +52,7 @@ class HomeViewState extends State<HomeView> {
     super.initState();
     _loadLatestMetric();
     _loadProfile();
+    _loadHealth();
   }
 
   Future<void> _loadProfile() async {
@@ -77,44 +83,81 @@ class HomeViewState extends State<HomeView> {
     _loadLatestMetric();
   }
 
-  // Empty until there is a real reading. The chart line is a placeholder, but
-  // "21 mins ago" is a specific claim, and pairing it with a "--" value reads
-  // as a bug rather than as "not connected yet".
+  /// Index of the heart-rate point whose tooltip is showing, if any.
   List<int> showingTooltipOnSpots = [];
 
-  List<FlSpot> get allSpots => const [
-        FlSpot(0, 20),
-        FlSpot(1, 25),
-        FlSpot(2, 40),
-        FlSpot(3, 50),
-        FlSpot(4, 35),
-        FlSpot(5, 40),
-        FlSpot(6, 30),
-        FlSpot(7, 20),
-        FlSpot(8, 25),
-        FlSpot(9, 40),
-        FlSpot(10, 50),
-        FlSpot(11, 35),
-        FlSpot(12, 50),
-        FlSpot(13, 60),
-        FlSpot(14, 40),
-        FlSpot(15, 50),
-        FlSpot(16, 20),
-        FlSpot(17, 25),
-        FlSpot(18, 40),
-        FlSpot(19, 50),
-        FlSpot(20, 35),
-        FlSpot(21, 80),
-        FlSpot(22, 30),
-        FlSpot(23, 20),
-        FlSpot(24, 25),
-        FlSpot(25, 40),
-        FlSpot(26, 50),
-        FlSpot(27, 35),
-        FlSpot(28, 50),
-        FlSpot(29, 60),
-        FlSpot(30, 40)
-      ];
+  HealthToday? _health;
+  bool _healthBusy = false;
+
+  /// Reads today from Health Connect for the card, then pushes the unsent
+  /// days to the backend. The card does not wait on the upload.
+  Future<void> _loadHealth() async {
+    try {
+      final today = await HealthSyncService.instance.today();
+      if (!mounted) return;
+      setState(() {
+        _health = today;
+        showingTooltipOnSpots.clear();
+      });
+      if (today.access == HealthAccess.granted) {
+        unawaited(HealthSyncService.instance.sync().catchError((_) {
+          // The phone still holds the data; the next open retries.
+        }));
+      }
+    } catch (_) {
+      // Health Connect threw (e.g. its app is being updated). The card keeps
+      // showing "not connected" rather than taking the screen down.
+      if (mounted) {
+        setState(() => _health = const HealthToday(HealthAccess.notGranted));
+      }
+    }
+  }
+
+  /// Home tab re-selected: steps have moved on since the screen was built.
+  void refreshHealth() => _loadHealth();
+
+  Future<void> _connectHealth() async {
+    if (_healthBusy) return;
+    setState(() => _healthBusy = true);
+    try {
+      if (_health?.access == HealthAccess.notInstalled) {
+        await HealthSyncService.instance.install();
+      } else if (!await HealthSyncService.instance.connect() && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(tr('msg_health_denied'))));
+      }
+    } finally {
+      if (mounted) setState(() => _healthBusy = false);
+    }
+    await _loadHealth();
+  }
+
+  /// Heart rate as chart points: x in minutes since midnight. A watch logging
+  /// every second during a workout hands over thousands of samples, so they
+  /// are averaged into 5-minute buckets - at most 288 points for a whole day,
+  /// which is more than a card this wide can show anyway.
+  List<FlSpot> _heartRateSpots() {
+    final samples = _health?.heartRate ?? const <HeartRateSample>[];
+    final buckets = <int, List<int>>{};
+    for (final s in samples) {
+      final minute = s.time.hour * 60 + s.time.minute;
+      buckets.putIfAbsent(minute ~/ 5, () => []).add(s.bpm);
+    }
+    final keys = buckets.keys.toList()..sort();
+    return [
+      for (final k in keys)
+        FlSpot(
+          k * 5.0,
+          buckets[k]!.reduce((a, b) => a + b) / buckets[k]!.length,
+        ),
+    ];
+  }
+
+  static String _clock(double minutes) {
+    final m = minutes.round();
+    return '${(m ~/ 60).toString().padLeft(2, '0')}:'
+        '${(m % 60).toString().padLeft(2, '0')}';
+  }
 
   List waterArr = [
     {"title": "6am - 8am", "subtitle": "600ml"},
@@ -128,11 +171,17 @@ class HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     var media = MediaQuery.of(context).size;
 
+    final spots = _heartRateSpots();
+    final today = _health?.today;
     final lineBarsData = [
       LineChartBarData(
         showingIndicators: showingTooltipOnSpots,
-        spots: allSpots,
-        isCurved: false,
+        // fl_chart cannot draw an empty series; one invisible point keeps the
+        // card's shape while there is nothing to plot.
+        spots: spots.isEmpty ? const [FlSpot(0, 0)] : spots,
+        show: spots.isNotEmpty,
+        isCurved: true,
+        preventCurveOverShooting: true,
         barWidth: 3,
         belowBarData: BarAreaData(
           show: true,
@@ -304,7 +353,9 @@ class HomeViewState extends State<HomeView> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(25),
                   child: Container(
-                    height: media.width * 0.4,
+                    // Taller than the kit's 0.4: the card now carries a
+                    // caption and, until connected, a button.
+                    height: media.width * 0.48,
                     width: double.maxFinite,
                     decoration: BoxDecoration(
                       color: context.colors.primary2.withOpacity(0.3),
@@ -339,16 +390,19 @@ class HomeViewState extends State<HomeView> {
                                           0, 0, bounds.width, bounds.height));
                                 },
                                 child: Text(
-                                  // Waiting on Google Health Connect like the
-                                  // two tiles below. A plausible number here
-                                  // would be read as a measurement.
-                                  '--',
+                                  // The latest reading, not the day's average:
+                                  // the figure a watch face shows.
+                                  spots.isEmpty
+                                      ? '--'
+                                      : '${_health!.heartRate.last.bpm} ${tr('unit_bpm')}',
                                   style: TextStyle(
                                       color: context.colors.surface.withOpacity(0.7),
                                       fontWeight: FontWeight.w700,
                                       fontSize: 18),
                                 ),
                               ),
+                              const SizedBox(height: 4),
+                              _heartRateCaption(today),
                             ],
                           ),
                         ),
@@ -369,7 +423,8 @@ class HomeViewState extends State<HomeView> {
                               handleBuiltInTouches: false,
                               touchCallback: (FlTouchEvent event,
                                   LineTouchResponse? response) {
-                                if (response == null ||
+                                if (spots.isEmpty ||
+                                    response == null ||
                                     response.lineBarSpots == null) {
                                   return;
                                 }
@@ -419,7 +474,8 @@ class HomeViewState extends State<HomeView> {
                                     (List<LineBarSpot> lineBarsSpot) {
                                   return lineBarsSpot.map((lineBarSpot) {
                                     return LineTooltipItem(
-                                      "${lineBarSpot.x.toInt()} mins ago",
+                                      '${_clock(lineBarSpot.x)} · '
+                                      '${lineBarSpot.y.round()} ${tr('unit_bpm')}',
                                       const TextStyle(
                                         color: Colors.white,
                                         fontSize: 10,
@@ -431,8 +487,15 @@ class HomeViewState extends State<HomeView> {
                               ),
                             ),
                             lineBarsData: lineBarsData,
-                            minY: 0,
-                            maxY: 130,
+                            // The day's own range with headroom, so a resting
+                            // 60-70 bpm is not a flat line pinned to the
+                            // bottom of a 0-200 axis.
+                            minY: spots.isEmpty
+                                ? 0
+                                : spots.map((e) => e.y).reduce(math.min) - 15,
+                            maxY: spots.isEmpty
+                                ? 130
+                                : spots.map((e) => e.y).reduce(math.max) + 25,
                             titlesData: FlTitlesData(
                               show: false,
                             ),
@@ -452,12 +515,26 @@ class HomeViewState extends State<HomeView> {
                 SizedBox(height: media.width * 0.05),
                 Row(
                   children: [
-                    // Calories and steps both wait on Google Health Connect.
-                    // A dash says "not connected"; a plausible number would be
-                    // read as fact, which is the one thing it must not be.
-                    Expanded(child: _metricCard(media, tr('label_calories'))),
+                    // Distance replaced calories: a phone without a watch can
+                    // measure how far somebody walked but only guess what it
+                    // cost them. A dash still means "no reading".
+                    Expanded(
+                      child: _metricCard(
+                        media,
+                        tr('label_distance'),
+                        today?.distanceM == null
+                            ? null
+                            : '${(today!.distanceM! / 1000).toStringAsFixed(2)} km',
+                      ),
+                    ),
                     SizedBox(width: media.width * 0.05),
-                    Expanded(child: _metricCard(media, tr('label_steps'))),
+                    Expanded(
+                      child: _metricCard(
+                        media,
+                        tr('label_steps'),
+                        today?.steps?.toString(),
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: media.width * 0.05),
@@ -520,12 +597,56 @@ class HomeViewState extends State<HomeView> {
     );
   }
 
-  /// One of the two square tiles under the heart-rate chart.
-  ///
-  /// No value argument: neither figure has a source yet, and the tile exists
-  /// to hold the place until Health Connect fills it.
-  Widget _metricCard(Size media, String title) {
+  /// The line under the heart-rate figure: the day's range once there is
+  /// one, otherwise what stands between the user and a reading.
+  Widget _heartRateCaption(HealthDay? today) {
     final colors = context.colors;
+    final access = _health?.access;
+    if (_health == null) return const SizedBox.shrink();
+    if (access == HealthAccess.unavailable) {
+      return Text(tr('msg_health_unavailable'),
+          style: TextStyle(color: colors.textSecondary, fontSize: 11));
+    }
+    if (access == HealthAccess.notInstalled ||
+        access == HealthAccess.notGranted) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tr('msg_health_permission'),
+              style: TextStyle(color: colors.textSecondary, fontSize: 11)),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 32,
+            child: RoundButton(
+              title: tr(access == HealthAccess.notInstalled
+                  ? 'btn_install_health'
+                  : 'btn_connect_health'),
+              type: RoundButtonType.bgGradient,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              onPressed: _connectHealth,
+            ),
+          ),
+        ],
+      );
+    }
+    if (today?.heartRateMin == null) {
+      return Text(tr('msg_no_heart_rate'),
+          style: TextStyle(color: colors.textSecondary, fontSize: 11));
+    }
+    return Text(
+      tr('label_hr_range')
+          .replaceAll('{min}', '${today!.heartRateMin}')
+          .replaceAll('{max}', '${today.heartRateMax}'),
+      style: TextStyle(color: colors.textSecondary, fontSize: 11),
+    );
+  }
+
+  /// One of the two square tiles under the heart-rate chart. [value] null
+  /// draws a dash: a plausible number would be read as a measurement.
+  Widget _metricCard(Size media, String title, String? value) {
+    final colors = context.colors;
+    final connected = _health?.access == HealthAccess.granted;
     return Container(
       width: double.maxFinite,
       height: media.width * 0.26,
@@ -544,13 +665,13 @@ class HomeViewState extends State<HomeView> {
                   fontSize: 12,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
-          Text('--',
+          Text(value ?? '--',
               style: TextStyle(
-                  color: colors.textSecondary,
+                  color: value == null ? colors.textSecondary : colors.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w700)),
           const Spacer(),
-          Text(tr('msg_not_connected'),
+          Text(tr(connected ? 'label_today' : 'msg_not_connected'),
               style: TextStyle(color: colors.textSecondary, fontSize: 11)),
         ],
       ),

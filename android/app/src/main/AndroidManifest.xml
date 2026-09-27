@@ -6,6 +6,19 @@
    <!-- A phone without a camera can still use every other screen, so the
         camera is optional rather than a requirement to install. -->
    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+   <!-- Phase 8: read-only access to Health Connect. Steps, distance and heart
+        rate are what the home screen shows; nothing is written back. -->
+   <uses-permission android:name="android.permission.health.READ_STEPS"/>
+   <uses-permission android:name="android.permission.health.READ_DISTANCE"/>
+   <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
+   <!-- Lets the app see whether Health Connect is installed (Android 13 and
+        below ship it as a separate app). -->
+   <queries>
+       <package android:name="com.google.android.apps.healthdata" />
+       <intent>
+           <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+       </intent>
+   </queries>
    <application
         android:label="Bodify"
         android:name="${applicationName}"
@@ -32,6 +45,29 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Health Connect links to the app's privacy rationale from its
+             permission screen, and on Android 14+ refuses to list an app
+             that does not declare one. It opens the main activity. -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+        <!-- Android 13 and below: the same rationale, asked by the
+             standalone Health Connect app. -->
+        <activity-alias
+            android:name="ShowPermissionRationaleActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity-alias>
         <!-- Where Supabase sends the browser back to after a Facebook
              sign-in. The scheme must match OAUTH_REDIRECT_URL on the backend
              and the redirect allowlist in the Supabase dashboard; the
