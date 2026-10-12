@@ -213,6 +213,18 @@ class WorkoutPlan {
 
   int get plannedDayCount => days.length;
 
+  WorkoutPlan copyWith({String? name, bool? isActive}) => WorkoutPlan(
+        planId: planId,
+        name: name ?? this.name,
+        status: status,
+        isActive: isActive ?? this.isActive,
+        createdAt: createdAt,
+        days: days,
+        description: description,
+        goal: goal,
+        durationWeeks: durationWeeks,
+      );
+
   factory WorkoutPlan.fromJson(Map<String, dynamic> json) => WorkoutPlan(
         planId: json['plan_id'] as int,
         name: json['name'] as String,

@@ -69,9 +69,28 @@ class _SessionLogViewState extends State<SessionLogView> {
         previous: _previousLogged(index),
       ),
     );
-    if (values == null) return;
+    if (values == null || target.id < 0) return;
 
-    setState(() => _busy = true);
+    // Clearing only the axes this exercise actually uses. A Plank has no
+    // reps to clear, and sending null for one would be a correction the
+    // user never made.
+    final spec = SetFieldSpec.of(widget.exercise.trackingType);
+    final clearReps = values.reps == null && spec.reps;
+    final clearDuration = values.durationSeconds == null && spec.duration;
+    final clearDistance = values.distanceM == null && spec.distance;
+
+    // Drawn at once, replaced by the server's row when it answers, put back
+    // if it refuses - the same pattern as the live workout screen.
+    setState(() {
+      _sets[index] = target.performed(
+        reps: values.reps ?? (clearReps ? null : target.reps),
+        weightKg: values.weightKg,
+        durationSeconds:
+            values.durationSeconds ?? (clearDuration ? null : target.durationSeconds),
+        distanceM: values.distanceM ?? (clearDistance ? null : target.distanceM),
+      );
+      _changed = true;
+    });
     try {
       final updated = await WorkoutSessionService.instance.recordSet(
         target.id,
@@ -80,27 +99,23 @@ class _SessionLogViewState extends State<SessionLogView> {
         durationSeconds: values.durationSeconds,
         distanceM: values.distanceM,
         completed: true,
-        // Clearing only the axes this exercise actually uses. A Plank has no
-        // reps to clear, and sending null for one would be a correction the
-        // user never made.
-        clearReps: values.reps == null &&
-            SetFieldSpec.of(widget.exercise.trackingType).reps,
+        clearReps: clearReps,
         clearWeight: values.weightKg == null,
-        clearDuration: values.durationSeconds == null &&
-            SetFieldSpec.of(widget.exercise.trackingType).duration,
-        clearDistance: values.distanceM == null &&
-            SetFieldSpec.of(widget.exercise.trackingType).distance,
+        clearDuration: clearDuration,
+        clearDistance: clearDistance,
       );
-      if (!mounted) return;
-      setState(() {
-        _sets[index] = updated;
-        _busy = false;
-        _changed = true;
-      });
+      _replace(target.id, updated);
     } catch (e) {
-      if (mounted) setState(() => _busy = false);
+      _replace(target.id, target);
       _showError(e);
     }
+  }
+
+  /// Swaps the row with [id] for [next], wherever it has moved to since.
+  void _replace(int id, SessionSet next) {
+    if (!mounted) return;
+    final at = _sets.indexWhere((s) => s.id == id);
+    if (at >= 0) setState(() => _sets[at] = next);
   }
 
   /// Reopens the session if it has been finished, asking first.
@@ -172,7 +187,20 @@ class _SessionLogViewState extends State<SessionLogView> {
     );
     if (values == null) return;
 
-    setState(() => _busy = true);
+    // Drawn under a negative id until the real one arrives.
+    final draft = SessionSet(
+      id: -DateTime.now().microsecondsSinceEpoch,
+      setOrder: last == null ? 1 : last.setOrder + 1,
+      completed: true,
+      reps: values.reps,
+      weightKg: values.weightKg,
+      durationSeconds: values.durationSeconds,
+      distanceM: values.distanceM,
+    );
+    setState(() {
+      _sets.add(draft);
+      _changed = true;
+    });
     try {
       final created = await WorkoutSessionService.instance.addSet(
         widget.exercise.id,
@@ -181,30 +209,26 @@ class _SessionLogViewState extends State<SessionLogView> {
         durationSeconds: values.durationSeconds,
         distanceM: values.distanceM,
       );
-      if (!mounted) return;
-      setState(() {
-        _sets.add(created);
-        _busy = false;
-        _changed = true;
-      });
+      _replace(draft.id, created);
     } catch (e) {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _sets.removeWhere((s) => s.id == draft.id));
       _showError(e);
     }
   }
 
   Future<void> _delete(int index) async {
-    setState(() => _busy = true);
+    final removed = _sets[index];
+    if (removed.id < 0) return;
+    setState(() {
+      _sets.removeAt(index);
+      _changed = true;
+    });
     try {
-      await WorkoutSessionService.instance.deleteSet(_sets[index].id);
-      if (!mounted) return;
-      setState(() {
-        _sets.removeAt(index);
-        _busy = false;
-        _changed = true;
-      });
+      await WorkoutSessionService.instance.deleteSet(removed.id);
     } catch (e) {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _sets.insert(index.clamp(0, _sets.length), removed));
+      }
       _showError(e);
     }
   }

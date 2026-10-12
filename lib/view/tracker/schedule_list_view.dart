@@ -29,27 +29,65 @@ class _ScheduleListViewState extends State<ScheduleListView> {
   @override
   void initState() {
     super.initState();
-    _load();
+    // Drawn from the last list seen, if any, and refreshed underneath.
+    final cached = _cached;
+    if (cached != null) {
+      _plans = List.of(cached);
+      _isLoading = false;
+    }
+    _load(silent: cached != null);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  /// The last plan list seen, for as long as the app runs (memory only).
+  static List<WorkoutPlan>? _cached;
+
+  /// Writes sent and not yet answered - see [_mutate].
+  int _inFlight = 0;
+
+  /// [silent] refreshes without a spinner and keeps what is drawn on failure.
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
     try {
       final plans = await WorkoutPlanService.instance.listPlans();
-      if (!mounted) return;
+      _cached = plans;
+      if (!mounted || _inFlight > 0) return;
       setState(() {
         _plans = plans;
         _isLoading = false;
       });
     } on ApiException catch (e) {
-      if (!mounted) return;
+      if (!mounted || silent) return;
       setState(() {
         _error = e.message;
         _isLoading = false;
       });
+    }
+  }
+
+  /// Draws [next] at once, sends [write], and reloads quietly once the last
+  /// write is answered; on failure the list goes back and the reason shows.
+  Future<void> _mutate(
+    List<WorkoutPlan> next,
+    Future<void> Function() write,
+  ) async {
+    final before = _plans;
+    setState(() => _plans = next);
+    _cached = next;
+    _inFlight++;
+    try {
+      await write();
+    } catch (e) {
+      _cached = before;
+      if (mounted) setState(() => _plans = before);
+      _showError(e);
+    } finally {
+      _inFlight--;
+      if (_inFlight == 0 && mounted) _load(silent: true);
     }
   }
 
@@ -61,14 +99,18 @@ class _ScheduleListViewState extends State<ScheduleListView> {
   }
 
   Future<void> _toggleActive(WorkoutPlan plan) async {
-    try {
-      await WorkoutPlanService.instance.setActive(plan.planId, !plan.isActive);
-      // Re-read rather than flipping one row: turning this schedule on also
-      // turned another one off, and only the server knows which.
-      await _load();
-    } catch (e) {
-      _showError(e);
-    }
+    final activating = !plan.isActive;
+    // Exactly one plan can be active (a partial unique index), so switching
+    // one on switches whichever was on off - predictable, and drawn now.
+    await _mutate(
+      [
+        for (final p in _plans)
+          p.planId == plan.planId
+              ? p.copyWith(isActive: activating)
+              : (activating && p.isActive ? p.copyWith(isActive: false) : p),
+      ],
+      () => WorkoutPlanService.instance.setActive(plan.planId, activating),
+    );
   }
 
   Future<void> _create() async {
@@ -85,7 +127,7 @@ class _ScheduleListViewState extends State<ScheduleListView> {
       if (_plans.every((p) => !p.isActive)) {
         await WorkoutPlanService.instance.setActive(plan.planId, true);
       }
-      await _load();
+      _load(silent: true);
       if (mounted) _open(plan);
     } catch (e) {
       _showError(e);
@@ -98,12 +140,13 @@ class _ScheduleListViewState extends State<ScheduleListView> {
       builder: (_) => _NameDialog(initial: plan.name),
     );
     if (name == null || name.isEmpty || name == plan.name) return;
-    try {
-      await WorkoutPlanService.instance.renamePlan(plan.planId, name);
-      await _load();
-    } catch (e) {
-      _showError(e);
-    }
+    await _mutate(
+      [
+        for (final p in _plans)
+          p.planId == plan.planId ? p.copyWith(name: name) : p,
+      ],
+      () => WorkoutPlanService.instance.renamePlan(plan.planId, name),
+    );
   }
 
   Future<void> _delete(WorkoutPlan plan) async {
@@ -135,12 +178,10 @@ class _ScheduleListViewState extends State<ScheduleListView> {
     );
     if (confirmed != true) return;
 
-    try {
-      await WorkoutPlanService.instance.deletePlan(plan.planId);
-      await _load();
-    } catch (e) {
-      _showError(e);
-    }
+    await _mutate(
+      [for (final p in _plans) if (p.planId != plan.planId) p],
+      () => WorkoutPlanService.instance.deletePlan(plan.planId),
+    );
   }
 
   Future<void> _open(WorkoutPlan plan) async {
@@ -149,7 +190,7 @@ class _ScheduleListViewState extends State<ScheduleListView> {
       MaterialPageRoute(builder: (_) => ScheduleCalendarView(plan: plan)),
     );
     // Day counts on the cards go stale while the calendar is open.
-    if (mounted) _load();
+    if (mounted) _load(silent: true);
   }
 
   @override

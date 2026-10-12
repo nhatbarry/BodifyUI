@@ -152,10 +152,13 @@ class _BmiViewState extends State<BmiView> {
 
     setState(() => _isSaving = true);
     try {
-      await BodyMetricService.instance.record(heightCm: height, weightKg: weight);
+      // The saved row comes back with its BMI already computed, so it goes
+      // straight to the top of the list instead of re-reading the history.
+      final saved = await BodyMetricService.instance
+          .record(heightCm: height, weightKg: weight);
       _weightController.clear();
+      if (mounted) setState(() => _history = [saved, ..._history]);
       _showMessage(tr('toast_saved'));
-      await _load();
     } on ApiException catch (e) {
       _showMessage(e.message);
     } finally {
@@ -184,11 +187,15 @@ class _BmiViewState extends State<BmiView> {
     );
     if (confirmed != true) return;
 
+    // Gone from the list at once; put back if the server refuses.
+    final before = _history;
+    setState(() => _history =
+        [for (final m in _history) if (m.metricId != metric.metricId) m]);
     try {
       await BodyMetricService.instance.delete(metric.metricId);
       _showMessage(tr('toast_deleted'));
-      await _load();
     } on ApiException catch (e) {
+      if (mounted) setState(() => _history = before);
       _showMessage(e.message);
     }
   }

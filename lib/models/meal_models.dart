@@ -267,6 +267,51 @@ class MealItem {
       hasPlan &&
       (plannedQuantity != quantity || plannedUnit != unit);
 
+  /// The same item at another status or amount - what the diary draws while
+  /// the write is in flight. Macros scale with energy, which is how the server
+  /// rescales them too (quantity x the same per-unit figures).
+  MealItem copyWith({
+    ItemStatus? status,
+    double? quantity,
+    MealUnit? unit,
+    double? energyKcal,
+    double? plannedEnergyKcal,
+  }) {
+    final ratio = (energyKcal == null || this.energyKcal == 0)
+        ? 1.0
+        : energyKcal / this.energyKcal;
+    double? scale(double? v) => v == null ? null : v * ratio;
+    return MealItem(
+      mealItemId: mealItemId,
+      foodId: foodId,
+      foodName: foodName,
+      quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
+      grams: scale(grams),
+      energyKcal: energyKcal ?? this.energyKcal,
+      proteinG: scale(proteinG),
+      fatG: scale(fatG),
+      carbG: scale(carbG),
+      fiberG: scale(fiberG),
+      status: status ?? this.status,
+      isCustom: isCustom,
+      plannedQuantity: plannedQuantity,
+      plannedUnit: plannedUnit,
+      plannedEnergyKcal: plannedEnergyKcal ?? this.plannedEnergyKcal,
+    );
+  }
+
+  /// What `PUT /meal-items/{id}/status` will answer, predicted: ticking keeps
+  /// the amount; putting back restores the planned amount and its kcal.
+  MealItem toggled() => isPlanned
+      ? copyWith(status: ItemStatus.eaten)
+      : copyWith(
+          status: ItemStatus.planned,
+          quantity: plannedQuantity,
+          unit: plannedUnit,
+          energyKcal: plannedEnergyKcal,
+        );
+
   factory MealItem.fromJson(Map<String, dynamic> json) => MealItem(
         mealItemId: json['meal_item_id'] as int,
         foodId: json['food_id'] as int?,
@@ -303,6 +348,21 @@ class NutritionTotals {
   final double fatG;
   final double carbG;
   final double fiberG;
+
+  /// The server's rule, repeated so the diary can redraw before it answers:
+  /// only eaten food counts, and a macro nobody published counts as nothing.
+  factory NutritionTotals.ofEaten(Iterable<MealItem> items) {
+    double e = 0, p = 0, f = 0, c = 0, fi = 0;
+    for (final i in items.where((i) => !i.isPlanned)) {
+      e += i.energyKcal;
+      p += i.proteinG ?? 0;
+      f += i.fatG ?? 0;
+      c += i.carbG ?? 0;
+      fi += i.fiberG ?? 0;
+    }
+    return NutritionTotals(
+        energyKcal: e, proteinG: p, fatG: f, carbG: c, fiberG: fi);
+  }
 
   factory NutritionTotals.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const NutritionTotals();
@@ -349,6 +409,34 @@ class Meal {
 
   /// What the plan said this meal would come to, eaten yet or not.
   final double plannedKcal;
+
+  /// The server's `_planned_kcal`: the plan snapshot of every item that had
+  /// one, eaten or not.
+  static double plannedKcalOf(Iterable<MealItem> items) => items.fold(
+      0.0, (sum, i) => sum + (i.plannedEnergyKcal ?? 0));
+
+  /// This meal with other items, name or note; totals are recomputed rather
+  /// than carried, so they can never disagree with the items drawn.
+  Meal copyWith({
+    int? mealId,
+    List<MealItem>? items,
+    String? name,
+    bool clearName = false,
+    String? note,
+  }) {
+    final next = items ?? this.items;
+    return Meal(
+      mealId: mealId ?? this.mealId,
+      loggedDate: loggedDate,
+      position: position,
+      items: next,
+      totals: NutritionTotals.ofEaten(next),
+      name: clearName ? null : (name ?? this.name),
+      note: note ?? this.note,
+      photoKey: photoKey,
+      plannedKcal: plannedKcalOf(next),
+    );
+  }
 
   factory Meal.fromJson(Map<String, dynamic> json) => Meal(
         mealId: json['meal_id'] as int,
@@ -449,6 +537,22 @@ class DayDiary {
   /// Null rather than 0 when there is no target: "none left" and "you never
   /// said what you were aiming for" are different answers.
   final double? remainingKcal;
+
+  /// The same day with other meals, every total recomputed the way
+  /// `GET /meals` computes it.
+  DayDiary withMeals(List<Meal> next) {
+    final items = [for (final m in next) ...m.items];
+    final totals = NutritionTotals.ofEaten(items);
+    return DayDiary(
+      loggedDate: loggedDate,
+      meals: next,
+      totals: totals,
+      plannedKcal: Meal.plannedKcalOf(items),
+      target: target,
+      remainingKcal:
+          target == null ? null : target!.energyKcal - totals.energyKcal,
+    );
+  }
 
   factory DayDiary.fromJson(Map<String, dynamic> json) => DayDiary(
         loggedDate: DateTime.parse(json['logged_date'] as String),
