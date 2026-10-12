@@ -165,6 +165,15 @@ class AppStrings {
     'label_calories': 'Calo',
     'label_steps': 'Bước chân',
     'msg_not_connected': 'Chưa kết nối',
+    'label_distance': 'Quãng đường',
+    'label_today': 'Hôm nay',
+    'btn_connect_health': 'Kết nối Health Connect',
+    'btn_install_health': 'Cài Health Connect',
+    'msg_health_unavailable': 'Máy này không hỗ trợ Health Connect',
+    'msg_health_permission': 'Cho phép Bodify đọc bước chân, quãng đường và nhịp tim',
+    'msg_health_denied': 'Chưa được cấp quyền. Bạn có thể bật lại trong Health Connect.',
+    'msg_no_heart_rate': 'Chưa có nhịp tim hôm nay - cần đồng hồ hoặc vòng đeo',
+    'label_hr_range': 'Thấp {min} · Cao {max}',
     'title_activity_progress': 'Hoạt động tập luyện',
     'label_month_short': 'T',
     'label_less': 'Ít',
@@ -319,7 +328,6 @@ class AppStrings {
     'msg_schedule_api_pending': 'API lịch tập chưa được xây dựng',
 
     // ---- Calendar ----
-    'label_today': 'Hôm nay',
     'label_rest_day': 'Ngày nghỉ',
     'msg_rest_day_blocked':
         'Xoá hết bài tập của ngày này trước khi đánh dấu ngày nghỉ',
@@ -685,6 +693,15 @@ class AppStrings {
     'label_calories': 'Calories',
     'label_steps': 'Steps',
     'msg_not_connected': 'Not connected',
+    'label_distance': 'Distance',
+    'label_today': 'Today',
+    'btn_connect_health': 'Connect Health Connect',
+    'btn_install_health': 'Install Health Connect',
+    'msg_health_unavailable': 'Health Connect is not available on this device',
+    'msg_health_permission': 'Let Bodify read your steps, distance and heart rate',
+    'msg_health_denied': 'Access not granted. You can allow it in Health Connect.',
+    'msg_no_heart_rate': 'No heart rate today - it needs a watch or band',
+    'label_hr_range': 'Low {min} · High {max}',
     'title_activity_progress': 'Training activity',
     'label_month_short': 'M',
     'label_less': 'Less',
@@ -842,7 +859,6 @@ class AppStrings {
     'msg_schedule_api_pending': 'The schedule API has not been built yet',
 
     // ---- Calendar ----
-    'label_today': 'Today',
     'label_rest_day': 'Rest day',
     'msg_rest_day_blocked':
         'Remove this day\u2019s exercises before marking it a rest day',

@@ -25,7 +25,8 @@ android {
 
     defaultConfig {
         applicationId = "com.codeforany.fitness"
-        minSdk = flutter.minSdkVersion
+        // Health Connect (Phase 8) needs 26; Flutter defaults to 24.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
