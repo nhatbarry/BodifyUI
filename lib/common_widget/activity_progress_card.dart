@@ -1,7 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../common/app_colors.dart';
-import '../core/api_exception.dart';
 import '../core/app_strings.dart';
 import '../models/progress_models.dart';
 import '../services/progress_service.dart';
@@ -35,13 +36,13 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
   /// GitHub's square, near enough. Small squares are the whole point: they are
   /// what lets months of history sit in the corner of a screen instead of
   /// filling it, and a grid of five fat tiles is a calendar, not a graph.
-  static const double _cellSize = 11;
-  static const double _cellGap = 3;
+  static const double _cellSize = 12;
+  static const double _cellGap = 4;
   static const double _pitch = _cellSize + _cellGap;
 
   /// Width of the weekday gutter and the gap after it.
-  static const double _gutter = 20;
-  static const double _gutterGap = 6;
+  static const double _gutter = 32;
+  static const double _gutterGap = 8;
 
   /// The most the card will ever draw, and therefore the most it fetches.
   /// Half a year of columns is wider than any phone; the grid renders as many
@@ -49,7 +50,8 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
   static const int _maxWeeks = 26;
 
   List<ActivityDay>? _days;
-  String? _error;
+  bool _failed = false;
+  bool _loading = false;
 
   @override
   void initState() {
@@ -58,15 +60,20 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
   }
 
   Future<void> _load() async {
+    if (!mounted || _loading) return;
+    setState(() {
+      _loading = true;
+      _failed = false;
+    });
     try {
       final days = await ProgressService.instance.recentActivity(
         days: _maxWeeks * 7,
       );
       if (mounted) setState(() => _days = days);
-    } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = tr('error_save_failed'));
+      if (mounted) setState(() => _failed = true);
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -89,33 +96,61 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
           // How many whole weeks the card can draw. Sized to the box rather
           // than fixed, so the grid fills a tablet and still fits a small
           // phone instead of overflowing it.
-          final usable = constraints.maxWidth - _gutter - _gutterGap;
-          final weeks = (usable / _pitch).floor().clamp(4, _maxWeeks);
+          final scale = math.max(
+            1.0,
+            MediaQuery.textScalerOf(context).scale(10) / 10,
+          );
+          final usable = constraints.maxWidth - (_gutter + _gutterGap) * scale;
+          final weeks = (usable / (_pitch * scale)).floor().clamp(1, _maxWeeks);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _header(colors, days, weeks),
+              _header(colors, _failed ? null : days, weeks),
               const SizedBox(height: 14),
-              if (_error != null)
-                SizedBox(
-                  height: 110,
-                  child: Center(
-                    child: Text(_error!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: colors.textSecondary, fontSize: 12)),
-                  ),
+              if (_failed)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr('msg_activity_load_failed'),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: _load,
+                      style: TextButton.styleFrom(
+                        foregroundColor: colors.textPrimary,
+                        minimumSize: const Size(48, 48),
+                      ),
+                      icon: const Icon(Icons.refresh_rounded, size: 20),
+                      label: Text(tr('btn_retry')),
+                    ),
+                  ],
                 )
               else if (days == null)
                 SizedBox(
                   height: 110,
                   child: Center(
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: colors.primary1)),
+                    semanticsLabel: tr('msg_loading'),
+                    strokeWidth: 2,
+                    color: colors.primary1,
+                  )),
                 )
               else
-                _buildGrid(colors, days, weeks),
+                _buildGrid(colors, days, weeks, scale),
+              if (_loading && days != null) ...[
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  semanticsLabel: tr('msg_loading'),
+                  color: colors.primary1,
+                  backgroundColor: colors.primary1.withValues(alpha: 0.12),
+                  minHeight: 2,
+                ),
+              ],
             ],
           );
         },
@@ -130,27 +165,41 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
     if (days != null) {
       final from = _gridStart(weeks);
       total = days
-          .where((d) => !d.day.isBefore(from))
+          .where((d) => !d.day.isBefore(from) && !d.day.isAfter(_today()))
           .fold<int>(0, (sum, d) => sum + d.completedSets);
     }
 
-    return Row(
+    final type = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Text(
-            tr('title_activity_progress'),
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
+        Text(
+          tr('title_activity_progress'),
+          style: type.titleMedium?.copyWith(
+            color: colors.textPrimary,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        if (total != null)
-          Text(
-            tr('label_sets_this_week').replaceFirst('{n}', '$total'),
-            style: TextStyle(color: colors.textSecondary, fontSize: 12),
-          ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 12,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (total != null)
+              Text(
+                tr('label_sets_this_week').replaceFirst('{n}', '$total'),
+                style: type.bodyMedium?.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            Text(
+              tr('label_activity_window').replaceAll('{weeks}', '$weeks'),
+              style: type.bodySmall?.copyWith(color: colors.textSecondary),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -171,7 +220,12 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
     return gridEnd.subtract(Duration(days: weeks * 7 - 1));
   }
 
-  Widget _buildGrid(BodifyColors colors, List<ActivityDay> days, int weeks) {
+  Widget _buildGrid(
+    BodifyColors colors,
+    List<ActivityDay> days,
+    int weeks,
+    double scale,
+  ) {
     // Keyed by date so a column can ask for a day it may not have - the tail
     // of the current week is in the future and has no row at all.
     final byDate = {
@@ -181,26 +235,31 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
 
     final gridStart = _gridStart(weeks);
     final lastDay = _today();
-    final peak = days
-        .where((d) => !d.day.isBefore(gridStart))
+    final visible = days.where(
+      (d) => !d.day.isBefore(gridStart) && !d.day.isAfter(lastDay),
+    );
+    final total = visible.fold<int>(0, (sum, d) => sum + d.completedSets);
+    final trainedDays = visible.where((d) => d.completedSets > 0).length;
+    final peak = visible
         .map((d) => d.completedSets)
         .fold<int>(0, (a, b) => a > b ? a : b);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _monthLabels(colors, gridStart, weeks),
+        ExcludeSemantics(child: _monthLabels(colors, gridStart, weeks, scale)),
         const SizedBox(height: 3),
-        Row(
+        ExcludeSemantics(
+            child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _weekdayLabels(colors),
-            const SizedBox(width: _gutterGap),
+            _weekdayLabels(colors, scale),
+            SizedBox(width: _gutterGap * scale),
             Column(
               children: [
                 for (var row = 0; row < 7; row++)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: _cellGap),
+                    padding: EdgeInsets.only(bottom: _cellGap * scale),
                     child: Row(
                       children: [
                         for (var week = 0; week < weeks; week++)
@@ -210,6 +269,7 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
                             byDate,
                             peak,
                             lastDay,
+                            scale,
                           ),
                       ],
                     ),
@@ -217,9 +277,18 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
               ],
             ),
           ],
-        ),
+        )),
         const SizedBox(height: 6),
-        _legend(colors),
+        ExcludeSemantics(child: _legend(colors, scale)),
+        const SizedBox(height: 12),
+        Text(
+          tr('label_activity_summary')
+              .replaceAll('{sets}', '$total')
+              .replaceAll('{days}', '$trainedDays'),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.textSecondary,
+              ),
+        ),
       ],
     );
   }
@@ -230,7 +299,12 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
   /// Positioned rather than laid out in a Row: a label is wider than the 14 px
   /// column it sits over, so a Row would either clip it or push the labels out
   /// of step with the squares below.
-  Widget _monthLabels(BodifyColors colors, DateTime gridStart, int weeks) {
+  Widget _monthLabels(
+    BodifyColors colors,
+    DateTime gridStart,
+    int weeks,
+    double scale,
+  ) {
     int? previousMonth;
     final labels = <Widget>[];
 
@@ -238,42 +312,49 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
       final columnStart = gridStart.add(Duration(days: week * 7));
       if (columnStart.month == previousMonth) continue;
       previousMonth = columnStart.month;
+      // A one-column partial month has no room for a label next to the next
+      // month. Omitting it avoids the old "M4M5" collision.
+      if (week == 0 &&
+          weeks > 1 &&
+          gridStart.add(const Duration(days: 7)).month != columnStart.month) {
+        continue;
+      }
       // Nothing on the last column - the label is wider than it is and would
       // run off the edge of the card.
-      if (week > weeks - 2) continue;
+      if (week > weeks - 3) continue;
       labels.add(Positioned(
-        left: _gutter + _gutterGap + week * _pitch,
+        left: (_gutter + _gutterGap + week * _pitch) * scale,
         top: 0,
         child: Text(
           '${tr('label_month_short')}${columnStart.month}',
-          style: TextStyle(color: colors.textSecondary, fontSize: 9),
+          style: TextStyle(color: colors.textSecondary, fontSize: 10),
         ),
       ));
     }
 
     return SizedBox(
-      height: 11,
-      width: _gutter + _gutterGap + weeks * _pitch,
+      height: 16 * scale,
+      width: (_gutter + _gutterGap + weeks * _pitch) * scale,
       child: Stack(clipBehavior: Clip.none, children: labels),
     );
   }
 
-  Widget _weekdayLabels(BodifyColors colors) {
+  Widget _weekdayLabels(BodifyColors colors, double scale) {
     // Every other row, like GitHub: seven labels beside squares this small
     // would not fit without shrinking the text past reading size.
     const shown = {0: 'dow_mon', 2: 'dow_wed', 4: 'dow_fri'};
     return SizedBox(
-      width: _gutter,
+      width: _gutter * scale,
       child: Column(
         children: [
           for (var row = 0; row < 7; row++)
             SizedBox(
-              height: _pitch,
+              height: _pitch * scale,
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   shown.containsKey(row) ? tr(shown[row]!) : '',
-                  style: TextStyle(color: colors.textSecondary, fontSize: 8),
+                  style: TextStyle(color: colors.textSecondary, fontSize: 10),
                 ),
               ),
             ),
@@ -288,6 +369,7 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
     Map<DateTime, ActivityDay> byDate,
     int peak,
     DateTime lastDay,
+    double scale,
   ) {
     // Days past today are not "no training", they have not happened. Drawn
     // blank so the last column does not read as a week of missed sessions.
@@ -295,10 +377,10 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
     final sets = byDate[date]?.completedSets ?? 0;
 
     return Padding(
-      padding: const EdgeInsets.only(right: _cellGap),
+      padding: EdgeInsets.only(right: _cellGap * scale),
       child: Container(
-        width: _cellSize,
-        height: _cellSize,
+        width: _cellSize * scale,
+        height: _cellSize * scale,
         decoration: BoxDecoration(
           color: future ? Colors.transparent : _shade(colors, sets, peak),
           borderRadius: BorderRadius.circular(2.5),
@@ -321,12 +403,12 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
     return colors.primary1;
   }
 
-  Widget _legend(BodifyColors colors) {
+  Widget _legend(BodifyColors colors, double scale) {
     Widget swatch(Color color) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 1.5),
           child: Container(
-            width: 9,
-            height: 9,
+            width: 10 * scale,
+            height: 10 * scale,
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(2),
@@ -334,8 +416,11 @@ class ActivityProgressCardState extends State<ActivityProgressCard> {
           ),
         );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+    return Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 3,
+      runSpacing: 4,
       children: [
         Text(tr('label_less'),
             style: TextStyle(color: colors.textSecondary, fontSize: 9)),

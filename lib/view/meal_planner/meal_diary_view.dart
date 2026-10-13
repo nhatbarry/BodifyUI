@@ -1,4 +1,5 @@
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../common/app_colors.dart';
@@ -11,6 +12,7 @@ import 'food_picker_sheet.dart';
 import 'meal_calendar_sheet.dart';
 import 'nutrition_history_view.dart';
 import 'nutrition_target_sheet.dart';
+import 'photo_review_sheet.dart';
 
 /// One day of eating: the user's own meals, what they add up to, and the target.
 ///
@@ -227,11 +229,103 @@ class MealDiaryViewState extends State<MealDiaryView> {
       builder: (_) => FoodPickerSheet(
         mealId: meal.mealId,
         defaultStatus: _isFuture ? ItemStatus.planned : ItemStatus.eaten,
+        onPhoto: () => _photoFlow(meal),
       ),
     );
     if (added == true) {
       _toast(AppStrings.of('toast_food_logged'));
       await _load(silent: true);
+    }
+  }
+
+  /// Photograph the plate, review what was recognised, add what is right.
+  ///
+  /// Not drawn ahead like the other writes: what comes back is the model's to
+  /// decide, so the review sheet shows a spinner over the photo instead. The
+  /// day is reloaded however the sheet closes - the photo is the meal's now,
+  /// even when nothing was added.
+  Future<void> _photoFlow(Meal meal) async {
+    if (meal.mealId < 0) return;
+    final image = await pickMealPhoto(context);
+    if (image == null || !mounted) return;
+
+    final added = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PhotoReviewSheet(
+        mealId: meal.mealId,
+        image: image,
+        defaultStatus: _isFuture ? ItemStatus.planned : ItemStatus.eaten,
+      ),
+    );
+    if (added == true) _toast(AppStrings.of('toast_photo_foods_added'));
+    await _load(silent: true);
+  }
+
+  /// Tapping a photo that is already there: look at it, replace it with a new
+  /// one to recognise, or remove it.
+  Future<void> _photoMenu(Meal meal) async {
+    if (meal.mealId < 0) return;
+    if (meal.photoUrl == null) return _photoFlow(meal);
+
+    final colors = context.colors;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.zoom_in, color: colors.primary1),
+                title: Text(AppStrings.of('btn_view_photo'),
+                    style: TextStyle(color: colors.textPrimary)),
+                onTap: () => Navigator.pop(context, 'view'),
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_camera_outlined, color: colors.primary1),
+                title: Text(AppStrings.of('btn_new_photo_analyze'),
+                    style: TextStyle(color: colors.textPrimary)),
+                onTap: () => Navigator.pop(context, 'new'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Color(0xFFE74C3C)),
+                title: Text(AppStrings.of('btn_remove_photo'),
+                    style: const TextStyle(color: Color(0xFFE74C3C))),
+                onTap: () => Navigator.pop(context, 'remove'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    switch (action) {
+      case 'view':
+        await showDialog<void>(
+          context: context,
+          builder: (_) => Dialog(
+            backgroundColor: Colors.black,
+            insetPadding: const EdgeInsets.all(12),
+            child: InteractiveViewer(child: _MealPhotoImage(meal: meal)),
+          ),
+        );
+      case 'new':
+        await _photoFlow(meal);
+      case 'remove':
+        if (_diary == null) return;
+        await _mutate(
+          _withMeal(_diary!, meal.mealId, (m) => m.copyWith(clearPhoto: true)),
+          () => MealService.instance.deleteMealPhoto(meal.mealId),
+          doneToast: AppStrings.of('toast_photo_removed'),
+        );
     }
   }
 
@@ -437,6 +531,7 @@ class MealDiaryViewState extends State<MealDiaryView> {
               name: entry.$2.name ?? _placeholderName(entry.$1),
               meal: entry.$2,
               onAdd: () => _addFood(entry.$2),
+              onPhoto: () => _photoMenu(entry.$2),
               onRemoveItem: _removeItem,
               onEditItem: _editItem,
               onViewItem: _viewFood,
@@ -703,6 +798,7 @@ class _MealSection extends StatelessWidget {
   final String name;
   final Meal meal;
   final VoidCallback onAdd;
+  final VoidCallback onPhoto;
   final Future<void> Function(MealItem) onRemoveItem;
   final void Function(MealItem) onEditItem;
   final void Function(MealItem) onViewItem;
@@ -715,6 +811,7 @@ class _MealSection extends StatelessWidget {
     required this.name,
     required this.meal,
     required this.onAdd,
+    required this.onPhoto,
     required this.onRemoveItem,
     required this.onEditItem,
     required this.onViewItem,
@@ -813,9 +910,11 @@ class _MealSection extends StatelessWidget {
               ),
             ),
           ],
-          if (meal.photoKey != null || items.isNotEmpty) ...[
+          // Not under a meal still waiting for its real id: there is nothing
+          // to attach a photo to yet.
+          if (meal.mealId > 0) ...[
             const SizedBox(height: 6),
-            _PhotoPlaceholder(photoKey: meal.photoKey),
+            _MealPhoto(meal: meal, onTap: onPhoto),
           ],
           if (items.isEmpty)
             Padding(
@@ -844,38 +943,82 @@ class _MealSection extends StatelessWidget {
   }
 }
 
-/// Where a photo of the meal will go.
+/// The meal's photo, or - before there is one - the slot that takes it.
 ///
-/// A placeholder on purpose: `meals.photo_key` exists and the API accepts one,
-/// but nothing uploads yet - user uploads need the write-scoped R2 credential
-/// and an image pipeline of their own, the way avatars do. Drawing the slot
-/// now keeps the layout honest about what is coming without pretending the
-/// button works.
-class _PhotoPlaceholder extends StatelessWidget {
-  final String? photoKey;
+/// The empty slot is the way into recognising food from a photo, so it says
+/// what it does rather than only where a picture would go.
+class _MealPhoto extends StatelessWidget {
+  final Meal meal;
+  final VoidCallback onTap;
 
-  const _PhotoPlaceholder({this.photoKey});
+  const _MealPhoto({required this.meal, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
 
+    if (meal.photoUrl == null) {
+      return Padding(
+        padding: const EdgeInsets.only(right: 8, bottom: 4),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: DottedBorderBox(
+            child: Row(
+              children: [
+                Icon(Icons.photo_camera_outlined,
+                    size: 18, color: colors.primary1),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    AppStrings.of('msg_photo_slot'),
+                    style: TextStyle(color: colors.textSecondary, fontSize: 11.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(right: 8, bottom: 4),
-      child: DottedBorderBox(
-        child: Row(
-          children: [
-            Icon(Icons.photo_camera_outlined,
-                size: 18, color: colors.textSecondary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                AppStrings.of('msg_photo_placeholder'),
-                style: TextStyle(color: colors.textSecondary, fontSize: 11.5),
-              ),
-            ),
-          ],
+      child: GestureDetector(
+        onTap: onTap,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: 150,
+            width: double.infinity,
+            child: _MealPhotoImage(meal: meal, fit: BoxFit.cover),
+          ),
         ),
+      ),
+    );
+  }
+}
+
+/// Keyed on the storage key, not the URL: the signature rotates daily, the
+/// file behind a key never changes (every upload gets a new key).
+class _MealPhotoImage extends StatelessWidget {
+  final Meal meal;
+  final BoxFit fit;
+
+  const _MealPhotoImage({required this.meal, this.fit = BoxFit.contain});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return CachedNetworkImage(
+      imageUrl: meal.photoUrl!,
+      cacheKey: 'meal-photo-${meal.photoKey}',
+      fit: fit,
+      placeholder: (_, __) => Container(color: colors.surface),
+      errorWidget: (_, __, ___) => Container(
+        color: colors.surface,
+        alignment: Alignment.center,
+        child: Icon(Icons.broken_image_outlined, color: colors.textSecondary),
       ),
     );
   }
@@ -933,7 +1076,13 @@ class _ItemRow extends StatelessWidget {
         // absent rather than shown as a guess.
         '${item.grams != null ? ' · ${item.grams!.round()}${AppStrings.of('unit_gram')}' : ''}';
 
-    if (item.isCustom) detail += ' · ${AppStrings.of('label_custom_tag')}';
+    // A hand-typed entry and one priced by the model's guess are both
+    // "custom" to the server; the user should be able to tell them apart.
+    if (item.isCustom) {
+      detail += item.photoAnalysisId != null
+          ? ' · ${AppStrings.of('label_ai_estimate')}'
+          : ' · ${AppStrings.of('label_custom_tag')}';
+    }
 
     // Eaten in a different amount from the plan: say what was planned, so the
     // gap between the two is visible without opening anything.

@@ -212,7 +212,8 @@ class _SetInputFieldsState extends State<SetInputFields> {
           const SizedBox(height: 6),
           Row(
             children: [
-              _roundButton(Icons.remove, () => _stepInt(controller, -step)),
+              _roundButton(Icons.remove, () => _stepInt(controller, -step),
+                  tr('btn_decrease_value').replaceAll('{label}', label)),
               Expanded(
                 child: TextField(
                   controller: controller,
@@ -228,12 +229,13 @@ class _SetInputFieldsState extends State<SetInputFields> {
                     isDense: true,
                     border: InputBorder.none,
                     suffixText: suffix,
-                    suffixStyle: TextStyle(
-                        color: colors.textSecondary, fontSize: 12),
+                    suffixStyle:
+                        TextStyle(color: colors.textSecondary, fontSize: 12),
                   ),
                 ),
               ),
-              _roundButton(Icons.add, () => _stepInt(controller, step)),
+              _roundButton(Icons.add, () => _stepInt(controller, step),
+                  tr('btn_increase_value').replaceAll('{label}', label)),
             ],
           ),
         ],
@@ -241,21 +243,28 @@ class _SetInputFieldsState extends State<SetInputFields> {
     );
   }
 
-  Widget _roundButton(IconData icon, VoidCallback onTap) {
+  Widget _roundButton(IconData icon, VoidCallback onTap, String label) {
     final colors = context.colors;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: 38,
-        height: 38,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: colors.surfaceVariant,
-          shape: BoxShape.circle,
-          border: Border.all(color: colors.primary1.withValues(alpha: 0.4)),
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        label: label,
+        button: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: 48,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: colors.surfaceVariant,
+              shape: BoxShape.circle,
+              border: Border.all(color: colors.primary1.withValues(alpha: 0.4)),
+            ),
+            child: Icon(icon, size: 20, color: colors.textPrimary),
+          ),
         ),
-        child: Icon(icon, size: 18, color: colors.primary1),
       ),
     );
   }
@@ -302,8 +311,8 @@ class _SetInputFieldsState extends State<SetInputFields> {
                     border: InputBorder.none,
                     hintText: '0',
                     suffixText: tr('unit_kg').toLowerCase(),
-                    suffixStyle: TextStyle(
-                        color: colors.textSecondary, fontSize: 12),
+                    suffixStyle:
+                        TextStyle(color: colors.textSecondary, fontSize: 12),
                   ),
                 ),
               ),
@@ -409,7 +418,8 @@ String formatTarget({
   String trim(double v) => v == v.roundToDouble() ? '${v.round()}' : '$v';
 
   final parts = <String>[];
-  if (durationSeconds != null) parts.add('$durationSeconds ${tr('unit_seconds')}');
+  if (durationSeconds != null)
+    parts.add('$durationSeconds ${tr('unit_seconds')}');
   if (distanceM != null) parts.add('${trim(distanceM)}m');
   if (reps != null) parts.add('$reps');
   if (weightKg != null) parts.add('${trim(weightKg)}kg');
@@ -431,7 +441,9 @@ String setAxisValue({
 
   switch (trackingType) {
     case TrackingType.duration:
-      return durationSeconds == null ? '-' : '$durationSeconds ${tr('unit_seconds')}';
+      return durationSeconds == null
+          ? '-'
+          : '$durationSeconds ${tr('unit_seconds')}';
     case TrackingType.distance:
       return distanceM == null ? '-' : '${trim(distanceM)}m';
     case TrackingType.repsDuration:

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -20,8 +21,9 @@ class MealService {
   final http.Client _client = http.Client();
 
   Future<http.Response> _send(
-    Future<http.Response> Function(String token) request,
-  ) async {
+    Future<http.Response> Function(String token) request, {
+    Duration timeout = const Duration(seconds: 20),
+  }) async {
     final token = await AuthService.instance.validAccessToken();
     if (token == null) {
       throw const ApiException('Not signed in', statusCode: 401);
@@ -29,7 +31,7 @@ class MealService {
 
     http.Response response;
     try {
-      response = await request(token).timeout(const Duration(seconds: 20));
+      response = await request(token).timeout(timeout);
     } on TimeoutException {
       throw const ApiException('The server took too long to respond.');
     } catch (_) {
@@ -43,8 +45,7 @@ class MealService {
         throw const ApiException('Session expired', statusCode: 401);
       }
       try {
-        response = await request(session.accessToken)
-            .timeout(const Duration(seconds: 20));
+        response = await request(session.accessToken).timeout(timeout);
       } catch (_) {
         throw const ApiException('Cannot reach the server. Is the backend running?');
       }
@@ -158,6 +159,7 @@ class MealService {
     required double quantity,
     required MealUnit unit,
     ItemStatus status = ItemStatus.eaten,
+    int? photoAnalysisId,
   }) async {
     final response = await _send((token) => _client.post(
           ApiConfig.path('/meal-items'),
@@ -171,6 +173,7 @@ class MealService {
             'quantity': quantity,
             'unit': unit.api,
             'status': status.api,
+            if (photoAnalysisId != null) 'photo_analysis_id': photoAnalysisId,
           }),
         ));
     return MealItem.fromJson(_decode(response) as Map<String, dynamic>);
@@ -187,6 +190,7 @@ class MealService {
     double? carbG,
     double quantity = 1,
     ItemStatus status = ItemStatus.eaten,
+    int? photoAnalysisId,
   }) async {
     final response = await _send((token) => _client.post(
           ApiConfig.path('/meal-items/custom'),
@@ -203,6 +207,7 @@ class MealService {
             if (carbG != null) 'carb_g': carbG,
             'quantity': quantity,
             'status': status.api,
+            if (photoAnalysisId != null) 'photo_analysis_id': photoAnalysisId,
           }),
         ));
     return MealItem.fromJson(_decode(response) as Map<String, dynamic>);
@@ -271,7 +276,8 @@ class MealService {
     if (response.statusCode != 204) _decode(response);
   }
 
-  /// PUT /meals/{id} - the name, note and photo belong to the meal.
+  /// PUT /meals/{id} - the name and note belong to the meal. The photo has
+  /// its own upload, [uploadMealPhoto].
   ///
   /// Omitting a field keeps it. A cleared name is `clearName: true`, because
   /// null on its own means "leave it" here and "clear it" on the wire.
@@ -280,7 +286,6 @@ class MealService {
     String? name,
     bool clearName = false,
     String? note,
-    String? photoKey,
   }) async {
     final response = await _send((token) => _client.put(
           ApiConfig.path('/meals/$mealId'),
@@ -291,10 +296,44 @@ class MealService {
           body: jsonEncode({
             if (clearName) 'name': null else if (name != null) 'name': name,
             if (note != null) 'note': note,
-            if (photoKey != null) 'photo_key': photoKey,
           }),
         ));
     _decode(response);
+  }
+
+  /// A photo over a phone connection, plus - for an analysis - the model's
+  /// few seconds, needs longer than the 20 s the JSON calls get.
+  static const _photoTimeout = Duration(seconds: 60);
+
+  Future<http.Response> _postPhoto(String path, File image) =>
+      _send((token) async {
+        final request = http.MultipartRequest('POST', ApiConfig.path(path))
+          ..headers['Authorization'] = 'Bearer $token'
+          ..files.add(await http.MultipartFile.fromPath('file', image.path));
+        return http.Response.fromStream(await request.send());
+      }, timeout: _photoTimeout);
+
+  /// POST /meals/{id}/photo - attach a photo, replacing any the meal had.
+  Future<Meal> uploadMealPhoto(int mealId, File image) async {
+    final response = await _postPhoto('/meals/$mealId/photo', image);
+    return Meal.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
+  /// DELETE /meals/{id}/photo
+  Future<Meal> deleteMealPhoto(int mealId) async {
+    final response = await _send((token) => _client.delete(
+          ApiConfig.path('/meals/$mealId/photo'),
+          headers: {'Authorization': 'Bearer $token'},
+        ));
+    return Meal.fromJson(_decode(response) as Map<String, dynamic>);
+  }
+
+  /// POST /meals/{id}/photo-analysis - the photo becomes the meal's, and what
+  /// is on the plate comes back as a draft. Nothing is logged until the user
+  /// confirms it through [logItem] / [logCustomItem].
+  Future<PhotoAnalysis> analyzeMealPhoto(int mealId, File image) async {
+    final response = await _postPhoto('/meals/$mealId/photo-analysis', image);
+    return PhotoAnalysis.fromJson(_decode(response) as Map<String, dynamic>);
   }
 
   /// DELETE /meals/{id} - removes the sitting and everything logged in it.

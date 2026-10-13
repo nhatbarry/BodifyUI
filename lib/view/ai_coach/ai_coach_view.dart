@@ -257,7 +257,8 @@ class _AiCoachViewState extends State<AiCoachView> {
           icon: Icon(
             Icons.add_comment_outlined,
             size: 20,
-            color: _messages.isEmpty ? colors.textSecondary : colors.textPrimary,
+            color:
+                _messages.isEmpty ? colors.textSecondary : colors.textPrimary,
           ),
         ),
         IconButton(
@@ -631,24 +632,29 @@ class _SendButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 44,
-        height: 44,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          gradient: enabled
-              ? LinearGradient(colors: colors.primaryGradient)
-              : null,
-          color: enabled ? null : colors.surfaceVariant,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          Icons.arrow_upward_rounded,
-          size: 20,
-          color: enabled ? colors.onPrimary : colors.textSecondary,
+    return Semantics(
+      label: tr('btn_send_message'),
+      button: true,
+      enabled: enabled,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(24),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 48,
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient:
+                enabled ? LinearGradient(colors: colors.primaryGradient) : null,
+            color: enabled ? null : colors.surfaceVariant,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.arrow_upward_rounded,
+            size: 20,
+            color: enabled ? colors.onPrimary : colors.textSecondary,
+          ),
         ),
       ),
     );

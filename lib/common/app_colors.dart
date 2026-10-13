@@ -54,7 +54,7 @@ class BodifyColors extends ThemeExtension<BodifyColors> {
     primary2: Color(0xFF9DCEFF),
     secondary1: Color(0xFFC58BF2),
     secondary2: Color(0xFFEEA4CE),
-    onPrimary: Color(0xFFFFFFFF),
+    onPrimary: Color(0xFF1D1617),
   );
 
   static const dark = BodifyColors(
@@ -68,7 +68,7 @@ class BodifyColors extends ThemeExtension<BodifyColors> {
     primary2: Color(0xFF9DCEFF),
     secondary1: Color(0xFFC58BF2),
     secondary2: Color(0xFFEEA4CE),
-    onPrimary: Color(0xFFFFFFFF),
+    onPrimary: Color(0xFF1D1617),
   );
 
   @override
