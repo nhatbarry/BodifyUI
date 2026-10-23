@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Marks which tabs hold data that changed somewhere else in the app, so
 /// [MainTabView] only pays for a reload when something could actually be
 /// different - not on every idle tap between tabs where nothing happened.
@@ -25,6 +27,16 @@ class RefreshFlags {
   /// via a plain `Navigator.push(...).then(_loadProfile)`, page-based and
   /// unaffected by tab switching. Home has no such path back to a screen
   /// reached through the Profile tab, so it has no other way to find out.
+  /// Bumped when plans changed somewhere other than the plan list itself -
+  /// today, a schedule applied from an AI Coach answer. A notifier rather
+  /// than a flag checked on a tab tap, because the plan list sits inside
+  /// Tracker's own Workout / Meal switch: it can be on screen the moment the
+  /// tab opens, with no tap of its own to hook. It still reloads only when a
+  /// plan actually changed, never on a plain switch.
+  static final ValueNotifier<int> plans = ValueNotifier(0);
+
+  static void markPlansChanged() => plans.value++;
+
   static bool homeProfile = false;
 
   static void markProfileEdited() {

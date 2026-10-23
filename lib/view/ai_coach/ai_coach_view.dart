@@ -10,6 +10,7 @@ import '../../models/chat_models.dart';
 import '../../services/ai_coach_service.dart';
 import 'chat_history_sheet.dart';
 import 'chat_markdown.dart';
+import 'coach_cards.dart';
 
 /// The AI coach conversation.
 ///
@@ -173,6 +174,18 @@ class _AiCoachViewState extends State<AiCoachView> {
     }
   }
 
+  /// Swaps in the server's copy of a message after Apply / Dismiss on one of
+  /// its cards, so the new status shows without reloading the thread.
+  void _replaceMessage(ChatMessage updated) {
+    if (!mounted) return;
+    setState(() {
+      _messages = [
+        for (final m in _messages)
+          m.id != null && m.id == updated.id ? updated : m,
+      ];
+    });
+  }
+
   void _showError(Object e) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -265,6 +278,7 @@ class _AiCoachViewState extends State<AiCoachView> {
   Widget _buildGreeting(BodifyColors colors) {
     final prompts = [
       tr('prompt_ai_plan'),
+      tr('prompt_ai_squat'),
       tr('prompt_ai_form'),
       tr('prompt_ai_nutrition'),
     ];
@@ -322,7 +336,11 @@ class _AiCoachViewState extends State<AiCoachView> {
         if (index == _messages.length) {
           return _TypingIndicator(colors: colors);
         }
-        return _MessageBubble(message: _messages[index], colors: colors);
+        return _MessageBubble(
+          message: _messages[index],
+          colors: colors,
+          onReplaced: _replaceMessage,
+        );
       },
     );
   }
@@ -427,8 +445,13 @@ class _CoachAvatar extends StatelessWidget {
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final BodifyColors colors;
+  final ValueChanged<ChatMessage> onReplaced;
 
-  const _MessageBubble({required this.message, required this.colors});
+  const _MessageBubble({
+    required this.message,
+    required this.colors,
+    required this.onReplaced,
+  });
 
   static String _time(DateTime at) =>
       '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
@@ -482,6 +505,20 @@ class _MessageBubble extends StatelessWidget {
               Flexible(child: bubble),
             ],
           ),
+          // Cards sit under the bubble, indented past the avatar, at the
+          // width of the bubble's column - wide enough for a week of dates.
+          if (message.attachments.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 36),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: width * 0.84),
+                child: CoachAttachmentCards(
+                  message: message,
+                  colors: colors,
+                  onReplaced: onReplaced,
+                ),
+              ),
+            ),
           Padding(
             padding: EdgeInsets.only(
               top: 4,
