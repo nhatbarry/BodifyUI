@@ -669,13 +669,18 @@ class _ScheduleCalendarViewState extends State<ScheduleCalendarView> {
   /// The calendar is the wrong place to train from - it is a month grid with a
   /// list under it - so starting or resuming a workout leaves it entirely.
   Future<void> _openWorkout(WorkoutSession session) async {
-    await Navigator.push<bool>(
+    final latest = await Navigator.push<WorkoutSession>(
       context,
       MaterialPageRoute(builder: (_) => ActiveWorkoutView(session: session)),
     );
-    // Always reload: the screen can pause, log, finish or abandon, and the
-    // calendar has no way to guess which happened.
-    if (mounted) _loadDay();
+    if (!mounted) return;
+    // The workout screen hands back the session as it last saw it, so the row
+    // shows "finished, 2/3" at once instead of the "in progress" it was
+    // opened from while the re-read below is still on its way.
+    if (latest != null) setState(() => _selectedSession = latest);
+    // Still reload: the screen can pause, log, finish or abandon, and the
+    // server's figures are the ones to keep.
+    _loadDay();
   }
 
   Widget _buildDaySection() {
