@@ -623,7 +623,8 @@ class _LiveCameraSetViewState extends State<LiveCameraSetView>
         if (_reps == 0 && !_hasPose)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text(tr('msg_ai_get_in_frame'),
+            child: Text(tr(_processor?.setupHintKey ?? 'msg_ai_get_in_frame'),
+                textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white70, fontSize: 12)),
           ),
         Padding(

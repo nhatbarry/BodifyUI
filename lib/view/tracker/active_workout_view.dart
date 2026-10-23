@@ -221,7 +221,8 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
       // asked beforehand. "The count went up" would celebrate again on every
       // reload.
       final before = await unlockedAchievementIds();
-      await WorkoutSessionService.instance.finishSession(_session.sessionId);
+      final finished =
+          await WorkoutSessionService.instance.finishSession(_session.sessionId);
       // The one moment records, achievements and completion stats actually
       // change - Home and Profile should pick this up next time either is
       // opened, not keep showing whatever they last loaded.
@@ -232,7 +233,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
       // screen that is already tearing down.
       await showNewUnlocks(context, before);
       if (!mounted) return;
-      Navigator.pop(context, true);
+      Navigator.pop(context, finished);
     } catch (e) {
       if (mounted) setState(() => _busy = false);
       _showError(e);
@@ -423,7 +424,7 @@ class _ActiveWorkoutViewState extends State<ActiveWorkoutView> {
       // the calendar offers to come back to it.
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) Navigator.pop(context, true);
+        if (!didPop) Navigator.pop(context, _session);
       },
       child: Scaffold(
         backgroundColor: colors.surface,

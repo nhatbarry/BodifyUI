@@ -233,7 +233,7 @@ class RecentExercise {
     switch (trackingType) {
       case TrackingType.duration:
         if (bestDurationSeconds == null) return sets;
-        return '$sets · $bestDurationSeconds${tr('unit_seconds')}';
+        return '$sets · $bestDurationSeconds ${tr('unit_seconds')}';
       case TrackingType.distance:
         if (bestDistanceM == null) return sets;
         return '$sets · ${trim(bestDistanceM!)}m';

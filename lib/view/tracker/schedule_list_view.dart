@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../common/app_colors.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
+import '../../core/refresh_flags.dart';
 import '../../models/workout_plan_models.dart';
 import '../../services/workout_plan_service.dart';
 import 'schedule_calendar_view.dart';
@@ -36,7 +37,17 @@ class _ScheduleListViewState extends State<ScheduleListView> {
       _isLoading = false;
     }
     _load(silent: cached != null);
+    RefreshFlags.plans.addListener(_onPlansChanged);
   }
+
+  @override
+  void dispose() {
+    RefreshFlags.plans.removeListener(_onPlansChanged);
+    super.dispose();
+  }
+
+  /// A plan changed elsewhere - an AI Coach schedule was applied.
+  void _onPlansChanged() => _load(silent: true);
 
   /// The last plan list seen, for as long as the app runs (memory only).
   static List<WorkoutPlan>? _cached;

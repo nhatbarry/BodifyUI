@@ -31,6 +31,20 @@ abstract class AiCoachService {
   Future<ChatSession> session(int sessionId);
 
   Future<void> delete(int sessionId);
+
+  /// Writes the schedule an answer proposed into the plan. Resolves with the
+  /// plan it landed in and the message as it now reads (status applied).
+  Future<ScheduleApplied> applySchedule(int messageId);
+
+  /// Marks a proposal as not wanted, so its card stops offering Apply.
+  Future<ChatMessage> dismissSchedule(int messageId);
+}
+
+class ScheduleApplied {
+  final int planId;
+  final ChatMessage message;
+
+  const ScheduleApplied({required this.planId, required this.message});
 }
 
 /// What a send produced: where it landed, and both messages as the server
@@ -68,10 +82,13 @@ class ApiAiCoachService implements AiCoachService {
   final http.Client _client = http.Client();
 
   /// Same retry-once-on-401 shape as the other services. Longer timeout than
-  /// theirs: a model takes seconds to answer, where a database query does not.
+  /// theirs: a model takes seconds to answer, where a database query does not
+  /// - and with tools one answer can be several model calls (look up the
+  /// calendar, search, propose, then write). The server stops starting new
+  /// rounds after 35 s, so 90 s leaves room for the last one to finish.
   Future<http.Response> _send(
     Future<http.Response> Function(String token) request, {
-    Duration timeout = const Duration(seconds: 60),
+    Duration timeout = const Duration(seconds: 90),
   }) async {
     final token = await AuthService.instance.validAccessToken();
     if (token == null) {
@@ -177,5 +194,33 @@ class ApiAiCoachService implements AiCoachService {
       timeout: const Duration(seconds: 20),
     );
     _decode(response);
+  }
+
+  @override
+  Future<ScheduleApplied> applySchedule(int messageId) async {
+    final response = await _send(
+      (token) => _client.post(
+        ApiConfig.path('/ai-coach/messages/$messageId/schedule/apply'),
+        headers: {'Authorization': 'Bearer $token'},
+      ),
+      timeout: const Duration(seconds: 30),
+    );
+    final json = _decode(response) as Map<String, dynamic>;
+    return ScheduleApplied(
+      planId: json['plan_id'] as int,
+      message: ChatMessage.fromJson(json['message'] as Map<String, dynamic>),
+    );
+  }
+
+  @override
+  Future<ChatMessage> dismissSchedule(int messageId) async {
+    final response = await _send(
+      (token) => _client.post(
+        ApiConfig.path('/ai-coach/messages/$messageId/schedule/dismiss'),
+        headers: {'Authorization': 'Bearer $token'},
+      ),
+      timeout: const Duration(seconds: 20),
+    );
+    return ChatMessage.fromJson(_decode(response) as Map<String, dynamic>);
   }
 }

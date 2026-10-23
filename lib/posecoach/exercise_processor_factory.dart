@@ -1,5 +1,6 @@
 import 'exercise_processor.dart';
 import 'pushup_processor.dart';
+import 'squat_processor.dart';
 
 /// Builds the processor an exercise's `ai_algorithm` names.
 ///
@@ -10,6 +11,7 @@ import 'pushup_processor.dart';
 /// a fourth algorithm should be a new branch here, not a database migration.
 ExerciseProcessor? processorFor(String? algorithm) => switch (algorithm) {
       'pushup_v1' => PushUpProcessor(),
+      'squat_v1' => SquatProcessor(),
       _ => null,
     };
 
