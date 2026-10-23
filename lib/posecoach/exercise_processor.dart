@@ -166,6 +166,11 @@ abstract class ExerciseProcessor {
   /// moves when the arm does.
   double get smoothing => 0.5;
 
+  /// What to tell the user before they are in frame: where to put the phone.
+  /// Every exercise reads a different joint, and the right camera angle
+  /// differs with it - a squat counts nothing filmed from the front.
+  String get setupHintKey => 'msg_ai_get_in_frame';
+
   /// Anything worth telling the user about their form on this frame.
   FeedbackCue? checkForm(Pose pose, double angle, RepStage stage);
 

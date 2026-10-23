@@ -19,7 +19,13 @@ enum FeedbackCue {
   /// Went down and up too fast to be a real rep, so it was not counted.
   /// Said out loud because otherwise the user sees the counter ignore them
   /// with no idea why.
-  slowDown('msg_cue_slow_down');
+  slowDown('msg_cue_slow_down'),
+
+  /// Squat: the torso pitched so far forward the hips are doing the lift.
+  chestUp('msg_cue_chest_up'),
+
+  /// Squat: weight rolling onto the toes, heels leaving the floor.
+  heelsDown('msg_cue_heels_down');
 
   const FeedbackCue(this.stringKey);
 

@@ -427,6 +427,10 @@ class AppStrings {
     'msg_cue_raise_hips': 'Nâng hông lên, giữ thân thẳng',
     'msg_cue_lower_hips': 'Hạ hông xuống, đừng chổng mông',
     'msg_cue_slow_down': 'Chậm lại, rep quá nhanh không được tính',
+    'msg_cue_chest_up': 'Giữ ngực thẳng, đừng gập người',
+    'msg_cue_heels_down': 'Giữ gót chân trên sàn',
+    'msg_ai_squat_setup':
+        'Đặt điện thoại ngang hông, quay nghiêng người sang một bên để thấy cả hông, gối và cổ chân',
     'title_camera_permission': 'Cần quyền camera',
     'msg_camera_permission':
         'Bodify cần camera để đếm rep và góp ý tư thế. Video không được ghi lại hay gửi đi đâu cả.',
@@ -959,6 +963,10 @@ class AppStrings {
     'msg_cue_raise_hips': 'Raise your hips, keep your body straight',
     'msg_cue_lower_hips': 'Lower your hips, do not pike',
     'msg_cue_slow_down': 'Slow down, that rep was too fast to count',
+    'msg_cue_chest_up': 'Chest up, do not fold forward',
+    'msg_cue_heels_down': 'Keep your heels on the floor',
+    'msg_ai_squat_setup':
+        'Prop the phone at hip height and stand side-on so your hip, knee and ankle are visible',
     'title_camera_permission': 'Camera access needed',
     'msg_camera_permission':
         'Bodify uses the camera to count reps and check your form. Nothing is recorded or uploaded.',
