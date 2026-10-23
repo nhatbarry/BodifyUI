@@ -431,7 +431,7 @@ String setAxisValue({
 
   switch (trackingType) {
     case TrackingType.duration:
-      return durationSeconds == null ? '-' : '$durationSeconds${tr('unit_seconds')}';
+      return durationSeconds == null ? '-' : '$durationSeconds ${tr('unit_seconds')}';
     case TrackingType.distance:
       return distanceM == null ? '-' : '${trim(distanceM)}m';
     case TrackingType.repsDuration:
@@ -439,7 +439,7 @@ String setAxisValue({
       if (reps == null && durationSeconds == null) return '-';
       final parts = <String>[
         if (reps != null) '$reps',
-        if (durationSeconds != null) '$durationSeconds${tr('unit_seconds')}',
+        if (durationSeconds != null) '$durationSeconds ${tr('unit_seconds')}',
       ];
       return parts.join('×');
     case TrackingType.reps:
