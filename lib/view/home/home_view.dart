@@ -406,7 +406,14 @@ class HomeViewState extends State<HomeView> {
                             ],
                           ),
                         ),
-                        LineChart(
+                        // The chart is laid over the caption and fills the
+                        // card, so while it has nothing to draw it must not
+                        // take touches: it swallowed every tap on the
+                        // "Connect Health Connect" button beneath it, which
+                        // is only ever shown when there are no points.
+                        IgnorePointer(
+                          ignoring: spots.isEmpty,
+                          child: LineChart(
                           LineChartData(
                             showingTooltipIndicators:
                                 showingTooltipOnSpots.map((index) {
@@ -507,7 +514,8 @@ class HomeViewState extends State<HomeView> {
                               ),
                             ),
                           ),
-                        )
+                        ),
+                        ),
                       ],
                     ),
                   ),
