@@ -156,8 +156,7 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-            tr('toast_added_to_today').replaceFirst('{name}', name)),
+        content: Text(tr('toast_added_to_today').replaceFirst('{name}', name)),
       ));
     } catch (e) {
       if (!mounted) return;
@@ -193,14 +192,15 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(confirmLabel == null ? tr('btn_nice') : tr('btn_cancel'),
+            child: Text(
+                confirmLabel == null ? tr('btn_nice') : tr('btn_cancel'),
                 style: TextStyle(color: colors.textSecondary)),
           ),
           if (confirmLabel != null)
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(confirmLabel,
-                  style: TextStyle(color: colors.primary1)),
+              child:
+                  Text(confirmLabel, style: TextStyle(color: colors.primary1)),
             ),
         ],
       ),
@@ -254,7 +254,8 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
   /// Search on a debounce so typing does not fire a request per keystroke.
   void _onSearchChanged(String _) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () => _load(reset: true));
+    _debounce =
+        Timer(const Duration(milliseconds: 400), () => _load(reset: true));
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -342,12 +343,15 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
                       const EdgeInsets.symmetric(vertical: 14, horizontal: 15),
                   border: InputBorder.none,
                   hintText: tr('hint_search_exercises'),
-                  hintStyle: TextStyle(color: context.colors.textSecondary, fontSize: 12),
-                  prefixIcon: Icon(Icons.search, color: context.colors.textSecondary, size: 20),
+                  hintStyle: TextStyle(
+                      color: context.colors.textSecondary, fontSize: 12),
+                  prefixIcon: Icon(Icons.search,
+                      color: context.colors.textSecondary, size: 20),
                   suffixIcon: _searchController.text.isEmpty
                       ? null
                       : IconButton(
-                          icon: Icon(Icons.close, color: context.colors.textSecondary, size: 18),
+                          icon: Icon(Icons.close,
+                              color: context.colors.textSecondary, size: 18),
                           onPressed: () {
                             _searchController.clear();
                             _load(reset: true);
@@ -363,8 +367,11 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
             child: Row(
               children: [
                 Text(
-                  _isLoading ? tr('msg_loading') : "$_total ${tr('label_exercise_count')}",
-                  style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
+                  _isLoading
+                      ? tr('msg_loading')
+                      : "$_total ${tr('label_exercise_count')}",
+                  style: TextStyle(
+                      color: context.colors.textSecondary, fontSize: 12),
                 ),
               ],
             ),
@@ -400,7 +407,8 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
 
   Widget _chipRow(List<Widget> chips) {
     return SizedBox(
-      height: 36,
+      height: (MediaQuery.textScalerOf(context).scale(12) * 1.25 + 20)
+          .clamp(48.0, double.infinity),
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -412,24 +420,31 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
   Widget _chip(String label, bool selected, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: selected
-                ? LinearGradient(colors: context.colors.primaryGradient)
-                : null,
-            color: selected ? null : context.colors.surfaceVariant,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? context.colors.surface : context.colors.textSecondary,
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: selected
+                  ? LinearGradient(colors: context.colors.primaryGradient)
+                  : null,
+              color: selected ? null : context.colors.surfaceVariant,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected
+                    ? context.colors.onPrimary
+                    : context.colors.textSecondary,
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              ),
             ),
           ),
         ),
@@ -439,7 +454,8 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
 
   Widget _buildBody() {
     if (_isLoading && _items.isEmpty) {
-      return Center(child: CircularProgressIndicator(color: context.colors.primary1));
+      return Center(
+          child: CircularProgressIndicator(color: context.colors.primary1));
     }
 
     if (_error != null && _items.isEmpty) {
@@ -449,11 +465,13 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off, color: context.colors.textSecondary, size: 40),
+              Icon(Icons.cloud_off,
+                  color: context.colors.textSecondary, size: 40),
               const SizedBox(height: 12),
               Text(_error!,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: context.colors.textSecondary, fontSize: 13)),
+                  style: TextStyle(
+                      color: context.colors.textSecondary, fontSize: 13)),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => _load(reset: true),
@@ -469,7 +487,8 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
     if (_items.isEmpty) {
       return Center(
         child: Text(tr('msg_no_exercises_found'),
-            style: TextStyle(color: context.colors.textSecondary, fontSize: 13)),
+            style:
+                TextStyle(color: context.colors.textSecondary, fontSize: 13)),
       );
     }
 
@@ -482,7 +501,8 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Center(
-                child: CircularProgressIndicator(color: context.colors.primary1)),
+                child:
+                    CircularProgressIndicator(color: context.colors.primary1)),
           );
         }
         return _ExerciseRow(
@@ -490,7 +510,8 @@ class _ExerciseExplorerViewState extends State<ExerciseExplorerView> {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ExerciseDetailView(exerciseId: _items[index].exerciseId),
+              builder: (_) =>
+                  ExerciseDetailView(exerciseId: _items[index].exerciseId),
             ),
           ),
           onAddToToday: () => _addToToday(_items[index]),
@@ -555,7 +576,8 @@ class _ExerciseRow extends StatelessWidget {
                     [item.experienceLevel, item.exerciseType, item.mechanics]
                         .where((e) => e != null && e.isNotEmpty)
                         .join(" · "),
-                    style: TextStyle(color: context.colors.textSecondary, fontSize: 11),
+                    style: TextStyle(
+                        color: context.colors.textSecondary, fontSize: 11),
                   ),
                 ],
               ),

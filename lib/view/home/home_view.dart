@@ -1,14 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:dotted_dashed_line/dotted_dashed_line.dart';
 import 'package:bodify/common_widget/round_button.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../common_widget/latest_workout_section.dart';
-import 'package:simple_animation_progress_bar/simple_animation_progress_bar.dart';
-import 'package:simple_circular_progress_bar/simple_circular_progress_bar.dart';
 import '../../common/app_colors.dart';
 import '../../core/api_exception.dart';
 import '../../core/app_strings.dart';
@@ -19,7 +15,6 @@ import '../../services/body_metric_service.dart';
 import '../../services/health_sync_service.dart';
 import '../../services/profile_service.dart';
 import '../body_metrics/bmi_view.dart';
-import 'activity_tracker_view.dart';
 import 'notification_view.dart';
 import '../../common_widget/activity_progress_card.dart';
 
@@ -39,6 +34,8 @@ class HomeViewState extends State<HomeView> {
 
   BodyMetric? _latestMetric;
   Profile? _profile;
+  bool _metricLoading = false;
+  bool _metricError = false;
 
   void refreshActivity() => _activityKey.currentState?.reload();
 
@@ -66,11 +63,18 @@ class HomeViewState extends State<HomeView> {
   }
 
   Future<void> _loadLatestMetric() async {
+    if (!mounted || _metricLoading) return;
+    setState(() {
+      _metricLoading = true;
+      _metricError = false;
+    });
     try {
       final metric = await BodyMetricService.instance.latest();
       if (mounted) setState(() => _latestMetric = metric);
-    } on ApiException {
-      // The rest of the home screen still works without a BMI reading.
+    } catch (_) {
+      if (mounted) setState(() => _metricError = true);
+    } finally {
+      if (mounted) setState(() => _metricLoading = false);
     }
   }
 
@@ -88,10 +92,17 @@ class HomeViewState extends State<HomeView> {
 
   HealthToday? _health;
   bool _healthBusy = false;
+  bool _healthLoading = false;
+  bool _healthError = false;
 
   /// Reads today from Health Connect for the card, then pushes the unsent
   /// days to the backend. The card does not wait on the upload.
   Future<void> _loadHealth() async {
+    if (!mounted || _healthLoading) return;
+    setState(() {
+      _healthLoading = true;
+      _healthError = false;
+    });
     try {
       final today = await HealthSyncService.instance.today();
       if (!mounted) return;
@@ -105,11 +116,11 @@ class HomeViewState extends State<HomeView> {
         }));
       }
     } catch (_) {
-      // Health Connect threw (e.g. its app is being updated). The card keeps
-      // showing "not connected" rather than taking the screen down.
-      if (mounted) {
-        setState(() => _health = const HealthToday(HealthAccess.notGranted));
-      }
+      // A read failure is not a permission denial. Keep any previous readings
+      // and offer a retry instead of sending the user through permissions.
+      if (mounted) setState(() => _healthError = true);
+    } finally {
+      if (mounted) setState(() => _healthLoading = false);
     }
   }
 
@@ -117,7 +128,7 @@ class HomeViewState extends State<HomeView> {
   void refreshHealth() => _loadHealth();
 
   Future<void> _connectHealth() async {
-    if (_healthBusy) return;
+    if (!mounted || _healthBusy) return;
     setState(() => _healthBusy = true);
     try {
       if (_health?.access == HealthAccess.notInstalled) {
@@ -126,10 +137,17 @@ class HomeViewState extends State<HomeView> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(tr('msg_health_denied'))));
       }
+      await _loadHealth();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _healthError = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tr('msg_health_load_failed'))),
+        );
+      }
     } finally {
       if (mounted) setState(() => _healthBusy = false);
     }
-    await _loadHealth();
   }
 
   /// Heart rate as chart points: x in minutes since midnight. A watch logging
@@ -159,520 +177,508 @@ class HomeViewState extends State<HomeView> {
         '${(m % 60).toString().padLeft(2, '0')}';
   }
 
-  List waterArr = [
-    {"title": "6am - 8am", "subtitle": "600ml"},
-    {"title": "9am - 11am", "subtitle": "500ml"},
-    {"title": "11am - 2pm", "subtitle": "1000ml"},
-    {"title": "2pm - 4pm", "subtitle": "700ml"},
-    {"title": "4pm - now", "subtitle": "900ml"},
-  ];
+  Future<void> _refreshHome() async {
+    await Future.wait([
+      _loadProfile(),
+      _loadLatestMetric(),
+      _loadHealth(),
+      _activityKey.currentState?.reload() ?? Future<void>.value(),
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
-    var media = MediaQuery.of(context).size;
-
-    final spots = _heartRateSpots();
+    final colors = context.colors;
+    final type = Theme.of(context).textTheme;
     final today = _health?.today;
-    final lineBarsData = [
-      LineChartBarData(
-        showingIndicators: showingTooltipOnSpots,
-        // fl_chart cannot draw an empty series; one invisible point keeps the
-        // card's shape while there is nothing to plot.
-        spots: spots.isEmpty ? const [FlSpot(0, 0)] : spots,
-        show: spots.isNotEmpty,
-        isCurved: true,
-        preventCurveOverShooting: true,
-        barWidth: 3,
-        belowBarData: BarAreaData(
-          show: true,
-          gradient: LinearGradient(colors: [
-            context.colors.primary2.withOpacity(0.4),
-            context.colors.primary1.withOpacity(0.1),
-          ], begin: Alignment.topCenter, end: Alignment.bottomCenter),
-        ),
-        dotData: FlDotData(show: false),
-        gradient: LinearGradient(
-          colors: context.colors.primaryGradient,
-        ),
-      ),
-    ];
-
-    final tooltipsOnBar = lineBarsData[0];
+    final spots = _heartRateSpots();
 
     return Scaffold(
-      backgroundColor: context.colors.surface,
-      // SafeArea only pads the *first* layout - it reserves space above the
-      // greeting once, but that reserved space is part of the scrollable
-      // content, so the instant the user scrolls it moves away with
-      // everything else and the next line of text slides in behind the
-      // status bar / camera cutout, which Flutter has no reason to clip
-      // since that area is legitimately part of the screen. Pinning an
-      // opaque strip the height of the top inset above the scroll view masks
-      // whatever scrolls underneath it instead.
+      backgroundColor: colors.surface,
+      // Keep scrolled content out of the status bar and display cutout.
       body: Stack(
         children: [
-          SingleChildScrollView(
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tr('label_welcome_back'),
-                          style: TextStyle(color: context.colors.textSecondary, fontSize: 12),
-                        ),
-                        Text(
-                          // The kit shipped a hardcoded name here. Until the
-                          // profile arrives, a neutral word beats someone
-                          // else's name.
-                          _profile?.name ?? tr('label_bodify_user'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: context.colors.textPrimary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const NotificationView(),
-                            ),
-                          );
-                        },
-                        icon: Image.asset(
-                          "assets/img/notification_active.png",
-                          width: 25,
-                          height: 25,
-                          fit: BoxFit.fitHeight,
-                        ))
-                  ],
-                ),
-                SizedBox(height: media.width * 0.05),
-                Container(
-                  height: media.width * 0.4,
-                  decoration: BoxDecoration(
-                      // Colour follows the BMI category so the warning is
-                      // visible without opening the detail screen.
-                      gradient: LinearGradient(
-                          colors: _latestMetric?.bmi == null
-                              ? context.colors.primaryGradient
-                              : bmiCategoryGradient(_latestMetric!.bmi!)),
-                      borderRadius: BorderRadius.circular(media.width * 0.075)),
-                  child: Stack(alignment: Alignment.center, children: [
-                    Image.asset(
-                      "assets/img/bg_dots.png",
-                      height: media.width * 0.4,
-                      width: double.maxFinite,
-                      fit: BoxFit.fitHeight,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 25, horizontal: 25),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          RefreshIndicator(
+            onRefresh: _refreshHome,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: SafeArea(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text(
-                                tr('title_bmi'),
-                                style: TextStyle(
-                                    color: context.colors.surface,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700),
-                              ),
-                              Text(
-                                _latestMetric?.bmi == null
-                                    ? tr('msg_no_bmi_yet')
-                                    : bmiCategoryLabel(_latestMetric!.bmi!),
-                                style: TextStyle(
-                                    color: context.colors.surface.withOpacity(0.7),
-                                    fontSize: 12),
-                              ),
-                              SizedBox(
-                                height: media.width * 0.05,
-                              ),
-                              SizedBox(
-                                  width: 120,
-                                  height: 35,
-                                  child: RoundButton(
-                                      title: tr('btn_view_more'),
-                                      type: RoundButtonType.bgSGradient,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w400,
-                                      onPressed: _openBmi))
-                            ],
-                          ),
-                          AspectRatio(
-                            aspectRatio: 1,
-                            child: PieChart(
-                              PieChartData(
-                                pieTouchData: PieTouchData(
-                                  touchCallback:
-                                      (FlTouchEvent event, pieTouchResponse) {},
-                                ),
-                                startDegreeOffset: 250,
-                                borderData: FlBorderData(
-                                  show: false,
-                                ),
-                                sectionsSpace: 1,
-                                centerSpaceRadius: 0,
-                                sections: showingSections(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  ]),
-                ),
-                SizedBox(height: media.width * 0.05),
-                Text(
-                  tr('title_activity_status'),
-                  style: TextStyle(
-                      color: context.colors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700),
-                ),
-                SizedBox(
-                  height: media.width * 0.02,
-                ),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(25),
-                  child: Container(
-                    // Taller than the kit's 0.4: the card now carries a
-                    // caption and, until connected, a button.
-                    height: media.width * 0.48,
-                    width: double.maxFinite,
-                    decoration: BoxDecoration(
-                      color: context.colors.primary2.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.topLeft,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 20, horizontal: 20),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                tr('label_heart_rate'),
-                                style: TextStyle(
-                                    color: context.colors.textPrimary,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700),
-                              ),
-                              ShaderMask(
-                                blendMode: BlendMode.srcIn,
-                                shaderCallback: (bounds) {
-                                  return LinearGradient(
-                                          colors: context.colors.primaryGradient,
-                                          begin: Alignment.centerLeft,
-                                          end: Alignment.centerRight)
-                                      .createShader(Rect.fromLTRB(
-                                          0, 0, bounds.width, bounds.height));
-                                },
-                                child: Text(
-                                  // The latest reading, not the day's average:
-                                  // the figure a watch face shows.
-                                  spots.isEmpty
-                                      ? '--'
-                                      : '${_health!.heartRate.last.bpm} ${tr('unit_bpm')}',
-                                  style: TextStyle(
-                                      color: context.colors.surface.withOpacity(0.7),
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 18),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              _heartRateCaption(today),
-                            ],
-                          ),
-                        ),
-                        LineChart(
-                          LineChartData(
-                            showingTooltipIndicators:
-                                showingTooltipOnSpots.map((index) {
-                              return ShowingTooltipIndicators([
-                                LineBarSpot(
-                                  tooltipsOnBar,
-                                  lineBarsData.indexOf(tooltipsOnBar),
-                                  tooltipsOnBar.spots[index],
-                                ),
-                              ]);
-                            }).toList(),
-                            lineTouchData: LineTouchData(
-                              enabled: true,
-                              handleBuiltInTouches: false,
-                              touchCallback: (FlTouchEvent event,
-                                  LineTouchResponse? response) {
-                                if (spots.isEmpty ||
-                                    response == null ||
-                                    response.lineBarSpots == null) {
-                                  return;
-                                }
-                                if (event is FlTapUpEvent) {
-                                  final spotIndex =
-                                      response.lineBarSpots!.first.spotIndex;
-                                  showingTooltipOnSpots.clear();
-                                  setState(() {
-                                    showingTooltipOnSpots.add(spotIndex);
-                                  });
-                                }
-                              },
-                              mouseCursorResolver: (FlTouchEvent event,
-                                  LineTouchResponse? response) {
-                                if (response == null ||
-                                    response.lineBarSpots == null) {
-                                  return SystemMouseCursors.basic;
-                                }
-                                return SystemMouseCursors.click;
-                              },
-                              getTouchedSpotIndicator:
-                                  (LineChartBarData barData,
-                                      List<int> spotIndexes) {
-                                return spotIndexes.map((index) {
-                                  return TouchedSpotIndicatorData(
-                                    FlLine(
-                                      color: Colors.red,
-                                    ),
-                                    FlDotData(
-                                      show: true,
-                                      getDotPainter:
-                                          (spot, percent, barData, index) =>
-                                              FlDotCirclePainter(
-                                        radius: 3,
-                                        color: Colors.white,
-                                        strokeWidth: 3,
-                                        strokeColor: context.colors.secondary1,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tr('label_welcome_back'),
+                                      style: type.bodyMedium?.copyWith(
+                                        color: colors.textSecondary,
                                       ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _profile?.name ?? tr('label_bodify_user'),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: type.titleLarge?.copyWith(
+                                        color: colors.textPrimary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                tooltip: tr('title_notification_section'),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const NotificationView(),
                                     ),
                                   );
-                                }).toList();
-                              },
-                              touchTooltipData: LineTouchTooltipData(
-                                getTooltipColor: (_) => context.colors.secondary1,
-                                tooltipBorderRadius: BorderRadius.circular(20),
-                                getTooltipItems:
-                                    (List<LineBarSpot> lineBarsSpot) {
-                                  return lineBarsSpot.map((lineBarSpot) {
-                                    return LineTooltipItem(
-                                      '${_clock(lineBarSpot.x)} · '
-                                      '${lineBarSpot.y.round()} ${tr('unit_bpm')}',
-                                      const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    );
-                                  }).toList();
                                 },
+                                icon: Icon(
+                                  Icons.notifications_none_rounded,
+                                  color: colors.textPrimary,
+                                ),
                               ),
-                            ),
-                            lineBarsData: lineBarsData,
-                            // The day's own range with headroom, so a resting
-                            // 60-70 bpm is not a flat line pinned to the
-                            // bottom of a 0-200 axis.
-                            minY: spots.isEmpty
-                                ? 0
-                                : spots.map((e) => e.y).reduce(math.min) - 15,
-                            maxY: spots.isEmpty
-                                ? 130
-                                : spots.map((e) => e.y).reduce(math.max) + 25,
-                            titlesData: FlTitlesData(
-                              show: false,
-                            ),
-                            gridData: FlGridData(show: false),
-                            borderData: FlBorderData(
-                              show: true,
-                              border: Border.all(
-                                color: Colors.transparent,
-                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          _bmiCard(),
+                          const SizedBox(height: 28),
+                          Text(
+                            tr('title_activity_status'),
+                            style: type.titleMedium?.copyWith(
+                              color: colors.textPrimary,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        )
-                      ],
+                          const SizedBox(height: 12),
+                          _heartRateCard(today, spots),
+                          const SizedBox(height: 16),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final distance = _metricCard(
+                                tr('label_distance'),
+                                today?.distanceM == null
+                                    ? null
+                                    : '${(today!.distanceM! / 1000).toStringAsFixed(2)} km',
+                              );
+                              final steps = _metricCard(
+                                tr('label_steps'),
+                                today?.steps?.toString(),
+                              );
+                              final largeText =
+                                  MediaQuery.textScalerOf(context).scale(14) >
+                                      21;
+                              if (constraints.maxWidth < 300 || largeText) {
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    distance,
+                                    const SizedBox(height: 12),
+                                    steps,
+                                  ],
+                                );
+                              }
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: distance),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: steps),
+                                ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          ActivityProgressCard(key: _activityKey),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(height: media.width * 0.05),
-                Row(
-                  children: [
-                    // Distance replaced calories: a phone without a watch can
-                    // measure how far somebody walked but only guess what it
-                    // cost them. A dash still means "no reading".
-                    Expanded(
-                      child: _metricCard(
-                        media,
-                        tr('label_distance'),
-                        today?.distanceM == null
-                            ? null
-                            : '${(today!.distanceM! / 1000).toStringAsFixed(2)} km',
-                      ),
-                    ),
-                    SizedBox(width: media.width * 0.05),
-                    Expanded(
-                      child: _metricCard(
-                        media,
-                        tr('label_steps'),
-                        today?.steps?.toString(),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: media.width * 0.05),
-                ActivityProgressCard(key: _activityKey),
-                    SizedBox(height: media.width * 0.1),
-                  ],
                 ),
               ),
             ),
           ),
-          // Masks whatever has scrolled up behind the status bar / notch -
-          // see the note on `body` above.
           Container(
-            height: MediaQuery.of(context).padding.top,
+            height: MediaQuery.paddingOf(context).top,
             width: double.infinity,
-            color: context.colors.surface,
+            color: colors.surface,
           ),
         ],
       ),
     );
   }
 
-  List<PieChartSectionData> showingSections() {
-    return List.generate(
-      2,
-      (i) {
-        // Matches the card behind it rather than the fixed kit accent.
-        var color0 = _latestMetric?.bmi == null
-            ? context.colors.secondary1
-            : bmiCategoryColor(_latestMetric!.bmi!);
+  Widget _bmiCard() {
+    final colors = context.colors;
+    final type = Theme.of(context).textTheme;
+    final bmi = _latestMetric?.bmi;
+    final foreground = colors.onPrimary;
+    final caption = _metricError
+        ? tr('msg_bmi_load_failed')
+        : _metricLoading && bmi == null
+            ? tr('msg_loading')
+            : bmi == null
+                ? tr('msg_no_bmi_yet')
+                : bmiCategoryLabel(bmi);
 
-        switch (i) {
-          case 0:
-            return PieChartSectionData(
-                color: color0,
-                value: 33,
-                title: '',
-                radius: 55,
-                titlePositionPercentageOffset: 0.55,
-                badgeWidget: Text(
-                  _latestMetric?.bmi?.toStringAsFixed(1) ?? "–",
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700),
-                ));
-          case 1:
-            return PieChartSectionData(
-              color: Colors.white,
-              value: 75,
-              title: '',
-              radius: 45,
-              titlePositionPercentageOffset: 0.55,
-            );
-
-          default:
-            throw Error();
-        }
-      },
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors:
+              bmi == null ? colors.primaryGradient : bmiCategoryGradient(bmi),
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr('title_bmi'),
+            style: type.titleMedium?.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // BMI is a measurement, not a completion percentage. A fixed pie
+          // slice implied a target that the user had never configured.
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final value = Text(
+                bmi?.toStringAsFixed(1) ?? '–',
+                style: type.displaySmall?.copyWith(
+                  color: foreground,
+                  fontWeight: FontWeight.w700,
+                ),
+              );
+              final description = Text(
+                caption,
+                style: type.bodyMedium?.copyWith(color: foreground),
+              );
+              if (constraints.maxWidth < 280 ||
+                  MediaQuery.textScalerOf(context).scale(14) > 21) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [value, const SizedBox(height: 8), description],
+                );
+              }
+              return Row(
+                children: [
+                  value,
+                  const SizedBox(width: 20),
+                  Expanded(child: description),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _openBmi,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: foreground,
+                  side: BorderSide(color: foreground),
+                  minimumSize: const Size(48, 48),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  textStyle:
+                      type.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                label: Text(tr('btn_view_more')),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                iconAlignment: IconAlignment.end,
+              ),
+              if (_metricError)
+                TextButton(
+                  onPressed: _loadLatestMetric,
+                  style: TextButton.styleFrom(
+                    foregroundColor: foreground,
+                    minimumSize: const Size(48, 48),
+                  ),
+                  child: Text(tr('btn_retry')),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  /// The line under the heart-rate figure: the day's range once there is
-  /// one, otherwise what stands between the user and a reading.
+  Widget _heartRateCard(HealthDay? today, List<FlSpot> spots) {
+    final colors = context.colors;
+    final type = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colors.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr('label_heart_rate'),
+            style: type.titleMedium?.copyWith(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            // Keep the latest real watch reading; absence is never zero BPM.
+            spots.isEmpty
+                ? '–'
+                : '${_health!.heartRate.last.bpm} ${tr('unit_bpm')}',
+            style: type.headlineSmall?.copyWith(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _heartRateCaption(today),
+          if (spots.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            _heartRateChart(spots),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _heartRateChart(List<FlSpot> spots) {
+    final colors = context.colors;
+    final bar = LineChartBarData(
+      showingIndicators: showingTooltipOnSpots,
+      spots: spots,
+      isCurved: true,
+      preventCurveOverShooting: true,
+      barWidth: 3,
+      belowBarData: BarAreaData(
+        show: true,
+        gradient: LinearGradient(
+          colors: [
+            colors.primary2.withValues(alpha: 0.3),
+            colors.primary1.withValues(alpha: 0.03),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      dotData: const FlDotData(show: false),
+      gradient: LinearGradient(colors: colors.primaryGradient),
+    );
+
+    // The chart lives below the caption so it never intercepts the Health
+    // Connect button or paints a tooltip over a permission explanation.
+    return Semantics(
+      label: '${tr('label_heart_rate')}. '
+          '${tr('label_hr_range').replaceAll('{min}', '${_health?.today?.heartRateMin ?? '–'}').replaceAll('{max}', '${_health?.today?.heartRateMax ?? '–'}')}',
+      child: SizedBox(
+        height: 120,
+        child: LineChart(
+          LineChartData(
+            showingTooltipIndicators: [
+              for (final index in showingTooltipOnSpots)
+                if (index < spots.length)
+                  ShowingTooltipIndicators([LineBarSpot(bar, 0, spots[index])]),
+            ],
+            lineTouchData: LineTouchData(
+              handleBuiltInTouches: false,
+              touchCallback: (event, response) {
+                if (event is! FlTapUpEvent ||
+                    response?.lineBarSpots?.isEmpty != false) {
+                  return;
+                }
+                setState(() {
+                  showingTooltipOnSpots = [
+                    response!.lineBarSpots!.first.spotIndex
+                  ];
+                });
+              },
+              getTouchedSpotIndicator: (barData, indexes) => [
+                for (final _ in indexes)
+                  TouchedSpotIndicatorData(
+                    FlLine(color: colors.textSecondary),
+                    FlDotData(
+                      getDotPainter: (spot, percent, barData, index) =>
+                          FlDotCirclePainter(
+                        radius: 3,
+                        color: colors.surface,
+                        strokeWidth: 3,
+                        strokeColor: colors.primary1,
+                      ),
+                    ),
+                  ),
+              ],
+              touchTooltipData: LineTouchTooltipData(
+                getTooltipColor: (_) => colors.primary2,
+                tooltipBorderRadius: BorderRadius.circular(12),
+                fitInsideHorizontally: true,
+                fitInsideVertically: true,
+                getTooltipItems: (touched) => [
+                  for (final spot in touched)
+                    LineTooltipItem(
+                      '${_clock(spot.x)} · ${spot.y.round()} ${tr('unit_bpm')}',
+                      TextStyle(
+                        color: colors.onPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            lineBarsData: [bar],
+            minY: spots.map((e) => e.y).reduce(math.min) - 15,
+            maxY: spots.map((e) => e.y).reduce(math.max) + 25,
+            titlesData: const FlTitlesData(show: false),
+            gridData: const FlGridData(show: false),
+            borderData: FlBorderData(show: false),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _heartRateCaption(HealthDay? today) {
     final colors = context.colors;
+    final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: colors.textSecondary,
+        );
     final access = _health?.access;
-    if (_health == null) return const SizedBox.shrink();
+    if (_healthBusy || _healthLoading) {
+      return Semantics(
+        liveRegion: true,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: colors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(tr('msg_loading'), style: style)),
+          ],
+        ),
+      );
+    }
+    if (_healthError) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tr('msg_health_load_failed'), style: style),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _loadHealth,
+            style: TextButton.styleFrom(
+              foregroundColor: colors.textPrimary,
+              minimumSize: const Size(48, 48),
+            ),
+            icon: const Icon(Icons.refresh_rounded, size: 20),
+            label: Text(tr('btn_retry')),
+          ),
+        ],
+      );
+    }
     if (access == HealthAccess.unavailable) {
-      return Text(tr('msg_health_unavailable'),
-          style: TextStyle(color: colors.textSecondary, fontSize: 11));
+      return Text(tr('msg_health_unavailable'), style: style);
     }
     if (access == HealthAccess.notInstalled ||
         access == HealthAccess.notGranted) {
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(tr('msg_health_permission'),
-              style: TextStyle(color: colors.textSecondary, fontSize: 11)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 32,
-            child: RoundButton(
-              title: tr(access == HealthAccess.notInstalled
-                  ? 'btn_install_health'
-                  : 'btn_connect_health'),
-              type: RoundButtonType.bgGradient,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              onPressed: _connectHealth,
-            ),
+          Text(tr('msg_health_permission'), style: style),
+          const SizedBox(height: 12),
+          RoundButton(
+            title: tr(access == HealthAccess.notInstalled
+                ? 'btn_install_health'
+                : 'btn_connect_health'),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            onPressed: _connectHealth,
           ),
         ],
       );
     }
     if (today?.heartRateMin == null) {
-      return Text(tr('msg_no_heart_rate'),
-          style: TextStyle(color: colors.textSecondary, fontSize: 11));
+      return Text(tr('msg_no_heart_rate'), style: style);
     }
     return Text(
       tr('label_hr_range')
           .replaceAll('{min}', '${today!.heartRateMin}')
           .replaceAll('{max}', '${today.heartRateMax}'),
-      style: TextStyle(color: colors.textSecondary, fontSize: 11),
+      style: style,
     );
   }
 
-  /// One of the two square tiles under the heart-rate chart. [value] null
-  /// draws a dash: a plausible number would be read as a measurement.
-  Widget _metricCard(Size media, String title, String? value) {
+  Widget _metricCard(String title, String? value) {
     final colors = context.colors;
+    final type = Theme.of(context).textTheme;
     final connected = _health?.access == HealthAccess.granted;
+    final status = _healthLoading
+        ? tr('msg_loading')
+        : _healthError
+            ? tr('msg_health_load_failed')
+            : tr(connected ? 'label_today' : 'msg_not_connected');
+
     return Container(
-      width: double.maxFinite,
-      height: media.width * 0.26,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)],
+        color: colors.surfaceVariant,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(title,
-              style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Text(value ?? '--',
-              style: TextStyle(
-                  color: value == null ? colors.textSecondary : colors.textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700)),
-          const Spacer(),
-          Text(tr(connected ? 'label_today' : 'msg_not_connected'),
-              style: TextStyle(color: colors.textSecondary, fontSize: 11)),
+          Text(
+            title,
+            style: type.titleSmall?.copyWith(
+              color: colors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value ?? '–',
+            style: type.headlineSmall?.copyWith(
+              color: value == null ? colors.textSecondary : colors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            status,
+            style: type.bodySmall?.copyWith(color: colors.textSecondary),
+          ),
         ],
       ),
     );

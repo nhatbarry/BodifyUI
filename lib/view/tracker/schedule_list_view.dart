@@ -190,7 +190,10 @@ class _ScheduleListViewState extends State<ScheduleListView> {
     if (confirmed != true) return;
 
     await _mutate(
-      [for (final p in _plans) if (p.planId != plan.planId) p],
+      [
+        for (final p in _plans)
+          if (p.planId != plan.planId) p
+      ],
       () => WorkoutPlanService.instance.deletePlan(plan.planId),
     );
   }
@@ -235,7 +238,8 @@ class _ScheduleListViewState extends State<ScheduleListView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off, color: context.colors.textSecondary, size: 40),
+              Icon(Icons.cloud_off,
+                  color: context.colors.textSecondary, size: 40),
               const SizedBox(height: 12),
               Text(_error!,
                   textAlign: TextAlign.center,
@@ -261,7 +265,8 @@ class _ScheduleListViewState extends State<ScheduleListView> {
                 height: 80,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                    color: context.colors.surfaceVariant, shape: BoxShape.circle),
+                    color: context.colors.surfaceVariant,
+                    shape: BoxShape.circle),
                 child: Icon(Icons.calendar_month,
                     color: context.colors.textSecondary, size: 34),
               ),
@@ -372,7 +377,7 @@ class _ScheduleCard extends StatelessWidget {
                         style: TextStyle(
                             color: dayCount == 0
                                 ? colors.textSecondary
-                                : colors.primary1,
+                                : Theme.of(context).colorScheme.primary,
                             fontSize: 12,
                             fontWeight: FontWeight.w500),
                       ),
@@ -449,7 +454,9 @@ class _NameDialogState extends State<_NameDialog> {
       title: Text(
         widget.initial == null ? tr('title_new_schedule') : tr('btn_rename'),
         style: TextStyle(
-            color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+            color: colors.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w700),
       ),
       content: TextField(
         controller: _controller,
@@ -471,12 +478,13 @@ class _NameDialogState extends State<_NameDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child:
-              Text(tr('btn_cancel'), style: TextStyle(color: colors.textSecondary)),
+          child: Text(tr('btn_cancel'),
+              style: TextStyle(color: colors.textSecondary)),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, _controller.text.trim()),
-          child: Text(tr('btn_save'), style: TextStyle(color: colors.primary1)),
+          child: Text(tr('btn_save'),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary)),
         ),
       ],
     );

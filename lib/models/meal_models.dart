@@ -223,6 +223,7 @@ class MealItem {
     this.fatG,
     this.carbG,
     this.fiberG,
+    this.photoAnalysisId,
   });
 
   final int mealItemId;
@@ -257,6 +258,9 @@ class MealItem {
   final double? plannedQuantity;
   final MealUnit? plannedUnit;
   final double? plannedEnergyKcal;
+
+  /// Set when the entry was confirmed from a photo's draft.
+  final int? photoAnalysisId;
 
   bool get isPlanned => status == ItemStatus.planned;
   bool get hasPlan => plannedQuantity != null;
@@ -298,6 +302,7 @@ class MealItem {
       plannedQuantity: plannedQuantity,
       plannedUnit: plannedUnit,
       plannedEnergyKcal: plannedEnergyKcal ?? this.plannedEnergyKcal,
+      photoAnalysisId: photoAnalysisId,
     );
   }
 
@@ -331,6 +336,7 @@ class MealItem {
             ? null
             : MealUnit.fromApi(json['planned_unit'] as String),
         plannedEnergyKcal: _toDouble(json['planned_energy_kcal']),
+        photoAnalysisId: json['photo_analysis_id'] as int?,
       );
 }
 
@@ -386,6 +392,7 @@ class Meal {
     this.name,
     this.note,
     this.photoKey,
+    this.photoUrl,
     this.plannedKcal = 0,
   });
 
@@ -398,9 +405,12 @@ class Meal {
   final int position;
   final String? note;
 
-  /// A storage key, not a URL. Nothing uploads one yet - the diary shows a
-  /// placeholder where the picture will go.
+  /// A storage key, not a URL - new on every upload, so it doubles as the
+  /// image cache key.
   final String? photoKey;
+
+  /// [photoKey] signed by the server. Rotates daily; never a cache key.
+  final String? photoUrl;
 
   final List<MealItem> items;
 
@@ -423,6 +433,7 @@ class Meal {
     String? name,
     bool clearName = false,
     String? note,
+    bool clearPhoto = false,
   }) {
     final next = items ?? this.items;
     return Meal(
@@ -433,7 +444,8 @@ class Meal {
       totals: NutritionTotals.ofEaten(next),
       name: clearName ? null : (name ?? this.name),
       note: note ?? this.note,
-      photoKey: photoKey,
+      photoKey: clearPhoto ? null : photoKey,
+      photoUrl: clearPhoto ? null : photoUrl,
       plannedKcal: plannedKcalOf(next),
     );
   }
@@ -445,6 +457,7 @@ class Meal {
         position: json['position'] as int? ?? 0,
         note: json['note'] as String?,
         photoKey: json['photo_key'] as String?,
+        photoUrl: json['photo_url'] as String?,
         items: (json['items'] as List<dynamic>? ?? [])
             .map((e) => MealItem.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -596,4 +609,124 @@ class CalendarDay {
       plannedCount: json['planned_count'] as int? ?? 0,
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// A photo's draft
+// ---------------------------------------------------------------------------
+
+/// A catalog food that may be what was photographed, with the amount already
+/// worked out in the unit that food accepts.
+class PhotoCandidate {
+  const PhotoCandidate({
+    required this.food,
+    required this.quantity,
+    required this.unit,
+    required this.energyKcal,
+    this.grams,
+    this.plausible = true,
+  });
+
+  final FoodSummary food;
+  final double quantity;
+  final MealUnit unit;
+  final double? grams;
+  final double energyKcal;
+
+  /// False when the catalog's figure is far from the model's own estimate -
+  /// likely a different dish. Offered, never preselected.
+  final bool plausible;
+
+  factory PhotoCandidate.fromJson(Map<String, dynamic> json) => PhotoCandidate(
+        food: FoodSummary.fromJson(json['food'] as Map<String, dynamic>),
+        quantity: _toDoubleOr0(json['quantity']),
+        unit: MealUnit.fromApi(json['unit'] as String? ?? 'serving'),
+        grams: _toDouble(json['grams']),
+        energyKcal: _toDoubleOr0(json['energy_kcal']),
+        plausible: json['plausible'] as bool? ?? true,
+      );
+}
+
+/// The model's own figures, per serving - a guess, used only when no catalog
+/// food fits, and labelled as one on screen.
+class PhotoEstimate {
+  const PhotoEstimate({
+    required this.name,
+    required this.quantity,
+    required this.energyKcal,
+    this.proteinG,
+    this.fatG,
+    this.carbG,
+  });
+
+  final String name;
+  final double quantity;
+  final double energyKcal;
+  final double? proteinG;
+  final double? fatG;
+  final double? carbG;
+
+  factory PhotoEstimate.fromJson(Map<String, dynamic> json) => PhotoEstimate(
+        name: json['name'] as String? ?? '',
+        quantity: _toDouble(json['quantity']) ?? 1,
+        energyKcal: _toDoubleOr0(json['energy_kcal']),
+        proteinG: _toDouble(json['protein_g']),
+        fatG: _toDouble(json['fat_g']),
+        carbG: _toDouble(json['carb_g']),
+      );
+}
+
+class DetectedFood {
+  const DetectedFood({
+    required this.name,
+    required this.confidence,
+    required this.candidates,
+    required this.estimate,
+    this.estimatedGrams,
+  });
+
+  final String name;
+  final double confidence;
+  final double? estimatedGrams;
+
+  /// Best first; empty when nothing in the catalog matched.
+  final List<PhotoCandidate> candidates;
+  final PhotoEstimate estimate;
+
+  factory DetectedFood.fromJson(Map<String, dynamic> json) => DetectedFood(
+        name: json['name'] as String? ?? '',
+        confidence: _toDoubleOr0(json['confidence']),
+        estimatedGrams: _toDouble(json['estimated_grams']),
+        candidates: (json['candidates'] as List<dynamic>? ?? [])
+            .map((e) => PhotoCandidate.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        estimate:
+            PhotoEstimate.fromJson(json['estimate'] as Map<String, dynamic>),
+      );
+}
+
+/// `POST /meals/{id}/photo-analysis`: a draft, nothing written to the diary.
+class PhotoAnalysis {
+  const PhotoAnalysis({
+    required this.analysisId,
+    required this.meal,
+    required this.isFood,
+    required this.items,
+  });
+
+  final int analysisId;
+
+  /// The meal as it now stands, carrying the photo just uploaded.
+  final Meal meal;
+  final bool isFood;
+  final List<DetectedFood> items;
+
+  factory PhotoAnalysis.fromJson(Map<String, dynamic> json) => PhotoAnalysis(
+        analysisId: json['analysis_id'] as int,
+        meal: Meal.fromJson(json['meal'] as Map<String, dynamic>),
+        isFood: json['is_food'] as bool? ?? false,
+        items: (json['items'] as List<dynamic>? ?? [])
+            .map((e) => DetectedFood.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
 }

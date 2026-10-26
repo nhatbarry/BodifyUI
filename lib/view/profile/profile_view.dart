@@ -95,28 +95,17 @@ class ProfileViewState extends State<ProfileView> {
         title: Text(
           tr('title_profile'),
           style: TextStyle(
-              color: context.colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+              color: context.colors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700),
         ),
         actions: [
-          InkWell(
-            onTap: _openSettings,
-            child: Container(
-              margin: const EdgeInsets.all(8),
-              height: 40,
-              width: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                  color: context.colors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(10)),
-              child: Image.asset(
-                "assets/img/p_setting.png",
-                width: 16,
-                height: 16,
-                fit: BoxFit.contain,
-                color: context.colors.textPrimary,
-              ),
-            ),
-          )
+          IconButton(
+            onPressed: _openSettings,
+            tooltip: tr('btn_open_settings'),
+            icon: Icon(Icons.settings_outlined,
+                color: context.colors.textPrimary),
+          ),
         ],
       ),
       backgroundColor: context.colors.surface,
@@ -126,112 +115,9 @@ class ProfileViewState extends State<ProfileView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  // The kit's stock portrait, until the user uploads one of
-                  // their own. Same cache key as the editor, keyed on
-                  // updated_at so a new upload is not served from the old one.
-                  ClipOval(
-                    child: SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: _profile?.avatarUrl == null
-                          ? Image.asset("assets/img/u2.png", fit: BoxFit.cover)
-                          : CachedNetworkImage(
-                              imageUrl: _profile!.avatarUrl!,
-                              cacheKey:
-                                  'avatar-${_profile!.userId}-${_profile!.updatedAt.toIso8601String()}',
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(
-                                  color: context.colors.surfaceVariant),
-                              errorWidget: (_, __, ___) => Image.asset(
-                                  "assets/img/u2.png",
-                                  fit: BoxFit.cover),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(
-                    width: 15,
-                  ),
-                  Expanded(
-                    child: ValueListenableBuilder<CurrentUser?>(
-                      valueListenable: AuthService.instance.currentUser,
-                      builder: (context, user, _) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user?.displayName ?? tr('label_bodify_user'),
-                              style: TextStyle(
-                                color: context.colors.textPrimary,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              user?.user.email ?? tr('error_not_signed_in'),
-                              style: TextStyle(
-                                color: context.colors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            )
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    width: 70,
-                    height: 25,
-                    child: RoundButton(
-                      title: tr('btn_edit_profile'),
-                      type: RoundButtonType.bgGradient,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      onPressed: _openPersonalData,
-                    ),
-                  )
-                ],
-              ),
-              const SizedBox(
-                height: 15,
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TitleSubtitleCell(
-                      // Height and weight come from the latest body metric,
-                      // age from the birth date - all via GET /profile.
-                      title: _profile?.heightCm == null
-                          ? "--"
-                          : "${_num(_profile!.heightCm!)}cm",
-                      subtitle: tr('label_height'),
-                    ),
-                  ),
-                  const SizedBox(
-                    width: 15,
-                  ),
-                  Expanded(
-                    child: TitleSubtitleCell(
-                      title: _profile?.weightKg == null
-                          ? "--"
-                          : "${_num(_profile!.weightKg!)}kg",
-                      subtitle: tr('label_weight_short'),
-                    ),
-                  ),
-                  const SizedBox(
-                    width: 15,
-                  ),
-                  Expanded(
-                    child: TitleSubtitleCell(
-                      title: _profile?.age == null
-                          ? "--"
-                          : "${_profile!.age}yo",
-                      subtitle: tr('label_age'),
-                    ),
-                  ),
-                ],
-              ),
+              _profileHeader(),
+              const SizedBox(height: 20),
+              _profileStats(),
               const SizedBox(height: 26),
               // The badges and the history both belong to the person, not to
               // the settings: this is the screen about who you are and what
@@ -244,6 +130,131 @@ class ProfileViewState extends State<ProfileView> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _profileHeader() {
+    final colors = context.colors;
+    final type = Theme.of(context).textTheme;
+    final identity = Row(
+      children: [
+        // Preserve the editor's avatar cache identity so a new upload refreshes.
+        ClipOval(
+          child: SizedBox(
+            width: 50,
+            height: 50,
+            child: _profile?.avatarUrl == null
+                ? Image.asset('assets/img/u2.png', fit: BoxFit.cover)
+                : CachedNetworkImage(
+                    imageUrl: _profile!.avatarUrl!,
+                    cacheKey:
+                        'avatar-${_profile!.userId}-${_profile!.updatedAt.toIso8601String()}',
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) =>
+                        Container(color: colors.surfaceVariant),
+                    errorWidget: (_, __, ___) =>
+                        Image.asset('assets/img/u2.png', fit: BoxFit.cover),
+                  ),
+          ),
+        ),
+        const SizedBox(width: 15),
+        Expanded(
+          child: ValueListenableBuilder<CurrentUser?>(
+            valueListenable: AuthService.instance.currentUser,
+            builder: (context, user, _) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user?.displayName ?? tr('label_bodify_user'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: type.titleMedium?.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.user.email ?? tr('error_not_signed_in'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: type.bodySmall?.copyWith(color: colors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+    final edit = ConstrainedBox(
+      constraints:
+          const BoxConstraints(minWidth: 88, maxWidth: 120, minHeight: 48),
+      child: RoundButton(
+        title: tr('btn_edit_profile'),
+        type: RoundButtonType.bgGradient,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        onPressed: _openPersonalData,
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 360 ||
+            MediaQuery.textScalerOf(context).scale(14) > 18.2) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [identity, const SizedBox(height: 16), edit],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: identity),
+            const SizedBox(width: 16),
+            edit,
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _profileStats() {
+    // The values still come from GET /profile. Age's label already supplies
+    // its context; repeating 'years old' made the third tile unnecessarily tall.
+    final cells = [
+      TitleSubtitleCell(
+        title: _profile?.heightCm == null
+            ? '–'
+            : '${_num(_profile!.heightCm!)} cm',
+        subtitle: tr('label_height'),
+      ),
+      TitleSubtitleCell(
+        title: _profile?.weightKg == null
+            ? '–'
+            : '${_num(_profile!.weightKg!)} kg',
+        subtitle: tr('label_weight_short'),
+      ),
+      TitleSubtitleCell(
+        title: _profile?.age?.toString() ?? '–',
+        subtitle: tr('label_age'),
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+        const gap = 12.0;
+        final columns = ((constraints.maxWidth + gap) / (120 * scale + gap))
+            .floor()
+            .clamp(1, 3);
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final cell in cells) SizedBox(width: width, child: cell)
+          ],
+        );
+      },
     );
   }
 }

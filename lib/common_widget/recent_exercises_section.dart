@@ -104,6 +104,7 @@ class RecentExercisesSectionState extends State<RecentExercisesSection> {
   }
 
   Widget _row(BodifyColors colors, RecentExercise item) {
+    final type = Theme.of(context).textTheme;
     return InkWell(
       onTap: () => Navigator.push(
         context,
@@ -113,50 +114,56 @@ class RecentExercisesSectionState extends State<RecentExercisesSection> {
       ),
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: colors.surfaceVariant,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Row(
-          children: [
-            // Same cache key as every other list, so the picture is already on
-            // disk from the explorer or the calendar.
-            ExerciseThumbnail(
-              url: item.thumbnailUrl,
-              cacheKey: 'thumb-${item.exerciseId}',
-              size: 46,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name ?? '#${item.exerciseId}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    item.summary,
-                    style:
-                        TextStyle(color: colors.textSecondary, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final stackedDate = constraints.maxWidth < 300 ||
+                MediaQuery.textScalerOf(context).scale(12) > 16.8;
+            final date = Text(
               _when(item.day),
-              style: TextStyle(color: colors.textSecondary, fontSize: 11),
-            ),
-          ],
+              style: type.bodySmall?.copyWith(color: colors.textSecondary),
+            );
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Preserve the explorer/calendar thumbnail cache identity.
+                ExerciseThumbnail(
+                  url: item.thumbnailUrl,
+                  cacheKey: 'thumb-${item.exerciseId}',
+                  size: 46,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name ?? '#${item.exerciseId}',
+                        maxLines: stackedDate ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: type.titleSmall?.copyWith(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.summary,
+                        style: type.bodySmall
+                            ?.copyWith(color: colors.textSecondary),
+                      ),
+                      if (stackedDate) ...[const SizedBox(height: 6), date],
+                    ],
+                  ),
+                ),
+                if (!stackedDate) ...[const SizedBox(width: 12), date],
+              ],
+            );
+          },
         ),
       ),
     );

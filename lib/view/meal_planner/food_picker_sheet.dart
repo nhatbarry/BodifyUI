@@ -26,10 +26,15 @@ class FoodPickerSheet extends StatefulWidget {
   final int mealId;
   final ItemStatus defaultStatus;
 
+  /// Offered as a camera button in the header. The picker closes first and
+  /// the caller runs the photo flow, which has a sheet of its own.
+  final VoidCallback? onPhoto;
+
   const FoodPickerSheet({
     super.key,
     required this.mealId,
     this.defaultStatus = ItemStatus.eaten,
+    this.onPhoto,
   });
 
   @override
@@ -270,6 +275,16 @@ class _FoodPickerSheetState extends State<FoodPickerSheet> {
                       ),
                     ),
                   ),
+                  if (widget.onPhoto != null)
+                    IconButton(
+                      tooltip: AppStrings.of('btn_meal_photo'),
+                      onPressed: () {
+                        Navigator.pop(context, false);
+                        widget.onPhoto!();
+                      },
+                      icon: Icon(Icons.photo_camera_outlined,
+                          color: colors.primary1),
+                    ),
                   TextButton.icon(
                     onPressed: () => _enterManually(),
                     icon: const Icon(Icons.edit_note, size: 20),

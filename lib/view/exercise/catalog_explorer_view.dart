@@ -28,17 +28,22 @@ class _CatalogExplorerViewState extends State<CatalogExplorerView> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final labels = [tr('title_exercises'), tr('title_foods')];
+    final switchWidth =
+        (MediaQuery.sizeOf(context).width - 112).clamp(160.0, 280.0);
+    final switchHeight = PillSwitcher.heightFor(context, labels, switchWidth);
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
+        toolbarHeight: switchHeight + 8,
         backgroundColor: colors.surface,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: colors.textPrimary),
         title: SizedBox(
-          width: 240,
+          width: switchWidth,
           child: PillSwitcher(
-            labels: [tr('title_exercises'), tr('title_foods')],
+            labels: labels,
             selected: _tab,
             height: 34,
             onChanged: (i) => setState(() => _tab = i),

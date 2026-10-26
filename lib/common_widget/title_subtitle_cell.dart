@@ -1,49 +1,33 @@
-
 import 'package:flutter/material.dart';
-
 import '../common/app_colors.dart';
 
 class TitleSubtitleCell extends StatelessWidget {
   final String title;
   final String subtitle;
-  const TitleSubtitleCell({super.key, required this.title, required this.subtitle});
-
+  const TitleSubtitleCell(
+      {super.key, required this.title, required this.subtitle});
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2)]),
-      child: Column(
-        children: [
-          ShaderMask(
-            blendMode: BlendMode.srcIn,
-            shaderCallback: (bounds) {
-              return LinearGradient(
-                      colors: context.colors.primaryGradient,
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight)
-                  .createShader(
-                      Rect.fromLTRB(0, 0, bounds.width, bounds.height));
-            },
-            child: Text(
-              title,
-              style: TextStyle(
-                  color: context.colors.surface.withOpacity(0.7),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14),
-            ),
-          ),
-          Text(
-            subtitle,
-            style: TextStyle(
-              color: context.colors.textSecondary,
-              fontSize: 12,
-            ),
-          ),
-        ],
+    final colors = context.colors;
+    final type = Theme.of(context).textTheme;
+    return Semantics(
+      label: '$subtitle: $title',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+            color: colors.surfaceVariant,
+            borderRadius: BorderRadius.circular(16)),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(title,
+              textAlign: TextAlign.center,
+              style: type.titleMedium?.copyWith(
+                  color: colors.textPrimary, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          Text(subtitle,
+              textAlign: TextAlign.center,
+              style: type.bodySmall?.copyWith(color: colors.textSecondary)),
+        ]),
       ),
     );
   }
